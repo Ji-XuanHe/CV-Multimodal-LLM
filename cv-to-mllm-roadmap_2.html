@@ -538,28 +538,27 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 链式法则与梯度下降（手推一遍加深理解）</div>
-        <div class="deriv-body"><pre>
-假设一个两层网络：
-  z₁ = W₁ · x + b₁       (线性变换)
-  h  = ReLU(z₁)           (激活函数)
-  z₂ = W₂ · h + b₂
-  ŷ  = softmax(z₂)        (输出概率)
-  L  = -∑ yᵢ log(ŷᵢ)     (交叉熵损失)
+        <div class="deriv-body">
+          <div class="math-cap">两层网络 · 前向</div>
+          $$\begin{aligned}
+          z_1 &= W_1 x + b_1, \qquad h = \mathrm{ReLU}(z_1)\\
+          z_2 &= W_2 h + b_2, \qquad \hat{y} = \mathrm{softmax}(z_2)\\
+          L &= -\textstyle\sum_i y_i \log \hat{y}_i \quad(\text{cross-entropy})
+          \end{aligned}$$
 
-反向传播（链式法则，从后往前推）：
-  ∂L/∂z₂ = ŷ - y                          (softmax + CE 的简洁梯度)
-  ∂L/∂W₂ = (∂L/∂z₂) · hᵀ                  (对 W₂ 的梯度)
-  ∂L/∂h  = W₂ᵀ · (∂L/∂z₂)                 (传回上一层)
-  ∂L/∂z₁ = (∂L/∂h) ⊙ ReLU'(z₁)            (⊙ 逐元素乘)
-  ∂L/∂W₁ = (∂L/∂z₁) · xᵀ
+          <div class="math-cap">反向 · 链式法则（从后往前）</div>
+          $$\begin{aligned}
+          \frac{\partial L}{\partial z_2} &= \hat{y} - y\\[2pt]
+          \frac{\partial L}{\partial W_2} &= \frac{\partial L}{\partial z_2}\, h^\top, \qquad
+          \frac{\partial L}{\partial h} = W_2^\top \frac{\partial L}{\partial z_2}\\[2pt]
+          \frac{\partial L}{\partial z_1} &= \frac{\partial L}{\partial h} \odot \mathrm{ReLU}'(z_1)\\[2pt]
+          \frac{\partial L}{\partial W_1} &= \frac{\partial L}{\partial z_1}\, x^\top
+          \end{aligned}$$
+          <p class="math-note">关键：$\dfrac{\partial L}{\partial z_2}=\hat{y}-y$ 是 softmax + 交叉熵组合后的简洁梯度；$\odot$ 为逐元素乘。</p>
 
-参数更新（梯度下降）：
-  W ← W - lr × ∂L/∂W     (lr 是学习率)
-
-常用优化器：
-  SGD:  最基础
-  Adam: 自适应学习率，目前最常用
-  AdamW: Adam + 权重衰减（大模型标配）</pre>
+          <div class="math-cap">参数更新 · 梯度下降</div>
+          $$W \;\leftarrow\; W - \text{lr}\times \frac{\partial L}{\partial W}$$
+          <p class="math-note">常用优化器：SGD（最基础）· Adam（自适应学习率，最常用）· AdamW（Adam + 权重衰减，大模型标配）。</p>
         </div>
       </div>
 
@@ -778,47 +777,25 @@ print(conv(torch.randn(1,3,224,224)).shape)   # [1,16,112,112]，尺寸减半</d
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 注意力机制完整推导（最重要的推导之一）</div>
-        <div class="deriv-body"><pre>
-═══ 核心直觉 ═══
-注意力回答的问题：序列中的每个位置应该「关注」其他哪些位置？
+        <div class="deriv-body">
+          <div class="math-cap">核心直觉</div>
+          <p class="math-note">注意力回答：每个位置该「关注」谁？类比在图书馆找书 —— <strong>Q</strong>=你要找的主题、<strong>K</strong>=每本书的标签、<strong>V</strong>=书的实际内容；用 Q 与每个 K 比相关度 → 加权提取 V 的内容。</p>
 
-类比：你在图书馆找书
-  Query (Q)：你要找的主题（「我想找关于猫的书」）
-  Key (K)  ：每本书封面上的标签（「动物」「烹饪」「历史」）
-  Value (V)：书的实际内容
+          <div class="math-cap">Scaled Dot-Product Attention</div>
+          <p class="math-note">输入 $Q\in\mathbb{R}^{n\times d_k},\ K\in\mathbb{R}^{m\times d_k},\ V\in\mathbb{R}^{m\times d_v}$，四步：</p>
+          $$S = QK^\top \in \mathbb{R}^{n\times m}
+          \;\xrightarrow{\;\div\sqrt{d_k}\;}\;
+          A = \mathrm{softmax}(S)
+          \;\longrightarrow\;
+          \mathrm{Output} = AV \in \mathbb{R}^{n\times d_v}$$
+          $$\boxed{\ \mathrm{Attention}(Q,K,V) = \mathrm{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V\ }$$
+          <p class="math-note">为什么除以 $\sqrt{d_k}$：$d_k$ 较大时点积方差 $\approx d_k$，softmax 易饱和成 one-hot、梯度消失；缩放让方差回到 1。$A$ 每行和为 1，即每个 query 的注意力权重。</p>
 
-  注意力 = 用 Q 和每个 K 比对相关度 → 加权提取 V 的内容
-
-═══ Scaled Dot-Product Attention ═══
-输入：Q ∈ ℝ^{n×d_k}, K ∈ ℝ^{m×d_k}, V ∈ ℝ^{m×d_v}
-
-Step 1: 计算相似度分数
-  S = Q · Kᵀ ∈ ℝ^{n×m}     每对 (query, key) 的点积
-
-Step 2: 缩放（为什么？）
-  S = S / √d_k
-  原因：d_k 很大时，点积的方差 ≈ d_k，
-  导致 softmax 输出接近 one-hot，梯度消失。
-  除以 √d_k 让方差回到 1。
-
-Step 3: Softmax 归一化
-  A = softmax(S)    每行和为 1，即每个 query 的注意力权重
-
-Step 4: 加权求和
-  Output = A · V ∈ ℝ^{n×d_v}
-
-合在一起：
-  Attention(Q,K,V) = softmax(QKᵀ / √d_k) · V
-
-═══ Multi-Head Attention ═══
-为什么要多头？单个注意力只能学一种「关注模式」。
-多头让模型同时关注不同方面（语法、语义、位置...）
-
-  head_i = Attention(QWᵢᴾ, KWᵢᴷ, VWᵢⱽ)
-  MultiHead = Concat(head₁, ..., head_h) · Wᴼ
-
-h 个头，每个头的维度 d_k = d_model / h
-例：d_model=768, h=12 → 每个头 64 维</pre>
+          <div class="math-cap">Multi-Head Attention</div>
+          <p class="math-note">单头只能学一种关注模式；多头并行关注不同方面（语法 / 语义 / 位置…）：</p>
+          $$\mathrm{head}_i = \mathrm{Attention}(QW_i^Q,\,KW_i^K,\,VW_i^V),\qquad
+          \mathrm{MultiHead} = \mathrm{Concat}(\mathrm{head}_1,\dots,\mathrm{head}_h)\,W^O$$
+          <p class="math-note">$h$ 个头，每头维度 $d_k = d_{\text{model}}/h$。例：$d_{\text{model}}=768,\ h=12 \Rightarrow$ 每头 $64$ 维。</p>
         </div>
       </div>
 
@@ -911,41 +888,22 @@ print(attention(Q, K, V).shape)               # [1, 8, 64]
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> ViT 完整流程（从图像到分类结果）</div>
-        <div class="deriv-body"><pre>
-═══ Step 1: Patch Embedding ═══
-输入图像 x ∈ ℝ^{H×W×C}，如 224×224×3
+        <div class="deriv-body">
+          <div class="math-cap">Step 1 · Patch Embedding</div>
+          <p class="math-note">输入图像 $x\in\mathbb{R}^{H\times W\times C}$（如 $224\times224\times3$），切成 $P\times P$ 的 patch：</p>
+          $$N = \frac{H}{P}\times\frac{W}{P} = \frac{224}{16}\times\frac{224}{16} = 196$$
+          <p class="math-note">每个 patch 展平为 $P^2C = 16{\times}16{\times}3 = 768$ 维，再线性投影到 $d_{\text{model}}$：$\ \texttt{patch\_embed}=\mathrm{Linear}(P^2C,\ d_{\text{model}})$。</p>
 
-切成 N 个 patch，每个 patch 大小 P×P
-  N = (H/P) × (W/P) = (224/16) × (224/16) = 196 个 patch
+          <div class="math-cap">Step 2 · 加 [CLS] 与位置编码</div>
+          <p class="math-note">序列前面加可学习的 $[\mathrm{CLS}]$，长度变 $196+1=197$，再加可学习位置编码：</p>
+          $$z_0 = [\,x_{\text{cls}};\ p_1 E;\ \dots;\ p_N E\,] + E_{\text{pos}},\qquad E_{\text{pos}}\in\mathbb{R}^{(N+1)\times d}$$
 
-每个 patch 展平为向量：P×P×C = 16×16×3 = 768 维
-再通过线性投影映射到 d_model 维：
-  patch_embed = Linear(P²·C, d_model)
+          <div class="math-cap">Step 3 · Transformer Encoder（×L）</div>
+          <p class="math-note">每层：$\mathrm{LN}\to$ Multi-Head Self-Attention $\to$ 残差 $\to \mathrm{LN}\to$ FFN $\to$ 残差。注意是<strong>双向</strong>注意力（非 GPT 的因果），每个 patch 能看到所有 patch。</p>
 
-═══ Step 2: 添加特殊 token 和位置编码 ═══
-在序列最前面加一个 [CLS] token（可学习）：
-  序列变为 [CLS, patch₁, patch₂, ..., patch₁₉₆]
-  长度 = 197
-
-加上可学习的位置编码（每个位置一个 d 维向量）：
-  z₀ = [x_cls; patch₁E; ...; patch_N·E] + E_pos
-  E_pos ∈ ℝ^{(N+1)×d}
-
-═══ Step 3: Transformer Encoder ═══
-标准的 L 层 Transformer Encoder（和 BERT 一样）：
-  每层：LayerNorm → Multi-Head Self-Attention → 残差
-       → LayerNorm → FFN (MLP) → 残差
-
-注意：这里是双向注意力（不是 GPT 的因果注意力）
-每个 patch 可以看到所有其他 patch
-
-═══ Step 4: 分类头 ═══
-取 [CLS] token 的最终表示 → MLP Head → 类别概率
-  y = MLP(LayerNorm(z_L[0]))
-
-参数量估算（ViT-Base）：
-  d=768, L=12 层, h=12 头
-  ≈ 86M 参数（和 ResNet-50 的 25M 相比更大）</pre>
+          <div class="math-cap">Step 4 · 分类头</div>
+          $$y = \mathrm{MLP}\big(\mathrm{LN}(z_L[0])\big)$$
+          <p class="math-note">取 $[\mathrm{CLS}]$ 的最终表示过 MLP Head 得类别概率。参数量（ViT-Base，$d=768,\ L=12,\ h=12$）$\approx 86\mathrm{M}$（比 ResNet-50 的 $25\mathrm{M}$ 更大）。</p>
         </div>
       </div>
 
