@@ -1810,7 +1810,7 @@ function initRefs(){
   // —— arXiv → ar5iv（可嵌入的 HTML 版）；youtube → embed；github.io 直接嵌 ——
   function embedInfo(url){
     var m = url.match(/arxiv\.org\/(?:abs|pdf)\/([0-9]+\.[0-9]+)/);
-    if(m) return {embed:true, src:'https://ar5iv.labs.arxiv.org/html/'+m[1], kind:'ar5iv'};
+    if(m) return {embed:true, src:'https://arxiv.org/pdf/'+m[1], kind:'pdf'};
     var y = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
     if(y) return {embed:true, src:'https://www.youtube.com/embed/'+y[1], kind:'yt'};
     var h; try{ h = new URL(url).hostname; }catch(e){ return {embed:false}; }
@@ -1849,8 +1849,8 @@ function initRefs(){
       var f = document.createElement('iframe');
       f.src = e.src; f.loading = 'lazy'; f.setAttribute('referrerpolicy','no-referrer');
       rpBody.appendChild(f);
-      rpHint.textContent = e.kind==='ar5iv'
-        ? 'ar5iv HTML 版（arXiv 官方）· 公式偶有渲染差异，原版可点「↗ 新标签」'
+      rpHint.textContent = e.kind==='pdf'
+        ? 'arXiv PDF 原版（官方）· 若未显示请点「↗ 新标签」打开'
         : '若右侧长时间空白，说明站点禁止嵌入，请点「↗ 新标签」打开';
     } else {
       var card = document.createElement('div');

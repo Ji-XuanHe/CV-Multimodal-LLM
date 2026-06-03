@@ -46,7 +46,7 @@ start cv-to-mllm-roadmap_2.html
 每天的「阅读材料」链接、以及精选补充的**顶级公司技术报告 / 顶会论文**，都可以一键在**右侧并排侧窗**打开，边看路线边读原文：
 
 - **venue 标签**：每个链接自动标注来源（`arXiv` / `NeurIPS` / `CVPR` / `OpenAI` / `Qwen` / `DeepSeek` …），一眼看清分量
-- **arXiv 自动转 ar5iv**：arXiv 论文在侧窗内以官方 **ar5iv HTML 版**呈现，可直接滚动阅读、左右对照
+- **arXiv 官方 PDF 原版**：arXiv 论文在侧窗内直接以官方 PDF 呈现（公式排版完美），可滚动阅读、左右对照
 - **优雅回退**：对禁止嵌入的站点（X-Frame-Options），侧窗显示信息卡片 + 「↗ 在新标签打开」
 - **可拖拽调宽**：拖侧窗左缘自由调节宽度；`Esc` 或 `✕` 关闭
 - **延伸资源**：在对应天追加了一批必读，如 GPT-3 / GPT-4 / Llama 3 / Qwen-VL / DeepSeek-V3·R1 / Gemini 1.5 / BLIP-2 / Flamingo / SAM / FlashAttention 等
