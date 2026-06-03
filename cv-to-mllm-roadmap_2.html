@@ -4075,44 +4075,451 @@ args = TrainingArguments(
   <div class="week-head"><span class="week-num">08</span><h2 class="week-title">实战：启动你的第一个多模态项目</h2></div>
   <p class="week-lead">把前 7 周学到的知识落地。目标：产出一个可以作为论文基础或求职作品的完整项目。</p>
 
-  <div class="day" data-day="36"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D36</span><span class="day-title">项目规划：确定问题、数据、方法、基线</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>今日目标</h4><p>写一份 1-2 页的项目计划书。</p><div class="box-important"><span class="label">🔥 项目计划模板</span><p><strong>① Problem</strong>：一句话描述。例：「现有 MLLM 在低光图像输入下性能严重下降。」<br><strong>② Motivation</strong>：为什么重要？真实场景中大量图像是低光拍摄的。<br><strong>③ Data</strong>：用什么数据？RELLISUR 数据集？自建？<br><strong>④ Method</strong>：你的技术方案。<br><strong>⑤ Baselines</strong>：和谁比？<br><strong>⑥ Metrics</strong>：准确率、MMBench 分数、自建 benchmark。</p></div></div></div>
+  <div class="day" data-day="36"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D36</span><span class="day-title">项目规划：确定问题、数据、方法、基线</span><span class="day-arrow">▶</span></div><div class="day-body">
 
-  <div class="day" data-day="37"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D37</span><span class="day-title">数据准备与预处理</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>今日目标</h4><p>准备你项目所需的数据集。</p><div class="code-block">import json
+      <div class="arch-fig">
+        <div class="af-cap">📊 一页项目计划书的六要素</div>
+        <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="项目计划六要素：问题与动机定义价值，数据-方法-基线-指标构成可验证的实验闭环">
+          <defs>
+            <marker id="d36ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 上行：为什么做 -->
+          <rect x="30" y="34" width="200" height="44" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/>
+          <text x="130" y="54" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">① Problem 问题</text>
+          <text x="130" y="70" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">一句话讲清要解决什么</text>
+          <line x1="230" y1="56" x2="262" y2="56" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d36ar)"/>
+          <rect x="264" y="34" width="200" height="44" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="364" y="54" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#26211a">② Motivation 动机</text>
+          <text x="364" y="70" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">为什么值得做 · 真痛点</text>
+          <text x="600" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">定义「价值」</text>
+          <!-- 下行：怎么验证（闭环）-->
+          <rect x="30" y="120" width="150" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="105" y="140" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">③ Data 数据</text>
+          <text x="105" y="156" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">用什么数据测</text>
+          <line x1="180" y1="142" x2="208" y2="142" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d36ar)"/>
+          <rect x="210" y="120" width="150" height="44" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.8"/>
+          <text x="285" y="140" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#26211a">④ Method 方法</text>
+          <text x="285" y="156" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">你的技术方案</text>
+          <line x1="360" y1="142" x2="388" y2="142" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d36ar)"/>
+          <rect x="390" y="120" width="150" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="465" y="140" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">⑤ Baselines</text>
+          <text x="465" y="156" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">和谁比</text>
+          <line x1="540" y1="142" x2="568" y2="142" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d36ar)"/>
+          <rect x="570" y="120" width="150" height="44" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="645" y="140" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">⑥ Metrics 指标</text>
+          <text x="645" y="156" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">怎么算赢</text>
+          <!-- 连接上下 -->
+          <path d="M130,78 L105,118" fill="none" stroke="#5a5043" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#d36ar)"/>
+          <text x="370" y="100" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">③④⑤⑥ 构成可验证的实验闭环</text>
+          <text x="30" y="208" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">能用一页讲清这六点，idea 就立住了一半；讲不清，说明还没想透</text>
+        </svg>
+      </div>
 
-data = {
-    "id": "lowlight_001",
-    "image": "images/dark_scene_001.jpg",
-    "conversations": [
-        {"from": "human", "value": "&lt;image&gt;\n这张低光照片中有什么物体？"},
-        {"from": "gpt", "value": "这张图像虽然光线较暗，但可以辨识出..."}
-    ]
-}
+      <h4>今日目标</h4>
+      <p>把 D35 选定的方向,落成一份 <strong>1–2 页的项目计划书(proposal)</strong>。学完今天你应能:<strong>(1)</strong> 用六要素把 idea 讲清;<strong>(2)</strong> 区分「问题/动机(为什么做)」和「数据/方法/基线/指标(怎么验证)」;<strong>(3)</strong> 给你的低光 MLLM 项目写出第一版 proposal;<strong>(4)</strong> 自检它站不站得住。</p>
 
-with open("train.jsonl", "a") as f:
-    f.write(json.dumps(data, ensure_ascii=False) + "\n")</div></div></div>
+      <h4>一、为什么先写一页纸</h4>
+      <p>动手前先逼自己<strong>用一页纸讲清整件事</strong>。能讲清,说明想透了;讲不清,大概率是 idea 还含糊。proposal 不是给别人看的形式,而是<em class="term">逼你自己把逻辑捋顺</em>——尤其是「怎么证明我赢了」(数据+基线+指标)这个闭环。</p>
 
-  <div class="day" data-day="38"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D38</span><span class="day-title">基线实验：跑通现有模型</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>今日目标</h4><p>在你的数据上跑 2-3 个基线模型，记录性能。</p><div class="box-important"><span class="label">🔥 推荐基线</span><p>① LLaVA-1.5-7B（最经典） · ② InternVL2-8B（国产最强之一，中文好）· ③ Qwen2-VL-7B（另一个中文强模型）。<br>在同一组测试数据上统一评测。特别关注低光 vs 正常光照的性能差异。</p></div></div></div>
+      <div class="box-important">
+        <span class="label">🔥 六要素模板（配低光实例）</span>
+        <p><strong>① Problem</strong>:一句话。例「现有 MLLM 在低光图像输入下性能严重下降」。<br><strong>② Motivation</strong>:为什么重要——真实场景大量图像是低光/夜间拍摄,安防、车载、手机都需要。<br><strong>③ Data</strong>:用什么测——RELLISUR/ExDark 等低光数据 + 在其上构建 VQA/指令(连 D18);或给清晰图合成退化。<br><strong>④ Method</strong>:你的方案——如「质量感知的视觉 token 自适应」(连 D32)或「先增强再理解的 Agent」(连 D30)。<br><strong>⑤ Baselines</strong>:和谁比——LLaVA-1.5 / InternVL2 / Qwen2-VL(连 D38)。<br><strong>⑥ Metrics</strong>:怎么算赢——VQA 准确率、MMBench 分、低光 vs 正常的性能差(连 D19)。</p>
+      </div>
 
-  <div class="day" data-day="39"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D39</span><span class="day-title">实现你的方法并初步实验</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>今日目标</h4><p>在基线代码上实现你的改进方法。先跑出第一版结果。</p><div class="box-tip"><span class="label">💡 经验</span><p>第一版实验不需要完美。目标是验证你的 idea 有没有 signal（哪怕只提升 1-2 个点），然后迭代改进。很多好论文都是从一个微小的正向信号开始的。</p></div></div></div>
+      <div class="box-tip">
+        <span class="label">💡 自检三问（连 D35 的三把尺子）</span>
+        <p>写完问自己:① <strong>新颖</strong>——和最相关的 3 篇比,我的 delta 一句话是什么?② <strong>可行</strong>——最小验证实验能不能两周内在 4×4090 上跑出?③ <strong>能赢吗</strong>——我的指标设计真能体现改进,而不是「测了个寂寞」?</p>
+      </div>
+
+      <h4>二、动手：proposal 模板</h4>
+      <div class="code-block"># project_proposal.md  —— 控制在 1–2 页
+## Problem
+现有 MLLM 在低光输入下性能显著下降（一句话 + 一个掉点数字）。
+
+## Motivation
+真实场景大量图像为低光/夜间拍摄；现有模型几乎只在清晰图上训练评测 → 空白。
+
+## Data
+- 评测：ExDark / 自建低光 VQA（在低光图上标 QA 对，见 D18 格式）
+- 训练：清晰图 + 可控退化合成（亮度/噪声/模糊）
+
+## Method
+质量感知的视觉处理：模型先「估计退化程度」→ 自适应（增强 / 调 token 数）。
+
+## Baselines
+LLaVA-1.5-7B · InternVL2-8B · Qwen2-VL-7B（统一协议，见 D38）
+
+## Metrics
+低光 VQA 准确率、MMBench、Δ(低光 − 正常)；附消融。
+
+## Timeline（两周最小验证）
+W1: 数据+基线  W2: 方法第一版 → 看有没有正向信号（见 D39）</div>
+
+      <h4>三、自测 / 误区</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 六要素里哪几个定义「价值」、哪几个构成「验证闭环」?② 你的 Problem 能一句话说清吗?③ 你的指标真能体现方法的改进吗?④ 最小验证实验是什么、要多久?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>方法写得花、问题没讲清</strong>——审稿人先看问题值不值得做。② <strong>没有基线或基线太弱</strong>——赢了也没说服力。③ <strong>指标和问题脱节</strong>——测不出你声称的改进。④ <strong>一上来就大而全</strong>——先用最小实验验证有没有信号(D39)。</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2306.13549" target="_blank">多模态大模型综述</a>（找你方向的相关工作与空白）</li>
+        <li><a href="https://www.connectedpapers.com/" target="_blank">Connected Papers</a>（为你的核心参考画关系图谱，定位 baseline）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="37"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D37</span><span class="day-title">数据准备与预处理</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 数据流水线：从原图到可训练的数据集</div>
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="数据流水线：采集、退化合成或筛选、标注问答、转 LLaVA 格式、划分训练验证测试">
+          <defs>
+            <marker id="d37ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <rect x="12" y="62" width="118" height="50" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="71" y="82" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">① 采集图像</text>
+          <text x="71" y="98" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">公开集/自拍</text>
+          <line x1="130" y1="87" x2="156" y2="87" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d37ar)"/>
+          <rect x="158" y="62" width="118" height="50" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.5"/>
+          <text x="217" y="82" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#a8341f">② 退化/清洗</text>
+          <text x="217" y="98" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">合成低光·去重</text>
+          <line x1="276" y1="87" x2="302" y2="87" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d37ar)"/>
+          <rect x="304" y="62" width="118" height="50" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="363" y="82" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">③ 标注 QA</text>
+          <text x="363" y="98" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">人工/GPT-4V</text>
+          <line x1="422" y1="87" x2="448" y2="87" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d37ar)"/>
+          <rect x="450" y="62" width="118" height="50" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="509" y="82" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">④ 转格式</text>
+          <text x="509" y="98" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">LLaVA JSON</text>
+          <line x1="568" y1="87" x2="594" y2="87" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d37ar)"/>
+          <rect x="596" y="62" width="152" height="50" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="672" y="82" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">⑤ 划分</text>
+          <text x="672" y="98" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">train / val / test</text>
+          <text x="12" y="150" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">数据格式接 D18；②的「可控退化合成」是你低光背景的用武之地：给清晰图加可量化的低光/噪声</text>
+          <text x="12" y="168" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">铁律：test 集严格隔离，绝不进训练（否则评测虚高，回扣 D19 数据污染）</text>
+        </svg>
+      </div>
+
+      <h4>今日目标</h4>
+      <p>把项目要用的数据<strong>从原图加工成可训练/可评测的数据集</strong>。学完今天你应能:<strong>(1)</strong> 走通数据流水线五步;<strong>(2)</strong> 用可控退化合成低光数据(你的强项);<strong>(3)</strong> 产出 LLaVA 格式的指令数据(接 D18);<strong>(4)</strong> 正确划分 train/val/test 并避免泄露。</p>
+
+      <h4>一、数据决定项目成败</h4>
+      <p>呼应 D18「数据 &gt; 架构」:实战阶段,<strong>一份干净、对齐目标、划分严谨的数据,比方法本身更决定结果</strong>。对低光方向,你有一个独特优势——<em class="term">能用图像退化模型可控地合成低光数据</em>,且知道怎么量化退化程度,这正是别人做不了的。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 流水线五步要点</span>
+        <p>① <strong>采集</strong>:公开低光集(ExDark/LOL/RELLISUR)或自拍。② <strong>退化/清洗</strong>:给清晰图加可控低光/噪声/模糊(每张记录退化参数!)、去重、过滤坏样本。③ <strong>标注 QA</strong>:人工或用 GPT-4V 生成问答(注意校验,防合成幻觉,连 D18)。④ <strong>转格式</strong>:统一成 LLaVA 对话 JSON(接 D15 训练)。⑤ <strong>划分</strong>:train/val/test 严格隔离,<em class="term">同一张原图的不同退化版本必须在同一 split</em>,否则泄露。</p>
+      </div>
+
+      <h4>二、动手：合成低光数据 + 构建指令</h4>
+      <div class="code-block">import json, cv2, numpy as np, random
+
+# 1) 可控退化：给清晰图合成低光（亮度↓ + 噪声↑），并记录退化参数
+def synth_lowlight(img, gamma=2.5, noise_sigma=15):
+    dark = np.power(img / 255.0, gamma) * 255.0           # gamma 压暗
+    dark += np.random.normal(0, noise_sigma, img.shape)   # 加噪
+    return np.clip(dark, 0, 255).astype(np.uint8), {"gamma": gamma, "sigma": noise_sigma}
+
+# 2) 转成 LLaVA 指令格式（接 D18 / D15）
+def make_sample(idx, img_path, answer, deg):
+    return {
+        "id": f"lowlight_{idx:04d}",
+        "image": img_path,
+        "degradation": deg,                               # 记录退化参数，便于分析
+        "conversations": [
+            {"from": "human", "value": "&lt;image&gt;\n这张低光照片里有哪些物体？"},
+            {"from": "gpt",   "value": answer},
+        ],
+    }
+
+# 3) 划分：按"原图 id"分组划分，杜绝同图不同退化跨 split（防泄露）
+def split_by_image(samples, ratios=(0.8, 0.1, 0.1)):
+    groups = {}
+    for s in samples:
+        groups.setdefault(s["image"].split("_deg")[0], []).append(s)
+    keys = list(groups); random.Random(42).shuffle(keys)
+    n = len(keys); a, b = int(n*ratios[0]), int(n*(ratios[0]+ratios[1]))
+    pick = lambda ks: [s for k in ks for s in groups[k]]
+    return pick(keys[:a]), pick(keys[a:b]), pick(keys[b:])   # train, val, test
+
+# with open("train.jsonl","w") as f:
+#     for s in train: f.write(json.dumps(s, ensure_ascii=False)+"\n")</div>
+
+      <h4>三、自测 / 误区</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 流水线五步分别做什么?② 为什么要记录每张图的退化参数?③ 为什么同一原图的不同退化版本必须在同一 split?④ 用 GPT-4V 标注要注意什么?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>随机划分导致泄露</strong>——同图不同退化分到 train/test,评测虚高(连 D19)。② <strong>合成退化不可控/不记录</strong>——没法做退化程度的分析与消融。③ <strong>盲信 GPT-4V 标注</strong>——会引入幻觉,要抽检。④ <strong>train/test 分布不一致</strong>——测的不是你想测的。</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2311.12793" target="_blank">ShareGPT4V</a>（用强模型造高质量标注的范式，回顾 D18）</li>
+        <li><a href="https://github.com/haotian-liu/LLaVA/blob/main/docs/Finetune_Custom_Data.md" target="_blank">LLaVA 自定义数据文档</a>（数据格式 + 训练对接）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="38"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D38</span><span class="day-title">基线实验：跑通现有模型</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 公平的基线对比：统一数据 + 统一协议</div>
+        <svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="基线实验：多个模型在同一数据同一评测协议下比较，并对比低光与正常光照的性能差">
+          <defs>
+            <marker id="d38ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 三基线 -->
+          <g font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#26211a">
+            <rect x="14" y="34" width="120" height="28" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="74" y="52" text-anchor="middle">LLaVA-1.5-7B</text>
+            <rect x="14" y="70" width="120" height="28" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="74" y="88" text-anchor="middle">InternVL2-8B</text>
+            <rect x="14" y="106" width="120" height="28" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="74" y="124" text-anchor="middle">Qwen2-VL-7B</text>
+          </g>
+          <line x1="134" y1="48" x2="190" y2="80" stroke="#5a5043" stroke-width="1.3" marker-end="url(#d38ar)"/>
+          <line x1="134" y1="84" x2="190" y2="84" stroke="#5a5043" stroke-width="1.3" marker-end="url(#d38ar)"/>
+          <line x1="134" y1="120" x2="190" y2="88" stroke="#5a5043" stroke-width="1.3" marker-end="url(#d38ar)"/>
+          <!-- 统一协议 -->
+          <rect x="192" y="56" width="150" height="56" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="267" y="78" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">统一测试集</text>
+          <text x="267" y="96" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">同 prompt · 同评分 · 同 split</text>
+          <line x1="342" y1="84" x2="372" y2="84" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d38ar)"/>
+          <!-- 对比表 -->
+          <rect x="374" y="34" width="372" height="118" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.2"/>
+          <line x1="374" y1="60" x2="746" y2="60" stroke="#d8cdb6"/><line x1="560" y1="34" x2="560" y2="152" stroke="#d8cdb6"/><line x1="653" y1="34" x2="653" y2="152" stroke="#d8cdb6"/>
+          <g font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">
+            <text x="380" y="52">模型</text><text x="580" y="52" fill="#2f6f63">正常</text><text x="670" y="52" fill="#a8341f">低光</text>
+            <text x="380" y="80">LLaVA-1.5</text><text x="582" y="80">66.5</text><text x="672" y="80" fill="#a8341f">41.2</text>
+            <text x="380" y="104">InternVL2</text><text x="582" y="104">71.8</text><text x="672" y="104" fill="#a8341f">52.0</text>
+            <text x="380" y="128">Qwen2-VL</text><text x="582" y="128">70.3</text><text x="672" y="128" fill="#a8341f">49.5</text>
+          </g>
+          <text x="560" y="170" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">（示意数字）关键看 Δ=正常−低光：普遍大幅掉点 = 你的问题成立</text>
+          <text x="14" y="190" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">基线不是凑数：它既证明「问题存在」(低光掉点)，又是你方法要超越的对照线</text>
+        </svg>
+      </div>
+
+      <h4>今日目标</h4>
+      <p>在你的数据上跑 2–3 个基线,<strong>用统一协议记录性能</strong>,并量化「低光 vs 正常」的差距。学完今天你应能:<strong>(1)</strong> 说清基线为什么必须统一数据/协议;<strong>(2)</strong> 用 VLMEvalKit 跑通多基线(接 D19);<strong>(3)</strong> 算出 Δ(正常−低光)来证明问题成立;<strong>(4)</strong> 规范地记录结果。</p>
+
+      <h4>一、基线的双重作用</h4>
+      <p>基线不是走过场:它<strong>既证明你的问题真实存在</strong>(低光下大家都掉点),<strong>又是你方法必须超越的对照线</strong>。前提是<em class="term">公平</em>——同一测试集、同一 prompt 模板、同一评分协议、同一 split。任何一处不一致,对比就失去意义(连 D19 的评测陷阱)。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 推荐基线与关键观察</span>
+        <p><strong>① LLaVA-1.5-7B</strong>(最经典、最干净的对照) · <strong>② InternVL2-8B</strong>(国产最强之一,中文好) · <strong>③ Qwen2-VL-7B</strong>(动态分辨率,中文强)。<br>在<em class="term">同一组测试数据</em>上统一评测,<strong>重点盯 Δ = 正常光照分 − 低光分</strong>:如果三个基线在低光下都大幅掉点,你的问题就立住了——这往往是论文 intro 里最有力的一张图。</p>
+      </div>
+
+      <h4>二、动手：用 VLMEvalKit 跑多基线</h4>
+      <div class="code-block"># 接 D19：同一套数据、同一协议，一次跑多个基线
+python run.py \
+  --data MyLowLightVQA MyLowLightVQA_normal \
+  --model llava_v1.5_7b InternVL2-8B Qwen2-VL-7B \
+  --verbose
+# 输出汇总成 csv：每个模型 × {低光, 正常} 的分数
+
+# 关键分析：算 Δ 并可视化
+import pandas as pd
+df = pd.read_csv("outputs/summary.csv")
+df["drop"] = df["normal"] - df["lowlight"]      # 掉点幅度
+print(df[["model", "normal", "lowlight", "drop"]])
+# 若 drop 普遍很大 → 问题成立；记下来，这是你方法要缩小的差距</div>
+
+      <h4>三、自测 / 误区</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 基线的两个作用是什么?② 公平对比需要统一哪些东西?③ 为什么要同时测「正常」和「低光」两套?④ Δ(正常−低光)说明什么?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>不同模型用不同 prompt/评分</strong>——对比无效。② <strong>只测低光不测正常</strong>——无法证明「是低光导致的掉点」而非模型本来就弱。③ <strong>用各论文自报数字</strong>——评测实现不同不可直接比,要自己统一跑。④ <strong>基线没调到合理状态</strong>(如分辨率设错)——赢了也不算。</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://github.com/open-compass/VLMEvalKit" target="_blank">VLMEvalKit</a>（统一多模型多 benchmark 评测，回顾 D19）</li>
+        <li><a href="https://arxiv.org/abs/2307.06281" target="_blank">MMBench</a>（统一评测协议的代表）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="39"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D39</span><span class="day-title">实现你的方法并初步实验</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 在基线里插入你的模块 + 迭代找 signal</div>
+        <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="在 LLaVA 框架的视觉塔到 projector 之间插入你的质量感知模块，跑最小实验找正向信号并迭代">
+          <defs>
+            <marker id="d39ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- baseline 框架 -->
+          <rect x="14" y="44" width="80" height="40" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+          <text x="54" y="68" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">ViT</text>
+          <line x1="94" y1="64" x2="118" y2="64" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d39ar)"/>
+          <!-- 你的模块（插入点）-->
+          <rect x="120" y="38" width="130" height="52" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2.2"/>
+          <text x="185" y="58" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11.5" font-weight="700" fill="#a8341f">★ 你的模块</text>
+          <text x="185" y="74" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#5a5043">质量感知 / token 自适应</text>
+          <text x="185" y="84" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#5a5043">/ 先增强</text>
+          <line x1="250" y1="64" x2="274" y2="64" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d39ar)"/>
+          <rect x="276" y="44" width="90" height="40" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+          <text x="321" y="68" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">Projector</text>
+          <line x1="366" y1="64" x2="390" y2="64" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d39ar)"/>
+          <rect x="392" y="44" width="70" height="40" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+          <text x="427" y="68" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">LLM</text>
+          <text x="240" y="108" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">改动尽量小、可开关，才能干净地归因（消融）</text>
+          <!-- 迭代循环 -->
+          <rect x="120" y="138" width="110" height="40" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="175" y="158" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">跑最小实验</text>
+          <text x="175" y="172" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">小数据/小模型</text>
+          <line x1="230" y1="158" x2="270" y2="158" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d39ar)"/>
+          <rect x="272" y="138" width="120" height="40" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.3"/>
+          <text x="332" y="158" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">看有没有 signal</text>
+          <text x="332" y="172" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">+1~2 点也行</text>
+          <line x1="392" y1="158" x2="432" y2="158" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d39ar)"/>
+          <rect x="434" y="138" width="100" height="40" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="484" y="163" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">迭代改进</text>
+          <path d="M484,138 C484,116 175,116 175,136" fill="none" stroke="#5a5043" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#d39ar)"/>
+          <text x="20" y="212" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">第一版不求完美，求「有没有正向信号」。很多好论文都是从一个微小但稳定的 +信号长出来的</text>
+        </svg>
+      </div>
+
+      <h4>今日目标</h4>
+      <p>在基线代码上<strong>实现你的改进、跑出第一版结果</strong>。学完今天你应能:<strong>(1)</strong> 在 LLaVA 框架里找到合适的「插入点」放你的模块;<strong>(2)</strong> 把改动做得小而可开关(便于消融);<strong>(3)</strong> 用最小实验快速验证有没有 signal;<strong>(4)</strong> 建立「跑→看→改」的迭代节奏。</p>
+
+      <h4>一、改动要「小而可归因」</h4>
+      <p>实现方法时,最忌一次改一大堆——赢了输了都不知道是哪一步起的作用。正确姿势:<strong>每次只动一个地方,做成可开关的开关</strong>。对低光方向,你的模块通常插在 <em class="term">ViT → Projector 之间</em>(质量感知 / token 自适应 / 先增强),底座尽量沿用基线,这样性能差就能干净地归因到你的改动(为 D40 的消融做准备)。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 三个可落地的插入点（接你的方向）</span>
+        <p>① <strong>质量感知 token 自适应</strong>(连 D32):退化重 → 多给/挑选信息性 token。② <strong>先增强再理解</strong>(连 D30 Agent):前置一个轻量增强,或让模型自己决定要不要增强。③ <strong>退化感知微调</strong>(连 D18/D37):用你合成的退化数据做 SFT,让模型「适应」低光。先各跑一个最小版,看哪个有信号,再深挖。</p>
+      </div>
+
+      <h4>二、动手：可开关的方法 + 最小实验</h4>
+      <div class="code-block"># 把你的改动做成「一个开关」，baseline 与 ours 只差这一处 → 干净消融
+class QualityAwareVisual(nn.Module):
+    def __init__(self, base_visual, enable=True):
+        super().__init__()
+        self.base = base_visual          # 原视觉塔（冻结）
+        self.enable = enable             # ← 开关：False 时完全等价于 baseline
+        self.quality_head = nn.Linear(1024, 1)      # 估计退化程度
+    def forward(self, x):
+        feats = self.base(x)             # (N, 1024)
+        if not self.enable:
+            return feats                 # baseline 路径
+        q = self.quality_head(feats.mean(0)).sigmoid()   # 退化分 ∈ (0,1)
+        return self.adapt(feats, q)      # 你的自适应逻辑（如按 q 调 token 数）
+
+# 最小实验：先用 1~2k 样本 + LoRA 快速跑，只为看"有没有信号"，别等大实验
+#   for enable in [False, True]:        # baseline vs ours，其余完全一致
+#       acc = quick_eval(build_model(enable), mini_testset)
+#       print(enable, acc)
+# 看到 ours 稳定 > baseline（哪怕 +1~2 点）→ 有信号，值得深挖</div>
+
+      <h4>三、自测 / 经验 / 误区</h4>
+      <div class="box-tip">
+        <span class="label">💡 经验</span>
+        <p>第一版实验<strong>不需要完美</strong>。目标是验证 idea 有没有 signal(哪怕只提升 1–2 个点),然后迭代。很多好论文都是从一个<em class="term">微小但稳定</em>的正向信号开始的。先小步快跑,信号确认了再上大实验。</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>一次改太多</strong>——赢输都无法归因。② <strong>没有「关掉就等于 baseline」的开关</strong>——消融做不干净。③ <strong>一上来就跑大实验</strong>——慢、贵、改一次等一天。④ <strong>把噪声当信号</strong>——+0.3 点可能只是随机波动,要多 seed / 看方差。</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2403.06764" target="_blank">FastV</a>（一个「小改动、清晰归因」的 token 效率工作范例，回顾 D32）</li>
+        <li><a href="https://github.com/haotian-liu/LLaVA" target="_blank">LLaVA 代码</a>（在哪插入你的模块，回顾 D15）</li>
+      </ul>
+    </div>
+  </div>
 
   <div class="day" data-day="40"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D40</span><span class="day-title">总结回顾 + 后续计划制定</span><span class="day-arrow">▶</span></div><div class="day-body">
-      <div class="box-important"><span class="label">🔥 你现在应该具备的能力</span>
-        <p>✅ 理解 LLM 的完整架构和训练流程（Transformer → SFT → RLHF/DPO）<br>
-        ✅ 掌握 LoRA/QLoRA 微调方法，能在本地完成模型微调<br>
-        ✅ 理解多模态大模型架构（CLIP → Projector → LLM）<br>
-        ✅ 熟悉 LLaVA、InternVL、Qwen-VL 等主流模型的设计差异<br>
-        ✅ 了解 Agent、RAG、Tool Use 的基本范式<br>
-        ✅ 能独立阅读多模态 LLM 论文并复现实验<br>
-        ✅ 启动了自己的第一个多模态研究项目</p>
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 你走过的路：9 周知识地图</div>
+        <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="9 周学习地图：前置基础、LLM、训练微调、视觉语言对齐、前沿模型、Grounding、Agent、前沿主题、实战">
+          <defs>
+            <marker id="d40ar" markerWidth="8" markerHeight="8" refX="6" refY="2.6" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L6,2.6 L0,5.2 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 分组色带标签 -->
+          <text x="120" y="22" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#2f6f63">基础</text>
+          <text x="372" y="22" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#b5832f">多模态核心</text>
+          <text x="560" y="22" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">应用 / 研究</text>
+          <!-- 9 个节点 -->
+          <g font-family="'Noto Serif SC',serif">
+            <rect x="14" y="40" width="78" height="58" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="53" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#2f6f63">00</text><text x="53" y="76" text-anchor="middle" font-size="9.5" fill="#26211a">前置</text><text x="53" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7" fill="#8a7d6a">CNN/ViT</text>
+            <rect x="98" y="40" width="78" height="58" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="137" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#2f6f63">01</text><text x="137" y="76" text-anchor="middle" font-size="9.5" fill="#26211a">LLM</text><text x="137" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7" fill="#8a7d6a">GPT/Token</text>
+            <rect x="182" y="40" width="78" height="58" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="221" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#2f6f63">02</text><text x="221" y="76" text-anchor="middle" font-size="9.5" fill="#26211a">训练</text><text x="221" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7" fill="#8a7d6a">SFT/LoRA</text>
+            <rect x="266" y="40" width="78" height="58" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/><text x="305" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#b5832f">03</text><text x="305" y="76" text-anchor="middle" font-size="9.5" fill="#26211a">对齐</text><text x="305" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7" fill="#8a7d6a">CLIP/LLaVA</text>
+            <rect x="350" y="40" width="78" height="58" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/><text x="389" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#b5832f">04</text><text x="389" y="76" text-anchor="middle" font-size="9.5" fill="#26211a">前沿模型</text><text x="389" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7" fill="#8a7d6a">InternVL/Qwen</text>
+            <rect x="434" y="40" width="78" height="58" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/><text x="473" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#b5832f">05</text><text x="473" y="76" text-anchor="middle" font-size="9.5" fill="#26211a">Grounding</text><text x="473" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7" fill="#8a7d6a">定位/分割</text>
+            <rect x="518" y="40" width="78" height="58" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.4"/><text x="557" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#a8341f">06</text><text x="557" y="76" text-anchor="middle" font-size="9.5" fill="#26211a">Agent</text><text x="557" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7" fill="#8a7d6a">ReAct/RAG</text>
+            <rect x="602" y="40" width="78" height="58" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.4"/><text x="641" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#a8341f">07</text><text x="641" y="76" text-anchor="middle" font-size="9.5" fill="#26211a">前沿主题</text><text x="641" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7" fill="#8a7d6a">压缩/VLA</text>
+            <rect x="686" y="40" width="62" height="58" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/><text x="717" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#a8341f">08</text><text x="717" y="76" text-anchor="middle" font-size="9.5" fill="#26211a">实战</text><text x="717" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7" fill="#8a7d6a">项目</text>
+          </g>
+          <!-- 路径箭头 -->
+          <g stroke="#5a5043" stroke-width="1.2">
+            <line x1="92" y1="69" x2="97" y2="69" marker-end="url(#d40ar)"/><line x1="176" y1="69" x2="181" y2="69" marker-end="url(#d40ar)"/>
+            <line x1="260" y1="69" x2="265" y2="69" marker-end="url(#d40ar)"/><line x1="344" y1="69" x2="349" y2="69" marker-end="url(#d40ar)"/>
+            <line x1="428" y1="69" x2="433" y2="69" marker-end="url(#d40ar)"/><line x1="512" y1="69" x2="517" y2="69" marker-end="url(#d40ar)"/>
+            <line x1="596" y1="69" x2="601" y2="69" marker-end="url(#d40ar)"/><line x1="680" y1="69" x2="685" y2="69" marker-end="url(#d40ar)"/>
+          </g>
+          <!-- 你的护城河 -->
+          <rect x="120" y="150" width="520" height="52" rx="8" fill="#efe8d8" stroke="#a8341f" stroke-width="1.5" stroke-dasharray="5 3"/>
+          <text x="380" y="172" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#a8341f">贯穿全程的护城河：低光 / 退化 / 图像质量</text>
+          <text x="380" y="190" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">每一周都被反复连回你的 CV 背景 —— 这是你比纯 NLP 背景更强的地方</text>
+          <text x="40" y="228" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">从「看懂一张图」到「训一个 MLLM、搭一个 Agent、做一个研究项目」——你已经走完整条路</text>
+        </svg>
       </div>
+
+      <h4>今日目标</h4>
+      <p>回望整条路线,确认能力清单,并把 Week 08 的项目接续成<strong>持续 3–6 个月的真正研究</strong>。这一天既是结束,也是你研究生涯的起点。</p>
+
+      <div class="box-important"><span class="label">🔥 你现在应该具备的能力</span>
+        <p>✅ 理解 LLM 的完整架构和训练流程（Transformer → SFT → RLHF/DPO，W1–W2）<br>
+        ✅ 掌握 LoRA/QLoRA 微调，能在本地完成模型微调（D8/D20）<br>
+        ✅ 理解多模态架构（CLIP/SigLIP → Projector → LLM，W3）并能从代码层讲清视觉 token 注入（D15）<br>
+        ✅ 熟悉 LLaVA / InternVL / Qwen-VL 三条路线的设计差异（W3–W4）<br>
+        ✅ 掌握 Grounding / 分割 / OCR / 视频 / 幻觉（W5）与 Agent / RAG / Tool Use（W6）<br>
+        ✅ 了解前沿：多模态推理、token 压缩、VLA、训练效率（W7）<br>
+        ✅ 能独立读论文、复现实验，并启动了自己的第一个研究项目（W8）</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 你的护城河（务必记住）</span>
+        <p>整条路线我反复把每一周连回你的<strong>低光 / 退化 / 图像质量</strong>背景。多模态的「多」就包含视觉——<em class="term">你比纯 NLP 背景的人更懂图像</em>。把「退化条件」当成你切入每个方向的统一视角(D25/D31/D32/D35),这就是别人复制不了的差异化优势。</p>
+      </div>
+
       <h4>后续学习方向</h4>
       <ul>
-        <li>持续关注 arXiv 每日新论文（cs.CV + cs.CL + cs.AI）</li>
-        <li>深入你选定的研究方向，完善实验设计</li>
-        <li>参加开源项目的贡献（InternVL、LLaVA 等都欢迎 PR）</li>
-        <li>写一篇技术博客整理你的学习过程</li>
+        <li><strong>深耕选定方向</strong>:把 D36–D39 的项目从「有信号」推到「完整故事」——补消融、加 benchmark、写清 delta</li>
+        <li><strong>持续追踪</strong>:每天扫 arXiv（cs.CV + cs.CL + cs.AI），用 Connected Papers 维护领域地图（D35）</li>
+        <li><strong>参与开源</strong>:给 LLaVA / InternVL / VLMEvalKit 提 PR，既练工程又攒人脉</li>
+        <li><strong>对外输出</strong>:写技术博客 / 整理这套笔记，教是最好的学；准备把项目投到 workshop 或会议</li>
       </ul>
-      <div class="box-tip"><span class="label">💡 最后一句</span><p>转型不是一蹴而就的。8 周只是入门，真正的积累需要持续 3-6 个月的深度研究。但你的 CV 背景是巨大优势——多模态的「多」就包括视觉，你比纯 NLP 背景的人更懂图像。</p></div>
+
+      <div class="box-tip"><span class="label">💡 最后一句</span><p>转型不是一蹴而就的。8 周(加前置共 9 周)只是把地基打牢,真正的积累需要持续 3–6 个月的深度研究。但你已经走完了从「看懂一张图」到「训一个 MLLM、搭一个 Agent、做一个研究项目」的完整路径——剩下的,就是在你最懂的「图像质量」这条护城河上,一篇一篇把它做出来。出发吧。 ✦</p></div>
+
+      <h4>延伸阅读</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2306.13549" target="_blank">多模态大模型综述</a>（回看全景，查漏补缺）</li>
+        <li><a href="https://github.com/BradyFU/Awesome-Multimodal-Large-Language-Models" target="_blank">Awesome-MLLM</a>（持续更新的论文/资源清单，长期跟踪）</li>
+      </ul>
     </div>
   </div>
 </div><!-- week 8 -->
