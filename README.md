@@ -4,19 +4,42 @@
 
 > 前置 + 8 周系统学习路线，从零基础到 MLLM + Agent。
 
-## 📖 在线查看
+## 🌐 在线查看（渲染版）
 
-直接用浏览器打开 [`cv-to-mllm-roadmap_2.html`](./cv-to-mllm-roadmap_2.html) 即可阅读。这是一个**单文件、零依赖**的 HTML 页面，无需任何构建或安装步骤。
+> ⚠️ 在 GitHub 上直接点 `.html` 文件，只会看到**源码** —— 出于安全，GitHub 不会把仓库里的 HTML 当网页渲染。请用下面任一方式看到真正的页面。
+
+### 方式一：GitHub Pages（推荐，体验最佳）
+
+开启后访问 👉 **https://ji-xuanhe.github.io/CV-Multimodal-LLM/cv-to-mllm-roadmap_2.html**
+
+开启步骤（一次性，约 1 分钟）：
+
+1. 仓库页面 → **Settings** → 左侧 **Pages**
+2. **Source** 选 `Deploy from a branch`
+3. **Branch** 选 `main` / `(root)` → **Save**
+4. 等 1–2 分钟构建完成，即可访问上面的链接（之后每次 push 自动更新）
+
+> Pages 是 https 环境，还能顺带解决本地 `file://` 下 YouTube 无法内嵌播放（error 153）的问题。
+
+### 方式二：htmlpreview（零配置，即点即看）
+
+[▶ 立即在线预览](https://htmlpreview.github.io/?https://github.com/Ji-XuanHe/CV-Multimodal-LLM/blob/main/cv-to-mllm-roadmap_2.html)
+
+通过第三方代理实时渲染，无需任何设置；偶有兼容性差异，长期使用建议用 Pages。
+
+### 方式三：本地打开
+
+下载后用浏览器直接打开，或克隆后在目录里起一个本地服务（推荐，能让侧窗/视频正常工作）：
 
 ```bash
-# macOS
-open cv-to-mllm-roadmap_2.html
+# 直接打开（macOS / Linux / Windows）
+open cv-to-mllm-roadmap_2.html   # macOS
+xdg-open cv-to-mllm-roadmap_2.html   # Linux
+start cv-to-mllm-roadmap_2.html   # Windows
 
-# Linux
-xdg-open cv-to-mllm-roadmap_2.html
-
-# Windows
-start cv-to-mllm-roadmap_2.html
+# 或起本地服务（https 同源，体验更完整）
+python3 -m http.server
+# 然后浏览器访问 http://localhost:8000/cv-to-mllm-roadmap_2.html
 ```
 
 ## ✨ 特性

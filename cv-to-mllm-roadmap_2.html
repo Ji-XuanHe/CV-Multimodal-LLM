@@ -1546,7 +1546,7 @@ with open("train.jsonl", "a") as f:
 </div><!-- .wrap -->
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+function boot(){
   const days = document.querySelectorAll('.day');
   const total = days.length;
   const KEY = 'mllm-roadmap-v2';
@@ -1589,7 +1589,10 @@ document.addEventListener('DOMContentLoaded', () => {
   updateBar();
   initReader();
   initRefs();
-});
+}
+// DOM 就绪即初始化（兼容 htmlpreview 等在 DOMContentLoaded 之后注入内容的环境）
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
 
 /* ================= 阅读器：侧边栏 + 周聚焦 + 快捷键 ================= */
 function initReader(){
