@@ -2572,16 +2572,514 @@ deepspeed --num_gpus 4 llava/train/train_mem.py \
   <div class="week-head"><span class="week-num">05</span><h2 class="week-title">视觉 Grounding 与细粒度理解</h2></div>
   <p class="week-lead">从「看图说话」进化到「指哪看哪」——定位、分割、OCR。这是多模态从玩具到实用的关键一步。</p>
 
-  <div class="day" data-day="21"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D21</span><span class="day-title">Visual Grounding：用语言定位物体</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>MLLM 不仅能描述图像，还能输出 bounding box 坐标定位特定物体。</p><div class="box-important"><span class="label">🔥 两种主流方案</span><p><strong>① 坐标文本化</strong>（Qwen-VL、Shikra）：直接让 LLM 输出 "[x1,y1,x2,y2]" 格式的文本。简单粗暴但有效。<br><strong>② 特殊 token + 回归头</strong>（Kosmos-2）：输出 &lt;box&gt; 特殊 token，接一个额外的坐标回归头。更精确但更复杂。<br>你的 CV 目标检测背景在这里直接适用！</p></div><h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2306.17107" target="_blank">Shikra 论文</a></li><li><a href="https://arxiv.org/abs/2306.14824" target="_blank">Kosmos-2 论文</a></li></ul></div></div>
+  <div class="day" data-day="21"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D21</span><span class="day-title">Visual Grounding：用语言定位物体</span><span class="day-arrow">▶</span></div><div class="day-body">
 
-  <div class="day" data-day="22"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D22</span><span class="day-title">Grounded SAM 与多模态分割</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>把 MLLM 的语言理解能力和 SAM 的分割能力结合，实现「说一句话就分割」。</p><div class="box-important"><span class="label">🔥 典型 pipeline</span><p>用户说「请分割图中的猫」→ MLLM 理解语义并输出 bbox → SAM 用 bbox 作为 prompt 进行精确分割 → 返回 mask。这种「大模型理解意图 + 专业模型执行」的模式就是 Agent 的雏形。</p></div><h4>阅读和实践</h4><ul><li><a href="https://github.com/IDEA-Research/Grounded-Segment-Anything" target="_blank">Grounded-SAM GitHub</a>（代码可以直接跑）</li><li>试试用你的低光图像做输入，看 grounding 效果如何</li></ul></div></div>
+      <div class="arch-fig">
+        <div class="af-cap">📊 两种 Grounding 方案：坐标文本化 vs 特殊 token</div>
+        <svg viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Visual Grounding 两种方案：坐标文本化直接让 LLM 输出坐标字符串；特殊 token 加回归头输出精确坐标">
+          <defs>
+            <marker id="d21ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 输入（共享）-->
+          <rect x="12" y="96" width="92" height="76" rx="4" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <rect x="34" y="120" width="40" height="34" fill="none" stroke="#a8341f" stroke-width="1.5" stroke-dasharray="3 2"/>
+          <text x="58" y="166" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">「定位猫」</text>
+          <line x1="104" y1="100" x2="150" y2="70" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d21ar)"/>
+          <line x1="104" y1="168" x2="150" y2="200" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d21ar)"/>
+          <!-- 方案① 坐标文本化 -->
+          <rect x="152" y="44" width="120" height="50" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="212" y="65" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">MLLM</text>
+          <text x="212" y="82" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">当成普通文本生成</text>
+          <line x1="272" y1="69" x2="302" y2="69" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d21ar)"/>
+          <rect x="304" y="44" width="210" height="50" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="409" y="64" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">"猫 [120,80,340,360]"</text>
+          <text x="409" y="82" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#2f6f63">① 坐标文本化（Qwen-VL/Shikra）</text>
+          <text x="660" y="64" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#5a5043">简单·无需改结构</text>
+          <text x="660" y="78" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">精度受 token 化限制</text>
+          <!-- 方案② 特殊 token + 回归头 -->
+          <rect x="152" y="178" width="120" height="50" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="212" y="199" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">MLLM</text>
+          <text x="212" y="216" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#a8341f">输出 &lt;box&gt; token</text>
+          <line x1="272" y1="203" x2="302" y2="203" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d21ar)"/>
+          <rect x="304" y="178" width="110" height="50" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/>
+          <text x="359" y="200" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#a8341f">回归头</text>
+          <text x="359" y="216" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">box head</text>
+          <line x1="414" y1="203" x2="444" y2="203" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d21ar)"/>
+          <rect x="446" y="178" width="120" height="50" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="506" y="200" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#26211a">精确坐标</text>
+          <text x="506" y="216" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#a8341f">② Kosmos-2</text>
+          <text x="660" y="198" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#5a5043">更精确</text>
+          <text x="660" y="212" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">需改结构·更复杂</text>
+          <!-- 图例 -->
+          <text x="12" y="266" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">坐标通常归一化到 [0,1000]，与图像实际尺寸无关 —— 你的目标检测经验在这里直接适用</text>
+        </svg>
+      </div>
 
-  <div class="day" data-day="23"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D23</span><span class="day-title">OCR-free 文档理解</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>不需要 OCR 模块，直接用 MLLM 理解文档、表格、图表。</p><div class="box-important"><span class="label">🔥 关键挑战</span><p>文档中的文字很小很密，需要高分辨率输入。代表模型：TextMonkey、DocOwl 2、Qwen2-VL。</p></div><div class="box-tip"><span class="label">💡 你的机会</span><p>低光环境下的文档拍摄（如夜间拍快递单、暗光下扫描文件）是一个真实痛点，可以结合你的图像增强背景。</p></div><h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2403.04473" target="_blank">TextMonkey 论文</a></li></ul></div></div>
+      <h4>学习目标</h4>
+      <p>MLLM 不只能「看图说话」,还能<strong>指哪看哪</strong>——输出 bounding box 定位特定物体。这正是你 CV 检测背景的主场。学完今天你应能:<strong>(1)</strong> 说清两种 grounding 方案(坐标文本化 vs 特殊 token+回归头)的取舍;<strong>(2)</strong> 解释坐标为什么要归一化到 [0,1000];<strong>(3)</strong> 用 Qwen-VL 跑一次 grounding;<strong>(4)</strong> 把它和传统检测器的差异讲清楚。</p>
 
-  <div class="day" data-day="24"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D24</span><span class="day-title">视频理解：从图像到时序多模态</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>视频 = 图像序列 + 时间维度。理解 MLLM 如何处理视频输入。</p><div class="box-important"><span class="label">🔥 主流视频处理方案</span><p><strong>① 均匀帧采样</strong>：从视频中等间隔抽 N 帧（如 8 帧），每帧独立编码后拼接。最简单也最常用。<br><strong>② 时序 token 压缩</strong>：相邻帧的相似 token 合并，减少冗余。<br><strong>③ SlowFast 思路</strong>：少数帧提取细节，多数帧提取动态。<br>核心矛盾：视频帧数 × 每帧 token 数 = 总 token 数爆炸。</p></div><h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2311.10122" target="_blank">Video-LLaVA</a></li><li>Qwen2-VL 的视频理解部分（M-RoPE 的时间维度）</li></ul></div></div>
+      <h4>一、让 LLM「说出」物体在哪</h4>
+      <p>传统检测器输出固定类别的框;而 MLLM 可以<strong>按任意自然语言</strong>定位(「穿红衣服的那个人」「左边第二只猫」),这叫 <em class="term">referring expression / visual grounding</em>。关键问题:LLM 只会生成 token,怎么让它「输出坐标」?</p>
 
-  <div class="day" data-day="25"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D25</span><span class="day-title">多模态幻觉与对齐问题</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>多模态幻觉（hallucination）是当前最大的问题之一：模型「看到」图中不存在的东西。</p><div class="box-important"><span class="label">🔥 幻觉的原因与缓解</span><p><strong>原因</strong>：① LLM 的语言先验太强，忽略视觉输入；② 训练数据中存在偏差；③ 视觉编码器分辨率不够。<br><strong>缓解方法</strong>：RLHF-V、LLaVA-RLHF（用人类反馈减少幻觉）、对比解码、POPE 评估。</p></div><h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2312.00849" target="_blank">RLHF-V 论文</a></li></ul>
-      <div class="box-tip"><span class="label">💡 本周回顾</span><p>你现在应该对 MLLM 的能力边界有清晰认知——它能做什么（理解、描述、定位、OCR），不能做什么（精确计数、空间推理、细粒度属性），以及幻觉问题。</p></div></div></div>
+      <div class="box-important">
+        <span class="label">🔥 两种主流方案</span>
+        <p><strong>① 坐标文本化</strong>(Qwen-VL、Shikra):直接让 LLM 把坐标当<em class="term">普通文本</em>生成,如 <code>"猫 [120,80,340,360]"</code>。坐标归一化到 [0,1000],与图像实际像素无关。<strong>无需改结构、简单有效</strong>,但精度受 tokenizer 对数字的切分方式限制。</p>
+        <p><strong>② 特殊 token + 回归头</strong>(Kosmos-2):让 LLM 输出 <code>&lt;box&gt;</code> 特殊 token,再接一个<em class="term">坐标回归头</em>输出连续值。<strong>更精确</strong>,但要改模型结构、加训练目标,更复杂。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 和你的检测背景对接</span>
+        <p>归一化坐标 [0,1000] ≈ 你熟悉的 <code>cxcywh</code>/<code>xyxy</code> 相对坐标;回归头方案本质就是把检测头接到 LLM 上。差别在于:<strong>MLLM 的「类别」是开放的自然语言</strong>,不再是固定 80 类。这也是它比传统检测器灵活、但定位精度往往不如专用检测器的原因。</p>
+      </div>
+
+      <h4>二、动手：用 Qwen-VL 做 grounding</h4>
+      <div class="code-block"># Qwen2-VL 直接支持坐标文本化的 grounding
+# （接 D17 的 Qwen2-VL 加载代码）
+messages = [{"role": "user", "content": [
+    {"type": "image", "image": "street.jpg"},
+    {"type": "text",  "text": "请用边界框定位图中所有的人，给出坐标"}]}]
+
+# 模型会输出形如：  <|object_ref_start|>人<|object_ref_end|>
+#                  <|box_start|>(123,200),(456,780)<|box_end|>
+# 坐标是归一化到 [0,1000] 的 (x1,y1),(x2,y2)
+
+def denorm(box, W, H):                 # 归一化坐标 → 实际像素
+    x1, y1, x2, y2 = box
+    return [x1/1000*W, y1/1000*H, x2/1000*W, y2/1000*H]
+# 拿到像素坐标后即可叠加到原图 / 喂给下游（如 D22 的 SAM）</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 两种 grounding 方案的核心区别和优劣?② 坐标为什么要归一化到 [0,1000]?③ MLLM grounding 和传统检测器最大的不同是什么?④ 坐标文本化方案精度受什么限制?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为输出的是像素坐标</strong>——通常是归一化值,要乘回图像尺寸。② <strong>以为 MLLM 定位比专用检测器准</strong>——胜在灵活/开放词汇,精度常不如 YOLO/DINO。③ <strong>把坐标文本化当成有回归头</strong>——它就是文本生成,没有专门的框回归。④ <strong>忽略分辨率</strong>——小目标定位强依赖高分辨率输入(接 D13/D16)。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① LLM 只会生成 token,怎么让它输出坐标?给出两种做法。② 坐标归一化的意义?③ MLLM grounding vs 传统检测器,各自适用场景?④ 怎么把 MLLM 的定位结果接到分割模型(引出 D22)?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2306.17107" target="_blank">Shikra</a>（坐标文本化的代表）</li>
+        <li><a href="https://arxiv.org/abs/2306.14824" target="_blank">Kosmos-2</a>（特殊 token + grounding）</li>
+        <li><a href="https://arxiv.org/abs/2308.12966" target="_blank">Qwen-VL</a>（原生 grounding/OCR 能力，回顾 D17）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="22"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D22</span><span class="day-title">Grounded SAM 与多模态分割</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 Grounded-SAM：理解意图 + 专业模型执行</div>
+        <svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Grounded SAM 流程：语言指令经 Grounding 模型得到 bbox，SAM 用 bbox 作为 prompt 输出精确 mask">
+          <defs>
+            <marker id="d22ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 指令 -->
+          <rect x="12" y="86" width="116" height="56" rx="6" fill="#efe8d8" stroke="#5a5043" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <text x="70" y="108" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">「分割那只猫」</text>
+          <text x="70" y="126" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">语言指令 + 图像</text>
+          <line x1="128" y1="114" x2="158" y2="114" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d22ar)"/>
+          <!-- Grounding -->
+          <rect x="160" y="88" width="150" height="52" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.8"/>
+          <text x="235" y="108" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12.5" font-weight="700" fill="#2f6f63">理解：Grounding</text>
+          <text x="235" y="125" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">MLLM / Grounding DINO</text>
+          <line x1="310" y1="114" x2="340" y2="114" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d22ar)"/>
+          <!-- bbox -->
+          <rect x="342" y="90" width="96" height="48" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="390" y="112" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">bbox</text>
+          <text x="390" y="128" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">[x1,y1,x2,y2]</text>
+          <line x1="438" y1="114" x2="468" y2="114" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d22ar)"/>
+          <!-- SAM -->
+          <rect x="470" y="88" width="150" height="52" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/>
+          <text x="545" y="108" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12.5" font-weight="700" fill="#a8341f">执行：SAM</text>
+          <text x="545" y="125" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">bbox 当 prompt 精确分割</text>
+          <line x1="620" y1="114" x2="650" y2="114" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d22ar)"/>
+          <!-- mask -->
+          <rect x="652" y="90" width="96" height="48" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="700" y="118" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">mask</text>
+          <!-- 图例 -->
+          <text x="12" y="186" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">分工：大模型负责「理解模糊的人话 → 定位」，专业模型(SAM)负责「像素级精确执行」</text>
+          <text x="12" y="204" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">这种「理解 + 调用工具执行」正是 Agent 的雏形（接 Week 06）</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>把 MLLM 的<strong>语言理解</strong>和 SAM 的<strong>像素级分割</strong>拼起来,实现「说一句话就分割」。学完今天你应能:<strong>(1)</strong> 画出 Grounded-SAM 的 pipeline;<strong>(2)</strong> 说清「理解 + 执行」分工为什么是 Agent 雏形;<strong>(3)</strong> 知道 SAM 的 prompt 机制(点/框/mask);<strong>(4)</strong> 跑通 Grounded-SAM 并用你的低光图试效果。</p>
+
+      <h4>一、为什么要「拼模型」</h4>
+      <p>MLLM 擅长<em class="term">理解模糊的人话并定位</em>(「那只躲在角落的猫」),但它输出的 bbox 不够精细;SAM 擅长<em class="term">像素级精确分割</em>,但它不懂语言、需要 prompt(点/框)。把两者串起来:<strong>MLLM/Grounding 出 bbox → SAM 拿 bbox 当 prompt 出 mask</strong>,各取所长。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 典型 pipeline 与 SAM 的 prompt 机制</span>
+        <p><strong>流程</strong>:用户说「分割那只猫」→ Grounding 模型(MLLM 或 Grounding DINO)理解并输出 bbox → SAM 用这个 bbox 作为 <em class="term">box prompt</em> → 输出精确 mask。</p>
+        <p><strong>SAM 的关键</strong>:它是一个 <em class="term">promptable</em> 分割模型,接受点 / 框 / 粗 mask 作为提示,输出对应物体的精确掩码——所以谁来给 prompt 都行,这才让「语言→分割」得以拼接。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 这就是 Agent 的雏形</span>
+        <p>「大模型理解意图 + 专业模型执行」正是 <strong>Agent 调用工具</strong>的最小形态(Week 06 会系统讲)。你完全可以把 SAM 换成你的<strong>低光增强模型</strong>:MLLM 判断「这是低光退化图」→ 调用增强工具 → 再理解——这就是一个结合你背景的 Agent 研究切口。</p>
+      </div>
+
+      <h4>二、动手：跑 Grounded-SAM</h4>
+      <div class="code-block"># git clone https://github.com/IDEA-Research/Grounded-Segment-Anything
+# 核心两步：Grounding DINO 出框 → SAM 出掩码（伪代码示意）
+from groundingdino.util.inference import load_model, predict
+from segment_anything import sam_model_registry, SamPredictor
+
+# 1) 开放词汇检测：文本 → bbox
+boxes, logits, phrases = predict(
+    model=grounding_dino, image=image,
+    caption="cat . dog .",            # 用文本指定要找什么
+    box_threshold=0.35, text_threshold=0.25)
+
+# 2) SAM：bbox 当 prompt → 精确 mask
+predictor = SamPredictor(sam)
+predictor.set_image(image_rgb)
+masks, _, _ = predictor.predict(box=boxes[0].numpy(), multimask_output=False)
+# masks 即像素级掩码；可叠加到原图或喂给下游
+# 试试：把你的低光图喂进去，看 grounding/分割在退化下掉多少</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① Grounded-SAM 里谁负责理解、谁负责分割?② SAM 接受哪几种 prompt?③ 为什么不直接让 MLLM 输出 mask,而要拼 SAM?④ 这种 pipeline 和 Agent 有什么关系?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 SAM 懂语言</strong>——SAM 只认点/框 prompt,语言理解靠前面的模型。② <strong>以为是端到端单模型</strong>——它是两个模型串联的 pipeline。③ <strong>忽略误差传播</strong>——bbox 定位错了,SAM 分割再准也白搭。④ <strong>以为 MLLM 能直接出高质量 mask</strong>——像素级分割仍需专用模型。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 描述「语言→分割」的完整 pipeline 与各模块职责。② SAM 为什么是 promptable 的、好处是什么?③ 这种「理解+执行」范式和 Agent/工具调用的联系?④ pipeline 式串联的主要风险(误差传播)怎么缓解?</p>
+      </div>
+
+      <h4>阅读和实践</h4>
+      <ul>
+        <li><a href="https://github.com/IDEA-Research/Grounded-Segment-Anything" target="_blank">Grounded-SAM 代码</a>（可直接跑，建议用你的低光图试）</li>
+        <li><a href="https://arxiv.org/abs/2303.05499" target="_blank">Grounding DINO</a>（开放集检测，常作前置定位器）</li>
+        <li><a href="https://arxiv.org/abs/2401.14159" target="_blank">Grounded SAM 论文</a>（组装范式的系统化总结）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="23"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D23</span><span class="day-title">OCR-free 文档理解</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 传统 OCR pipeline vs OCR-free 端到端</div>
+        <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="传统 OCR 是检测识别版面多模块串联，OCR-free 用一个 MLLM 端到端理解文档">
+          <defs>
+            <marker id="d23ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 传统 OCR -->
+          <text x="20" y="34" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#8a7d6a">传统 OCR pipeline（多模块）</text>
+          <rect x="14" y="44" width="60" height="40" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+          <text x="44" y="68" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">文档</text>
+          <line x1="74" y1="64" x2="98" y2="64" stroke="#5a5043" stroke-width="1.3" marker-end="url(#d23ar)"/>
+          <rect x="100" y="44" width="74" height="40" rx="5" fill="#efe8d8" stroke="#26211a" stroke-width="1.2"/>
+          <text x="137" y="62" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">文本检测</text>
+          <text x="137" y="75" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">det</text>
+          <line x1="174" y1="64" x2="196" y2="64" stroke="#5a5043" stroke-width="1.3" marker-end="url(#d23ar)"/>
+          <rect x="198" y="44" width="74" height="40" rx="5" fill="#efe8d8" stroke="#26211a" stroke-width="1.2"/>
+          <text x="235" y="62" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">文字识别</text>
+          <text x="235" y="75" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">rec</text>
+          <line x1="272" y1="64" x2="294" y2="64" stroke="#5a5043" stroke-width="1.3" marker-end="url(#d23ar)"/>
+          <rect x="296" y="44" width="74" height="40" rx="5" fill="#efe8d8" stroke="#26211a" stroke-width="1.2"/>
+          <text x="333" y="62" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">版面分析</text>
+          <text x="333" y="75" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">layout</text>
+          <line x1="370" y1="64" x2="392" y2="64" stroke="#5a5043" stroke-width="1.3" marker-end="url(#d23ar)"/>
+          <rect x="394" y="44" width="60" height="40" rx="5" fill="#efe8d8" stroke="#26211a" stroke-width="1.2"/>
+          <text x="424" y="68" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">LLM</text>
+          <text x="600" y="68" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">误差逐级累积 · 部署繁琐</text>
+          <!-- OCR-free -->
+          <text x="20" y="148" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#2f6f63">OCR-free 端到端（一个 MLLM）</text>
+          <rect x="14" y="160" width="60" height="44" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+          <text x="44" y="180" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">文档</text>
+          <text x="44" y="196" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#a8341f">高分辨率</text>
+          <line x1="74" y1="182" x2="104" y2="182" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d23ar)"/>
+          <rect x="106" y="158" width="200" height="48" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="206" y="180" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#a8341f">MLLM（直接理解）</text>
+          <text x="206" y="196" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">TextMonkey · Qwen2-VL · GOT-OCR2</text>
+          <line x1="306" y1="182" x2="336" y2="182" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d23ar)"/>
+          <rect x="338" y="160" width="150" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="413" y="180" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">回答 / 结构化输出</text>
+          <text x="413" y="196" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">读字 · 问答 · 转表格</text>
+          <text x="600" y="184" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#2f6f63">无中间模块 · 关键靠高分辨率</text>
+          <!-- 图例 -->
+          <text x="12" y="236" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">核心挑战：文档小字密集 → 必须高分辨率输入（接 D13/D16 的动态分辨率与 token 压缩）</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>不要独立的 OCR 引擎,<strong>直接用一个 MLLM 端到端理解文档、表格、图表</strong>。学完今天你应能:<strong>(1)</strong> 说清传统 OCR pipeline 的问题、OCR-free 的好处;<strong>(2)</strong> 解释「高分辨率」为什么是文档理解的命门;<strong>(3)</strong> 知道代表模型各自的路子;<strong>(4)</strong> 用 Qwen2-VL / GOT-OCR 读一张文档。</p>
+
+      <h4>一、从「先 OCR 再理解」到「直接理解」</h4>
+      <p>传统做法是 <em class="term">检测→识别→版面分析→喂 LLM</em> 的多模块流水线:每一级都可能出错,误差逐级累积,部署也繁琐。OCR-free 的思路:<strong>让 MLLM 直接「看懂」整张文档</strong>——读字、回答、甚至转成 Markdown 表格,一步到位。代价是:<em class="term">文档小字密集,必须喂高分辨率</em>(直接回扣 D13 的 token 压缩、D16 的动态分辨率)。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 关键挑战与代表模型</span>
+        <p><strong>挑战</strong>:文档文字又小又密,224/336px 根本看不清——所以文档类模型几乎都靠<em class="term">高分辨率 + 动态切片</em>。</p>
+        <p><strong>代表路线</strong>:<strong>Donut</strong>(最早的 OCR-free,图→结构化输出) · <strong>TextMonkey / DocOwl</strong>(高分辨率切片专攻文档) · <strong>Qwen2-VL</strong>(动态分辨率,通用且文档强) · <strong>GOT-OCR2.0</strong>(把 OCR 重新定义为端到端生成,可输出公式/表格/乐谱)。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 你的机会（低光 + 文档）</span>
+        <p><strong>低光环境下的文档拍摄</strong>(夜间拍快递单、暗光扫描合同)是真实痛点,现有文档 MLLM 几乎只在清晰扫描件上训。「<em class="term">退化文档的 OCR-free 理解</em>」=你的图像增强背景 × 文档理解,是一个干净的研究切口。</p>
+      </div>
+
+      <h4>二、动手：用 MLLM 直接读文档</h4>
+      <div class="code-block"># 方式 A：Qwen2-VL（通用、动态分辨率，文档表现好）
+# （接 D17 的 Qwen2-VL 加载）
+messages = [{"role": "user", "content": [
+    {"type": "image", "image": "invoice.jpg"},
+    {"type": "text",  "text": "提取发票里的金额、日期和抬头，用 JSON 输出"}]}]
+# → 模型直接返回结构化结果，无需独立 OCR
+
+# 方式 B：GOT-OCR2.0（专做端到端 OCR，可输出 Markdown/LaTeX）
+from transformers import AutoModel, AutoTokenizer
+tok = AutoTokenizer.from_pretrained("stepfun-ai/GOT-OCR2_0", trust_remote_code=True)
+model = AutoModel.from_pretrained("stepfun-ai/GOT-OCR2_0", trust_remote_code=True,
+                                  low_cpu_mem_usage=True, device_map="cuda").eval()
+print(model.chat(tok, "page.png", ocr_type="format"))   # format: 保留版面/表格</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 传统 OCR pipeline 有哪些缺点?② OCR-free 为什么强依赖高分辨率?③ 它和 D13/D16 的动态分辨率有何联系?④ Donut 和 GOT-OCR 的思路差异?⑤ 文档理解为什么对 token 预算特别敏感?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 OCR-free 不需要看清字</strong>——恰恰相反,它对分辨率比谁都敏感。② <strong>以为它一定优于传统 OCR</strong>——在超大幅面/极密文本上,专用 OCR 仍有优势。③ <strong>忽略 token 爆炸</strong>——高分辨率文档很容易把 context 占满(回扣 D13)。④ <strong>以为低光/模糊文档也能直接用</strong>——退化场景普遍掉点,正是你的机会。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① OCR-free 相比传统 pipeline 的利弊?② 为什么文档 MLLM 都在卷高分辨率?和 token 数怎么平衡?③ 举例说明 GOT-OCR 这类「OCR 即生成」的范式。④ 如果输入是低光/模糊文档,你会怎么改进?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2403.04473" target="_blank">TextMonkey</a>（高分辨率文档理解）</li>
+        <li><a href="https://arxiv.org/abs/2111.15664" target="_blank">Donut</a>（OCR-free 文档理解的开创者）</li>
+        <li><a href="https://arxiv.org/abs/2409.01704" target="_blank">GOT-OCR2.0</a>（把 OCR 重定义为端到端生成）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="24"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D24</span><span class="day-title">视频理解：从图像到时序多模态</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 视频 → 帧采样 → token（核心矛盾：数量爆炸）</div>
+        <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="视频理解：从视频均匀采样若干帧，每帧编码成视觉 token，时序压缩后送入 LLM，核心矛盾是帧数乘每帧 token 数爆炸">
+          <defs>
+            <marker id="d24ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 视频帧序列 -->
+          <g>
+            <rect x="14" y="60" width="30" height="40" rx="3" fill="#e2ece8" stroke="#2f6f63"/>
+            <rect x="20" y="66" width="30" height="40" rx="3" fill="#e2ece8" stroke="#2f6f63"/>
+            <rect x="26" y="72" width="30" height="40" rx="3" fill="#e2ece8" stroke="#2f6f63"/>
+          </g>
+          <text x="44" y="128" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">视频（连续帧）</text>
+          <line x1="58" y1="88" x2="88" y2="88" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d24ar)"/>
+          <!-- 采样 -->
+          <rect x="90" y="64" width="98" height="48" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="139" y="84" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">均匀采样</text>
+          <text x="139" y="100" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">抽 N 帧（如 8）</text>
+          <line x1="188" y1="88" x2="218" y2="88" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d24ar)"/>
+          <!-- 每帧编码 -->
+          <rect x="220" y="64" width="98" height="48" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="269" y="84" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">每帧 ViT</text>
+          <text x="269" y="100" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">每帧 → 576 tok</text>
+          <line x1="318" y1="88" x2="348" y2="88" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d24ar)"/>
+          <!-- token 爆炸 -->
+          <rect x="350" y="62" width="130" height="52" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="415" y="82" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#a8341f">8 × 576 = 4608</text>
+          <text x="415" y="98" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#a8341f">token 爆炸 ⚠</text>
+          <text x="415" y="109" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#8a7d6a">帧↑→线性增长</text>
+          <line x1="480" y1="88" x2="510" y2="88" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d24ar)"/>
+          <!-- 时序压缩 -->
+          <rect x="512" y="62" width="118" height="52" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="571" y="82" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#2f6f63">时序压缩</text>
+          <text x="571" y="98" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">合并冗余 token</text>
+          <text x="571" y="109" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#8a7d6a">+ M-RoPE 时间维</text>
+          <line x1="630" y1="88" x2="660" y2="88" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d24ar)"/>
+          <rect x="662" y="64" width="84" height="48" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="704" y="92" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">LLM</text>
+          <!-- 图例 -->
+          <text x="14" y="170" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">核心矛盾：总 token = 帧数 × 每帧 token —— 看更久(更多帧) vs 看更清(每帧更多 token)，二选一拉扯</text>
+          <text x="14" y="190" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">三条路：① 均匀采样(简单) ② 时序 token 压缩(去冗余) ③ SlowFast(少帧看细节 + 多帧看动态)</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>视频 = <strong>图像序列 + 时间维度</strong>。学完今天你应能:<strong>(1)</strong> 说清视频处理的核心矛盾(帧数 × 每帧 token);<strong>(2)</strong> 对比三种主流方案;<strong>(3)</strong> 把视频和 D17 的 M-RoPE 时间维联系起来;<strong>(4)</strong> 用 Qwen2-VL 跑一次视频问答。</p>
+
+      <h4>一、视频的核心矛盾：token 怎么都不够用</h4>
+      <p>处理视频最朴素的做法:<em class="term">均匀抽 N 帧,每帧当图像编码,token 拼起来</em>。但问题立刻来了:8 帧 × 576 token = 4608,16 帧就快上万——<strong>总 token = 帧数 × 每帧 token</strong>,这是 D13 token 爆炸问题的「时间放大版」。于是只能在「<em class="term">看更久(更多帧) vs 看更清(每帧更多 token)</em>」之间拉扯。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 三种主流方案</span>
+        <p><strong>① 均匀帧采样</strong>:等间隔抽 N 帧,各自编码后拼接。最简单最常用,但帧少会漏掉关键瞬间,帧多则 token 爆炸。</p>
+        <p><strong>② 时序 token 压缩</strong>:相邻帧画面相似 → 视觉 token 高度冗余 → 合并/池化掉重复部分(类似 D13 的 token merging,但跨时间)。</p>
+        <p><strong>③ SlowFast 思路</strong>:少数「慢」帧保留<em class="term">每帧细节</em>(高 token),多数「快」帧只取<em class="term">动态信息</em>(低 token),兼顾清晰与时长。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 和 M-RoPE 的联系（回扣 D17）</span>
+        <p>视频 token 不仅要知道「在画面哪个位置」(h,w),还要知道「在<em class="term">第几帧</em>」(t)——这正是 Qwen2-VL 的 <strong>M-RoPE 把位置升到 3D (t,h,w)</strong> 的用武之地。没有时间维,模型分不清「先后顺序」,无法理解动作和因果。</p>
+      </div>
+
+      <h4>二、动手：用 Qwen2-VL 做视频问答</h4>
+      <div class="code-block"># Qwen2-VL 原生支持视频输入（接 D17 加载代码）
+messages = [{"role": "user", "content": [
+    {"type": "video", "video": "clip.mp4",
+     "max_pixels": 360*420, "fps": 1.0},          # 控制每帧分辨率 + 采样帧率
+    {"type": "text",  "text": "视频里的人先做了什么，再做了什么？"}]}]
+
+# qwen_vl_utils.process_vision_info 会按 fps 抽帧、按 max_pixels 限制每帧 token
+text = proc.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+imgs, vids = process_vision_info(messages)
+inputs = proc(text=[text], images=imgs, videos=vids,
+              padding=True, return_tensors="pt").to(model.device)
+out = model.generate(**inputs, max_new_tokens=256)
+# 调 fps / max_pixels 就是在「看多久」和「看多清」之间做权衡</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 8 帧 × 576 token 是多少?16 帧呢?② 视频处理的核心矛盾一句话说清。③ 时序 token 压缩利用了什么冗余?④ SlowFast 为什么能兼顾清晰与时长?⑤ M-RoPE 的时间维对视频为什么关键?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为多抽帧总更好</strong>——token 线性增长,很快爆 context。② <strong>以为视频就是「多张图」</strong>——丢了时间顺序就无法理解动作/因果。③ <strong>忽略采样策略</strong>——均匀采样可能正好漏掉关键帧。④ <strong>不控每帧分辨率</strong>——帧多还每帧高清,必然 OOM。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 视频输入 token 数怎么估算?瓶颈在哪?② 对比三种视频处理方案的取舍。③ 怎么在「时长」和「清晰」之间权衡(fps / 每帧 token)?④ 时间位置信息怎么编码(M-RoPE)、为什么重要?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2311.10122" target="_blank">Video-LLaVA</a>（统一图像与视频的对齐）</li>
+        <li><a href="https://arxiv.org/abs/2306.05424" target="_blank">Video-ChatGPT</a>（视频指令理解的早期代表）</li>
+        <li>Qwen2-VL 的视频部分（M-RoPE 时间维 + 动态帧，回顾 D17）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="25"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D25</span><span class="day-title">多模态幻觉与对齐问题</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 幻觉的根源：语言先验 压过 视觉证据</div>
+        <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="多模态幻觉：语言先验过强压过视觉证据，模型脑补出图中不存在的物体">
+          <defs>
+            <marker id="d25ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 语言先验（重）-->
+          <rect x="40" y="40" width="180" height="56" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="130" y="62" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12.5" font-weight="700" fill="#a8341f">语言先验（太强）</text>
+          <text x="130" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">「草地上通常有羊」</text>
+          <!-- 视觉证据（轻/被忽略）-->
+          <rect x="40" y="150" width="180" height="56" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.2" stroke-dasharray="3 2"/>
+          <text x="130" y="172" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#2f6f63">视觉证据（被忽略）</text>
+          <text x="130" y="190" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">「图里其实没有羊」</text>
+          <!-- 汇入模型 -->
+          <line x1="220" y1="68" x2="300" y2="110" stroke="#a8341f" stroke-width="2.4" marker-end="url(#d25ar)"/>
+          <line x1="220" y1="178" x2="300" y2="130" stroke="#2f6f63" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#d25ar)"/>
+          <rect x="302" y="96" width="130" height="48" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="367" y="116" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">MLLM 解码</text>
+          <text x="367" y="132" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">先验权重 ≫ 视觉</text>
+          <line x1="432" y1="120" x2="462" y2="120" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d25ar)"/>
+          <rect x="464" y="96" width="150" height="48" rx="6" fill="#f7e9e4" stroke="#c25a44" stroke-width="1.5"/>
+          <text x="539" y="116" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#a8341f">「我看到 3 只羊」</text>
+          <text x="539" y="132" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#a8341f">👻 幻觉（脑补）</text>
+          <!-- 缓解 -->
+          <rect x="636" y="88" width="112" height="64" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+          <text x="692" y="106" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#2f6f63">缓解</text>
+          <text x="692" y="121" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">RLHF-V</text>
+          <text x="692" y="133" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">对比解码 VCD</text>
+          <text x="692" y="145" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">高分辨率</text>
+          <!-- 图例 -->
+          <text x="40" y="232" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">幻觉 = 模型「看到」图中不存在的东西。根因：解码时语言先验权重压过了真实视觉证据</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>多模态幻觉(hallucination)是当前最棘手的问题之一:<strong>模型「看到」图中根本不存在的东西</strong>。学完今天你应能:<strong>(1)</strong> 说清幻觉的几类成因;<strong>(2)</strong> 解释「语言先验压过视觉」这个核心机制;<strong>(3)</strong> 列举主流缓解手段(RLHF-V、对比解码、高分辨率);<strong>(4)</strong> 用 POPE 协议评估一个模型的幻觉程度。</p>
+
+      <h4>一、为什么模型会「脑补」</h4>
+      <p>MLLM 的底座是个强大的 LLM,它从海量文本里学到了强烈的<em class="term">语言先验</em>(「草地上常有羊」「厨房里常有刀」)。当解码时<strong>语言先验的权重压过了实际视觉证据</strong>,模型就会顺着「常识」把不存在的东西说出来——尤其在长描述的后半段,越说越放飞。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 四类成因 + 主流缓解</span>
+        <p><strong>成因</strong>:① <em class="term">语言先验过强</em>——根因,忽略视觉直接按常识猜;② <em class="term">数据偏差</em>——训练 caption 里「羊+草地」总共现,学成强关联;③ <em class="term">分辨率不够</em>——没看清就乱猜(回扣 D13/D16);④ <em class="term">长输出累积</em>——自回归越往后越依赖已生成文本而非图像。</p>
+        <p><strong>缓解</strong>:① <strong>RLHF-V / LLaVA-RLHF</strong>:用人类反馈惩罚幻觉;② <strong>对比解码 VCD</strong>:对比「正常图」和「加噪图」的输出,扣掉与图像无关的语言先验;③ <strong>提分辨率 + 高质量数据</strong>;④ <strong>POPE 等评测</strong>持续监控。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 你的研究切口</span>
+        <p><strong>低光/退化图像会显著加剧幻觉</strong>——看不清就更依赖语言先验脑补。「退化条件下的幻觉量化与缓解」直接是你图像增强背景 × MLLM 安全性的交叉课题,且现有 benchmark 几乎不覆盖退化场景。</p>
+      </div>
+
+      <h4>二、动手：用 POPE 协议看幻觉</h4>
+      <div class="code-block"># POPE：把幻觉评测变成「是/否」判断题，专测物体幻觉
+# 对每张图问：  "图里有 {object} 吗？"  统计准确率 + Yes 比例
+#   - 正样本：图中真实存在的物体（答案应为 Yes）
+#   - 负样本：图中不存在但「常共现」的物体（答案应为 No）—— 专踩语言先验
+
+questions = [
+    ("有狗吗？",  "yes"),     # 图里真有
+    ("有羊吗？",  "no"),      # 图里没有，但草地场景易诱发幻觉
+]
+correct, yes_cnt = 0, 0
+for q, gold in questions:
+    pred = mllm_answer(image, q).strip().lower()   # 调你的模型
+    correct += (pred.startswith(gold))
+    yes_cnt += (pred.startswith("yes"))
+print("Acc:", correct/len(questions), " Yes 比例:", yes_cnt/len(questions))
+# Yes 比例远高于真实 → 模型「见啥都说有」，幻觉倾向重</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 幻觉的根因(一句话)?② 为什么长描述后半段更容易幻觉?③ POPE 的负样本为什么要选「常共现但不存在」的物体?④ VCD 对比解码怎么扣掉语言先验?⑤ 分辨率和幻觉有什么关系?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为幻觉只是「模型不够大」</strong>——更大模型也幻觉,根因是先验与视觉的权衡。② <strong>只看准确率不看 Yes 比例</strong>——倾向性指标才暴露「见啥都说有」。③ <strong>以为 RLHF 能根治</strong>——只能缓解,无法消除。④ <strong>忽视分辨率/退化</strong>——看不清是幻觉重灾区。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 多模态幻觉的成因有哪些?哪个是根因?② POPE 如何设计来专测物体幻觉?③ 对比解码(VCD)的原理?④ 你会从数据/训练/解码/评测哪几个层面缓解幻觉?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2312.00849" target="_blank">RLHF-V</a>（用细粒度人类反馈减少幻觉）</li>
+        <li><a href="https://arxiv.org/abs/2311.16922" target="_blank">VCD：Visual Contrastive Decoding</a>（无需训练的对比解码缓解幻觉）</li>
+        <li><a href="https://arxiv.org/abs/2404.18930" target="_blank">幻觉综述（Hallucination of MLLMs）</a>（成因/评测/缓解全景）</li>
+      </ul>
+
+      <div class="box-tip">
+        <span class="label">💡 本周（Week 05）回顾</span>
+        <p>到这里你对 MLLM 的<strong>能力边界</strong>有了清晰认知:它能做什么(理解、描述、定位 grounding、分割、OCR、视频),不能稳定做什么(精确计数、细粒度空间推理),以及幻觉这个根本性局限。下一周(Week 06)进入 <strong>Agent 基础与工具调用</strong>——把「理解 + 调用专业工具执行」(D22 已见雏形)系统化,正是你 CV+Agent 方向的核心。</p>
+      </div>
+    </div>
+  </div>
 </div><!-- week 5 -->
 
 <!-- ====================== WEEK 6 ====================== -->
