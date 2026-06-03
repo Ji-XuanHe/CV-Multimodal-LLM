@@ -1248,67 +1248,435 @@ KV Cache：缓存所有已计算的 K 和 V，每步只需要：
 
   <div class="day" data-day="11"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D11</span><span class="day-title">CLIP：对比学习对齐视觉与语言</span><span class="day-arrow">▶</span></div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 CLIP 双塔对比学习</div>
+        <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CLIP 架构：图像编码器与文本编码器各自编码并归一化，在相似度矩阵上对比学习，对角线为匹配对">
+          <defs>
+            <marker id="d11ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 图像塔 -->
+          <rect x="14" y="50" width="84" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="56" y="77" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="14" fill="#26211a">图像</text>
+          <line x1="98" y1="72" x2="116" y2="72" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d11ar)"/>
+          <rect x="118" y="50" width="140" height="44" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="188" y="70" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" fill="#26211a">图像编码器</text>
+          <text x="188" y="86" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">ViT-L/14</text>
+          <text x="300" y="68" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#2f6f63">v</text>
+          <text x="300" y="82" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">L2 归一</text>
+          <!-- 文本塔 -->
+          <rect x="14" y="200" width="84" height="44" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.5"/>
+          <text x="56" y="220" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="14" fill="#26211a">文本</text>
+          <text x="56" y="236" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">"a cat"</text>
+          <line x1="98" y1="222" x2="116" y2="222" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d11ar)"/>
+          <rect x="118" y="200" width="140" height="44" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="188" y="220" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" fill="#26211a">文本编码器</text>
+          <text x="188" y="236" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">Transformer</text>
+          <text x="300" y="218" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#a8341f">u</text>
+          <text x="300" y="232" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">L2 归一</text>
+          <!-- 汇入矩阵 -->
+          <path d="M316,72 C390,72 380,120 446,120" fill="none" stroke="#5a5043" stroke-width="1.3" marker-end="url(#d11ar)"/>
+          <path d="M316,222 C390,222 380,174 446,174" fill="none" stroke="#5a5043" stroke-width="1.3" marker-end="url(#d11ar)"/>
+          <!-- 相似度矩阵 -->
+          <text x="504" y="78" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">相似度矩阵  S = τ·V·Uᵀ</text>
+          <rect x="448" y="90" width="112" height="112" fill="#efe8d8" stroke="#26211a" stroke-width="1.2"/>
+          <rect x="448" y="90" width="28" height="28" fill="#2f6f63"/>
+          <rect x="476" y="118" width="28" height="28" fill="#2f6f63"/>
+          <rect x="504" y="146" width="28" height="28" fill="#2f6f63"/>
+          <rect x="532" y="174" width="28" height="28" fill="#2f6f63"/>
+          <line x1="476" y1="90" x2="476" y2="202" stroke="#d8cdb6" stroke-width="1"/>
+          <line x1="504" y1="90" x2="504" y2="202" stroke="#d8cdb6" stroke-width="1"/>
+          <line x1="532" y1="90" x2="532" y2="202" stroke="#d8cdb6" stroke-width="1"/>
+          <line x1="448" y1="118" x2="560" y2="118" stroke="#d8cdb6" stroke-width="1"/>
+          <line x1="448" y1="146" x2="560" y2="146" stroke="#d8cdb6" stroke-width="1"/>
+          <line x1="448" y1="174" x2="560" y2="174" stroke="#d8cdb6" stroke-width="1"/>
+          <!-- 右侧说明 -->
+          <text x="578" y="128" font-family="'Noto Serif SC',serif" font-size="11" fill="#2f6f63">▮ 对角=匹配对</text>
+          <text x="592" y="144" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">最大化相似度</text>
+          <text x="578" y="170" font-family="'Noto Serif SC',serif" font-size="11" fill="#8a7d6a">□ 其余=负样本</text>
+          <text x="592" y="186" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">最小化相似度</text>
+          <!-- 图例 -->
+          <text x="14" y="285" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">对比学习：把匹配的图文对在共享空间里拉近，把 batch 内所有不匹配对推远</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>CLIP 是几乎所有多模态大模型的视觉编码器来源。理解它的训练方式和特征空间性质。</p>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> CLIP 对比学习损失（InfoNCE）</div>
+      <p>CLIP 是几乎所有多模态大模型的视觉编码器来源。学完今天你应能：<strong>(1)</strong> 讲清「双塔 + 共享空间 + 对比学习」三件套；<strong>(2)</strong> 默写 InfoNCE 损失并解释温度 <em class="term">τ</em> 的作用；<strong>(3)</strong> 说清为什么 batch size 是关键、为什么要 L2 归一化；<strong>(4)</strong> 解释 zero-shot 分类的原理；<strong>(5)</strong> 用 open_clip 跑一次 zero-shot 推理。</p>
+
+      <h4>一、动机：怎么让图像和文本「可比较」</h4>
+      <p>图像和文本是两种完全不同的模态，无法直接比较。CLIP 的思路极其干净：<strong>用两个编码器各自把图像、文本映射到同一个 <em class="term">d 维向量空间</em></strong>，在这个空间里，「一张猫的图」和「a cat」这句话的向量应该挨得很近。一旦图文进入同一空间，「图像理解」就被转化成了「向量检索」。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 CLIP 三件套</span>
+        <p><strong>① 图像编码器</strong>（ViT-L/14 或 ViT-bigG）：图像 → 一个全局图像向量 <code>v</code>。</p>
+        <p><strong>② 文本编码器</strong>（Transformer）：文本 → 一个全局文本向量 <code>u</code>。</p>
+        <p><strong>③ 对比学习</strong>：在一个 batch 的 N 对图文上，构造 N×N 相似度矩阵，<em class="term">拉近对角线（匹配对）、推远其余（负样本）</em>。两个向量都做 L2 归一化，相似度就是余弦相似度。</p>
+        <p>对多模态大模型而言，<strong>CLIP 真正值钱的是「图像编码器」——它产出的视觉特征天然和语言对齐</strong>，后面 LLaVA 只需一个小 projector 就能接上 LLM。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 和你的 CV 直觉对接</span>
+        <p>这其实就是你熟悉的<strong>度量学习 / 表征对齐</strong>：把 triplet loss 里「锚-正-负」的思路,扩展成「用整个 batch 内所有不匹配对当负样本」。CLIP 没有发明新数学,它的赢点是<strong>4 亿图文对 + 超大 batch</strong>——数据和规模再次胜过技巧。</p>
+      </div>
+
+      <h4>二、对比损失（InfoNCE）</h4>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> CLIP 对比学习损失 InfoNCE（务必能默写）</div>
         <div class="deriv-body"><pre>
-训练数据：N 对 (image, text) pairs
-图像编码器：f_img(x) → 归一化向量 v ∈ ℝ^d
-文本编码器：f_txt(t) → 归一化向量 u ∈ ℝ^d
+一个 batch：N 对 (image, text)
+图像编码器：v_i = f_img(x_i) / ‖·‖     （L2 归一化到单位球）
+文本编码器：u_j = f_txt(t_j) / ‖·‖
 
-相似度矩阵：S_ij = τ · (vᵢ · uⱼ)    τ 是可学习的温度参数
+相似度矩阵（余弦相似度 × 温度）：
+  S_ij = exp(τ) · (v_i · u_j)          τ 可学习，等价于 1/temperature
 
-Image-to-Text loss:
-  L_i2t = -∑ᵢ log(exp(S_ii) / ∑ⱼ exp(S_ij))
-Text-to-Image loss:
-  L_t2i = -∑ⱼ log(exp(S_jj) / ∑ᵢ exp(S_ij))
-总 loss = (L_i2t + L_t2i) / 2
+Image→Text（每张图在 N 个文本里找正确那条）：
+  L_i2t = - (1/N) ∑_i log [ exp(S_ii) / ∑_j exp(S_ij) ]   ← softmax 取行
+Text→Image（每条文本在 N 张图里找正确那张）：
+  L_t2i = - (1/N) ∑_j log [ exp(S_jj) / ∑_i exp(S_ij) ]   ← softmax 取列
+总损失：
+  L = (L_i2t + L_t2i) / 2              对称交叉熵
 
-直觉：对角线元素（匹配对）的相似度要大于所有非对角线（不匹配）。
-batch 越大，负样本越多，学到的特征空间越好。
-CLIP 原论文用了 32768 的 batch size！</pre></div>
+温度 τ 的作用：
+  τ 大 → 分布更尖锐 → 更强调最难的负样本（但易不稳）
+  CLIP 把 τ 设为可学习，并裁剪上限防止爆炸
+
+为什么 batch 越大越好？
+  分母是「该样本 vs batch 内所有负样本」，
+  N 越大 → 负样本越多 → 对比信号越强。
+  CLIP 原论文 batch size = 32768（多机多卡同步）！</pre></div>
       </div>
-      <div class="box-important"><span class="label">🔥 为什么 CLIP 如此重要</span>
-        <p>CLIP 的视觉编码器（通常是 ViT-L/14 或 ViT-bigG）把图像编码成一组 token 序列，这些 token 天然就和文本语义对齐了。后面的 LLaVA 等模型只需要一个小的 projector 就能把这些视觉 token「翻译」成 LLM 能理解的格式。</p>
+
+      <h4>三、动手：用 CLIP 做 zero-shot 分类</h4>
+      <p>CLIP 不需要在你的任务上训练,就能分类——把每个类别写成一句话,看哪句和图像向量最近。这就是 <em class="term">zero-shot</em>。</p>
+      <div class="code-block"># pip install open_clip_torch torch pillow
+import open_clip, torch
+from PIL import Image
+
+model, _, preprocess = open_clip.create_model_and_transforms(
+    "ViT-L-14", pretrained="openai")
+tokenizer = open_clip.get_tokenizer("ViT-L-14")
+model.eval()
+
+image = preprocess(Image.open("cat.jpg")).unsqueeze(0)   # (1,3,224,224)
+labels = ["a photo of a cat", "a photo of a dog", "a photo of a car"]
+text  = tokenizer(labels)
+
+with torch.no_grad():
+    img_f = model.encode_image(image)            # (1, 768)
+    txt_f = model.encode_text(text)              # (3, 768)
+    img_f /= img_f.norm(dim=-1, keepdim=True)    # L2 归一化（关键！）
+    txt_f /= txt_f.norm(dim=-1, keepdim=True)
+    probs = (100.0 * img_f @ txt_f.T).softmax(-1)  # 余弦相似度 → 概率
+
+for label, p in zip(labels, probs[0]):
+    print(f"{label:24s} {p.item():.3f}")</div>
+
+      <h4>四、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 温度 τ 变大,softmax 分布会更尖还是更平?② 为什么两个向量都要做 L2 归一化?③ batch=32768 这个数字为什么重要?④ CLIP 能不能用来「生成」图像描述?为什么?⑤ zero-shot 分类时,类别提示词写成 "cat" 和 "a photo of a cat" 哪个通常更好?</p>
       </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 CLIP 是生成模型</strong>——它只做对齐/检索,本身不生成文字。② <strong>以为温度是固定超参</strong>——CLIP 里 τ 是可学习参数。③ <strong>以为 zero-shot = 没训练过</strong>——是没在「该下游任务」上训,但预训练见过海量图文。④ <strong>以为 CLIP 视觉特征万能</strong>——它在细粒度、计数、空间关系上较弱(后面多模态幻觉与此有关)。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 写出 InfoNCE 损失,并解释 image→text 和 text→image 两个方向。② 为什么大 batch 对对比学习至关重要?工程上怎么实现(负样本跨卡同步)?③ L2 归一化 + 点积 = 什么?④ CLIP 的视觉编码器为什么能直接拿来做 MLLM 的视觉塔?</p>
+      </div>
+
       <h4>阅读材料</h4>
       <ul>
-        <li><a href="https://arxiv.org/abs/2103.00020" target="_blank">CLIP 论文</a>（OpenAI，2021，重点读 Section 2 方法和 Section 4 实验）</li>
-        <li><a href="https://arxiv.org/abs/2303.15389" target="_blank">EVA-CLIP</a>（理解更强的开源 CLIP 变体）</li>
+        <li><a href="https://arxiv.org/abs/2103.00020" target="_blank">CLIP 原论文：Learning Transferable Visual Models From NLP Supervision</a>（OpenAI 2021，重点读 Sec.2 方法 + Sec.3 zero-shot）</li>
+        <li><a href="https://arxiv.org/abs/2212.07143" target="_blank">Reproducible Scaling Laws（OpenCLIP）</a>（开源复现 + 规模化规律）</li>
+        <li><a href="https://arxiv.org/abs/2303.15389" target="_blank">EVA-CLIP</a>（更强的开源 CLIP 变体，常被 MLLM 采用）</li>
       </ul>
     </div>
   </div>
 
-  <div class="day" data-day="12"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D12</span><span class="day-title">SigLIP 与视觉编码器的选择</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>CLIP 的 softmax 对比需要超大 batch，SigLIP 用 sigmoid 替代解决了这个问题。了解不同视觉编码器在多模态模型中的使用。</p><div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> SigLIP 的改进（对比 CLIP）</div><div class="deriv-body"><pre>
-SigLIP：每个 pair 独立做 sigmoid binary classification
-L = -∑ᵢ∑ⱼ [ y_ij·log σ(S_ij) + (1-y_ij)·log(1-σ(S_ij)) ]
-其中 y_ij = 1 if i=j（匹配对），else 0
+  <div class="day" data-day="12"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D12</span><span class="day-title">SigLIP 与视觉编码器的选择</span><span class="day-arrow">▶</span></div><div class="day-body">
 
-优势：
-  1. 不需要跨 GPU 同步负样本（训练更高效）
-  2. 可以用更大的 batch size
-  3. 实际效果和 CLIP 持平甚至更好</pre></div></div>
-      <div class="box-important"><span class="label">🔥 主流 MLLM 的视觉编码器</span><p>LLaVA-1.5: CLIP ViT-L/14 (336px) · InternVL2: InternViT-6B（自训练的超大 ViT）· Qwen-VL: ViT-bigG（OpenCLIP）· Gemma 4 / PaliGemma: SigLIP ViT-So400m。趋势：越来越多模型用 SigLIP 替代 CLIP。</p></div>
-      <h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2303.15343" target="_blank">SigLIP 论文</a>（Google，短且清晰）</li></ul>
+      <div class="arch-fig">
+        <div class="af-cap">📊 SigLIP vs CLIP：归一化方式之别</div>
+        <svg viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SigLIP 与 CLIP 对比：CLIP 对相似度矩阵按行列做 softmax，SigLIP 对每个格子独立做 sigmoid 二分类">
+          <defs>
+            <marker id="d12ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 左：CLIP -->
+          <text x="150" y="30" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="14" font-weight="700" fill="#26211a">CLIP：Softmax</text>
+          <rect x="94" y="46" width="112" height="112" fill="#efe8d8" stroke="#26211a" stroke-width="1.2"/>
+          <rect x="94" y="46" width="28" height="28" fill="#2f6f63"/>
+          <rect x="122" y="74" width="28" height="28" fill="#2f6f63"/>
+          <rect x="150" y="102" width="28" height="28" fill="#2f6f63"/>
+          <rect x="178" y="130" width="28" height="28" fill="#2f6f63"/>
+          <line x1="122" y1="46" x2="122" y2="158" stroke="#d8cdb6"/><line x1="150" y1="46" x2="150" y2="158" stroke="#d8cdb6"/><line x1="178" y1="46" x2="178" y2="158" stroke="#d8cdb6"/>
+          <line x1="94" y1="74" x2="206" y2="74" stroke="#d8cdb6"/><line x1="94" y1="102" x2="206" y2="102" stroke="#d8cdb6"/><line x1="94" y1="130" x2="206" y2="130" stroke="#d8cdb6"/>
+          <path d="M82,52 L82,152" fill="none" stroke="#a8341f" stroke-width="1.4" marker-end="url(#d12ar)"/>
+          <path d="M100,170 L200,170" fill="none" stroke="#a8341f" stroke-width="1.4" marker-end="url(#d12ar)"/>
+          <text x="150" y="192" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">按整行 / 整列归一化</text>
+          <text x="150" y="206" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">分母含全 batch → 需跨卡同步</text>
+          <!-- 右：SigLIP -->
+          <text x="560" y="30" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="14" font-weight="700" fill="#2f6f63">SigLIP：Sigmoid</text>
+          <rect x="504" y="46" width="112" height="112" fill="#efe8d8" stroke="#26211a" stroke-width="1.2"/>
+          <rect x="504" y="46" width="28" height="28" fill="#2f6f63"/>
+          <rect x="532" y="74" width="28" height="28" fill="#2f6f63"/>
+          <rect x="560" y="102" width="28" height="28" fill="#2f6f63"/>
+          <rect x="588" y="130" width="28" height="28" fill="#2f6f63"/>
+          <line x1="532" y1="46" x2="532" y2="158" stroke="#d8cdb6"/><line x1="560" y1="46" x2="560" y2="158" stroke="#d8cdb6"/><line x1="588" y1="46" x2="588" y2="158" stroke="#d8cdb6"/>
+          <line x1="504" y1="74" x2="616" y2="74" stroke="#d8cdb6"/><line x1="504" y1="102" x2="616" y2="102" stroke="#d8cdb6"/><line x1="504" y1="130" x2="616" y2="130" stroke="#d8cdb6"/>
+          <text x="518" y="65" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#f4efe3">σ</text>
+          <text x="546" y="93" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#f4efe3">σ</text>
+          <text x="574" y="121" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#f4efe3">σ</text>
+          <text x="602" y="149" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#f4efe3">σ</text>
+          <text x="560" y="192" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#2f6f63">每个格子独立做二分类</text>
+          <text x="560" y="206" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">无需归一化 → 各卡独立算</text>
+          <!-- 中间箭头 -->
+          <path d="M230,104 L300,104" fill="none" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d12ar)"/>
+          <text x="365" y="100" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">同一张相似度矩阵</text>
+          <text x="365" y="116" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">只是 loss 不同</text>
+          <path d="M430,104 L474,104" fill="none" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d12ar)"/>
+          <!-- 图例 -->
+          <text x="14" y="270" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">▮ 对角=匹配对(label 1)　□ 其余=负样本(label −1)　SigLIP 把对比变成 N² 个独立的二分类</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>CLIP 用 softmax 对比,分母要看「整个 batch」,于是必须超大 batch + 跨卡同步,很贵。SigLIP 把它换成<em class="term">逐对 sigmoid</em>,一举解决。学完今天你应能：<strong>(1)</strong> 说清 softmax 对比「贵在哪」;<strong>(2)</strong> 默写 SigLIP 的 sigmoid loss、解释 bias 项;<strong>(3)</strong> 说清「为什么 sigmoid 省掉了跨卡同步」;<strong>(4)</strong> 知道主流 MLLM 各用什么视觉编码器、怎么选;<strong>(5)</strong> 用 HF 跑一次 SigLIP(记住推理用 sigmoid 不是 softmax)。</p>
+
+      <h4>一、动机：CLIP softmax 贵在哪</h4>
+      <p>CLIP 的损失分母是 <code>∑_j exp(S_ij)</code>——要对「这张图 vs batch 里所有文本」做归一化。batch 越大效果越好,但 batch 大到几万时,负样本分散在几十张卡上,每步都要 <strong>all-gather 把所有特征拉到一起</strong>算 softmax,通信开销巨大。SigLIP 的洞察:<strong>把「N 选 1 的多分类」换成「N² 个独立的是/否二分类」</strong>,每个格子只看自己,归一化消失,跨卡同步也就没了。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 SigLIP 的核心改动</span>
+        <p>双塔结构和 CLIP <strong>完全一样</strong>(图像编码器 + 文本编码器 + 相似度矩阵),唯一变的是 <strong>loss</strong>：对相似度矩阵的<em class="term">每一个格子</em>独立做 sigmoid 二分类——对角线 label=+1(是匹配对),其余 label=−1(不是)。没有 softmax,所以不需要看到「整行/整列」,各卡算各自的局部矩阵即可。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 一句话直觉</span>
+        <p>CLIP 问的是「在这一排里<strong>哪一个</strong>是对的?」(必须看全排);SigLIP 问的是「这一对<strong>是不是</strong>对的?」(只看这一对)。把排他的多分类拆成独立的二分类,通信成本就从 O(全 batch) 降到 O(本地)。</p>
+      </div>
+
+      <h4>二、SigLIP 损失</h4>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> Sigmoid 对比损失（对比 CLIP 的 softmax）</div><div class="deriv-body"><pre>
+归一化向量：x_i = 图像特征，y_j = 文本特征（都 L2 归一化）
+相似度：    s_ij = x_i · y_j
+
+标签：z_ij = +1 (i = j，匹配对)
+            −1 (i ≠ j，负样本)
+
+SigLIP loss（每个格子独立的 logistic 二分类）：
+  L = - (1/N) ∑_i ∑_j  log σ( z_ij · ( t · s_ij + b ) )
+      其中 σ 是 sigmoid，t 是温度，b 是可学习 bias
+
+为什么需要 bias b？
+  矩阵里负样本(N²−N 个)远多于正样本(N 个)，
+  初期模型会把所有对都判成「负」。
+  b 给一个初始偏置，缓解这种极端不平衡，训练更稳。
+
+对比 CLIP（softmax）：
+  CLIP:    L_i = -log[ exp(s_ii) / ∑_j exp(s_ij) ]   ← 分母含整行 → 需全 batch
+  SigLIP:  每个 (i,j) 独立 → 分母消失 → 各卡只算本地块
+
+收益：
+  ① 省掉跨卡 all-gather，通信大降
+  ② 小 batch 也能训得好（不再依赖超大 batch）
+  ③ 效果与 CLIP 持平甚至更好</pre></div></div>
+
+      <div class="box-important">
+        <span class="label">🔥 主流 MLLM 的视觉编码器怎么选</span>
+        <p><strong>LLaVA-1.5</strong>：CLIP ViT-L/14 (336px) · <strong>Qwen-VL</strong>：ViT-bigG (OpenCLIP) · <strong>InternVL</strong>：InternViT-6B(自训练超大 ViT) · <strong>PaliGemma / 新一代</strong>：SigLIP ViT-So400m。<br>选择逻辑:要<em class="term">分辨率高</em>(看清小字/细节) → 336/448px;要<em class="term">训练省</em> → SigLIP;要<em class="term">视觉能力天花板</em> → 自训大 ViT(InternViT)。<strong>趋势:SigLIP 正在取代 CLIP 成为默认视觉塔。</strong></p>
+      </div>
+
+      <h4>三、动手：跑一次 SigLIP（注意用 sigmoid！）</h4>
+      <div class="code-block"># pip install "transformers>=4.39" torch pillow
+from transformers import AutoProcessor, AutoModel
+import torch
+from PIL import Image
+
+model_id = "google/siglip-base-patch16-224"
+model = AutoModel.from_pretrained(model_id)
+processor = AutoProcessor.from_pretrained(model_id)
+
+image = Image.open("cat.jpg")
+texts = ["a photo of a cat", "a photo of a dog", "a photo of a car"]
+inputs = processor(text=texts, images=image,
+                   padding="max_length", return_tensors="pt")
+
+with torch.no_grad():
+    out = model(**inputs)
+    logits = out.logits_per_image          # (1, 3)
+    probs  = torch.sigmoid(logits)         # ← SigLIP 用 sigmoid，不是 softmax！
+
+for t, p in zip(texts, probs[0]):
+    print(f"{t:24s} {p.item():.3f}")       # 每个概率独立，不强制和为 1</div>
+
+      <h4>四、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① CLIP 的 softmax 为什么必须跨卡同步?② SigLIP 的 sigmoid 为什么不用?③ bias 项 b 解决什么问题?④ SigLIP 推理拿到 logits 后该用 sigmoid 还是 softmax?⑤ 如果显卡只够 batch=256,你更想用 CLIP 还是 SigLIP?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 SigLIP 改了模型结构</strong>——双塔完全一样,只改 loss。② <strong>推理时对 SigLIP logits 用 softmax</strong>——错,SigLIP 各类概率独立,该用 sigmoid。③ <strong>以为 SigLIP 更准</strong>——主要是更省(小 batch、无同步),效果相当或略好。④ <strong>忽略 bias 项</strong>——它是正负样本极端不平衡下能训稳的关键。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① SigLIP 和 CLIP 的损失分别写出来,区别在哪?② 为什么 sigmoid 形式能去掉跨卡 all-gather?③ 为什么 SigLIP 不再强依赖超大 batch?④ 现在做一个新 MLLM,视觉塔你会选 CLIP 还是 SigLIP,为什么?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2303.15343" target="_blank">SigLIP 原论文：Sigmoid Loss for Language Image Pre-Training</a>（Google 2023，ICCV，短而清晰）</li>
+        <li><a href="https://arxiv.org/abs/2502.14786" target="_blank">SigLIP 2</a>（多语言 + 更强的后续版本）</li>
+      </ul>
     </div>
   </div>
 
-  <div class="day" data-day="13"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D13</span><span class="day-title">视觉 Token：从图像到 LLM 输入序列</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>多模态模型的核心问题：如何把图像变成 LLM 能处理的 token？理解 visual tokenization 的不同方案。</p><div class="box-important"><span class="label">🔥 图像 → 视觉 token 的流程</span><p>① 图像经过 ViT：224×224 图像 → (224/14)² = 256 个 patch token<br>② 高分辨率处理：336px → 576 tokens，448px → 1024 tokens<br>③ Connector/Projector 将视觉 token 映射到 LLM 的 embedding 空间<br>④ 视觉 token 和文本 token 拼接成一个统一序列送入 LLM</p></div>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 视觉 Token 数量的工程问题</div><div class="deriv-body"><pre>
-一张 448×448 图像 → (448/14)² = 1024 visual tokens
-如果用动态分辨率切成 4 个 tile → 4 × 1024 = 4096 tokens
+  <div class="day" data-day="13"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D13</span><span class="day-title">视觉 Token：从图像到 LLM 输入序列</span><span class="day-arrow">▶</span></div><div class="day-body">
 
-问题：4096 个视觉 token 非常多！占用大量 context window
+      <div class="arch-fig">
+        <div class="af-cap">📊 图像 → 视觉 token → LLM 序列</div>
+        <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="视觉 token 流程：图像切 patch 经 ViT 成视觉 token，经 connector 压缩后与文本 token 拼接进 LLM">
+          <defs>
+            <marker id="d13ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 图像 + patch 网格 -->
+          <rect x="14" y="50" width="70" height="70" rx="4" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <line x1="37" y1="50" x2="37" y2="120" stroke="#2f6f63" stroke-width=".6"/><line x1="60" y1="50" x2="60" y2="120" stroke="#2f6f63" stroke-width=".6"/>
+          <line x1="14" y1="73" x2="84" y2="73" stroke="#2f6f63" stroke-width=".6"/><line x1="14" y1="96" x2="84" y2="96" stroke="#2f6f63" stroke-width=".6"/>
+          <text x="49" y="138" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">切 patch</text>
+          <line x1="84" y1="85" x2="116" y2="85" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d13ar)"/>
+          <!-- ViT -->
+          <rect x="118" y="62" width="92" height="46" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="164" y="83" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" fill="#26211a">ViT</text>
+          <text x="164" y="98" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#2f6f63">❄️ 编码</text>
+          <line x1="210" y1="85" x2="242" y2="85" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d13ar)"/>
+          <!-- token 数量 -->
+          <rect x="244" y="58" width="118" height="54" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="303" y="78" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">视觉 token</text>
+          <text x="303" y="94" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#a8341f">336px→576　448×4 tile→4096</text>
+          <text x="303" y="105" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#a8341f">数量爆炸 ⚠</text>
+          <line x1="362" y1="85" x2="394" y2="85" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d13ar)"/>
+          <!-- Connector -->
+          <rect x="396" y="50" width="130" height="70" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="461" y="68" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12.5" font-weight="700" fill="#a8341f">Connector</text>
+          <text x="461" y="83" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">MLP / PixelShuffle</text>
+          <text x="461" y="95" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">Resampler / Q-Former</text>
+          <text x="461" y="110" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#2f6f63">对齐维度 + 压缩数量</text>
+          <line x1="526" y1="85" x2="558" y2="85" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d13ar)"/>
+          <!-- LLM -->
+          <rect x="560" y="62" width="92" height="46" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="606" y="89" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" fill="#26211a">LLM</text>
+          <!-- 文本 token 汇入 -->
+          <rect x="396" y="196" width="130" height="44" rx="6" fill="#efe8d8" stroke="#5a5043" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <text x="461" y="222" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">文本 token</text>
+          <path d="M560,96 C548,150 600,150 606,114 M606,150 L606,110" fill="none" stroke="none"/>
+          <path d="M526,214 C560,214 606,180 606,114" fill="none" stroke="#5a5043" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#d13ar)"/>
+          <text x="606" y="135" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">拼接</text>
+          <!-- 图例 -->
+          <text x="14" y="285" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">核心矛盾：分辨率↑ → 看得清，但 token 数↑↑ → 占满 context、推理变慢。Connector 负责「对齐维度 + 压缩数量」</text>
+        </svg>
+      </div>
 
-解决方案（当前热门研究方向）：
-  1. Pixel Shuffle（LLaVA-NeXT）：相邻 token 合并，4→1
-  2. Perceiver Resampler（Flamingo）：cross-attention 压缩到固定数量
-  3. Q-Former（BLIP-2）：可学习 query token 提取信息
-  4. Token Pruning/Merging：丢弃不重要的 token
+      <h4>学习目标</h4>
+      <p>多模态模型最核心的工程问题:<strong>怎么把一张图变成 LLM 能吃的 token,还不能太多</strong>。学完今天你应能:<strong>(1)</strong> 算出任意分辨率/tile 下的视觉 token 数;<strong>(2)</strong> 说清「分辨率 vs token 数」的核心矛盾;<strong>(3)</strong> 对比 4 种 connector(MLP / Pixel Shuffle / Resampler / Q-Former)的取舍;<strong>(4)</strong> 解释动态分辨率为什么会让 token 数爆炸;<strong>(5)</strong> 用代码算 token 数并理解 Pixel Shuffle 怎么压缩。</p>
 
-这和你做超分辨率的经验很相关——
-本质上都是在「信息压缩」和「保留细节」之间做 trade-off。</pre></div></div>
-      <h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2301.12597" target="_blank">BLIP-2 论文</a>（Q-Former 架构）</li><li>了解 <a href="https://arxiv.org/abs/2311.06607" target="_blank">LLaVA-NeXT</a> 的动态分辨率方案</li></ul>
+      <h4>一、图像怎么变成 token</h4>
+      <p>LLM 只认 token 序列。把图像变 token 的标准流程:<strong>切 patch → ViT 编码 → 每个 patch 成一个视觉 token → connector 对齐到 LLM 维度 → 和文本 token 拼成一队</strong>。和 D14 的 LLaVA 一脉相承,这里我们把镜头拉近,专门盯住<em class="term">「token 数量」</em>这件要命的事。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 视觉 token 流程四步</span>
+        <p><strong>① 切 patch + ViT</strong>:224px 图 →(224/14)²= 256 token;336px → 576;448px → 1024。</p>
+        <p><strong>② 动态分辨率</strong>:高清图按比例切成多个 tile,每个 tile 各 576~1024 token → <em class="term">总数 ×tile 数</em>,轻松上千。</p>
+        <p><strong>③ Connector</strong>:把视觉 token 既<em class="term">对齐到 LLM 维度</em>(如 1024→4096),又<em class="term">压缩数量</em>(可选)。</p>
+        <p><strong>④ 拼接</strong>:压缩后的视觉 token 与文本 token 排成一个序列送入 LLM。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 和你的超分/图像复原经验对接</span>
+        <p>「分辨率高看得清,但 token 太多算不动」本质就是你熟悉的 <strong>信息量 vs 计算成本</strong> 的 trade-off。Pixel Shuffle 把空间分辨率「折叠」进通道维(空间↓、通道↑),正是超分里 sub-pixel convolution 的同款操作——你已经会了。</p>
+      </div>
+
+      <h4>二、token 数量：算给你看</h4>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 视觉 token 数量与压缩（工程上最要命的数）</div><div class="deriv-body"><pre>
+单张图 token 数：
+  N = (img_size / patch)²
+  224 / 14 = 16  → 256
+  336 / 14 = 24  → 576
+  448 / 14 = 32  → 1024
+
+动态分辨率（高清图切 tile，如 InternVL / LLaVA-NeXT）：
+  把图按长宽比切成 k 个 448×448 tile（再加一张缩略全图）：
+  N_total = k × 1024 (+1024)
+  例：切成 4 tile → 4×1024 = 4096 个视觉 token  ⚠ 爆炸
+
+为什么是大问题？
+  视觉 token 和文本 token 抢同一个 context window，
+  4096 个视觉 token ≈ 把上下文塞满，且 attention 是 O(L²)，
+  序列翻倍 → 计算翻 4 倍 → 推理显著变慢。
+
+四种 Connector / 压缩方案：
+  ① MLP（LLaVA）       ：只对齐维度，不压数量（最简单）
+  ② Pixel Shuffle      ：相邻 2×2 token 折叠进通道，数量 ÷4、维度 ×4
+     （InternVL / LLaVA-NeXT；空间↓ 通道↑，几乎不丢信息）
+  ③ Perceiver Resampler：用固定数量 query 做 cross-attention，
+     把任意多 token 压到固定 K 个（Flamingo）
+  ④ Q-Former           ：可学习 query + 多层注意力提取信息（BLIP-2）
+
+口诀：MLP 保真不压 → 数量爆；Resampler/Q-Former 压到固定数 → 可能丢细节；
+      Pixel Shuffle 折叠 → 折中，当前最流行。</pre></div></div>
+
+      <h4>三、动手：算 token 数 + 理解 Pixel Shuffle</h4>
+      <div class="code-block">def n_visual_tokens(img_size=336, patch=14, tiles=1, shuffle=1):
+    """tiles: 动态分辨率切片数; shuffle: pixel-shuffle 下采样倍数"""
+    per_tile = (img_size // patch) ** 2
+    return tiles * per_tile // (shuffle ** 2)
+
+print(n_visual_tokens(336))                       # 576   （LLaVA-1.5）
+print(n_visual_tokens(448, tiles=4))              # 4096  （动态分辨率，爆炸）
+print(n_visual_tokens(448, tiles=4, shuffle=2))   # 1024  （Pixel Shuffle 压 1/4）
+
+# —— Pixel Shuffle：相邻 2×2 token 折叠进通道（空间↓ 通道↑）——
+import torch
+def pixel_shuffle_down(x, h, w, scale=2):
+    # x: (B, h*w, C) -> (B, h/2 * w/2, C*4)
+    B, _, C = x.shape
+    x = x.view(B, h, w, C)
+    x = x.view(B, h, w // scale, C * scale)               # 横向折叠
+    x = x.permute(0, 2, 1, 3).contiguous()
+    x = x.view(B, w // scale, h // scale, C * scale * scale)
+    return x.permute(0, 2, 1, 3).contiguous().view(B, -1, C * scale * scale)
+
+tokens = torch.randn(1, 24 * 24, 1024)            # 576 个 1024 维 token
+out = pixel_shuffle_down(tokens, 24, 24, scale=2)
+print(out.shape)   # (1, 144, 4096)  数量 576→144，维度 1024→4096</div>
+
+      <h4>四、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 336px、patch=14 是多少 token?448px 切 4 tile 呢?② 为什么 token 数翻倍会让计算涨约 4 倍?③ Pixel Shuffle 压 1/4 的同时维度怎么变?④ MLP connector 会压 token 数吗?⑤ Q-Former 和 Pixel Shuffle 压缩思路有何本质不同?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为视觉 token 数固定</strong>——它随分辨率和 tile 数变,动态分辨率下会暴涨。② <strong>以为 MLP projector 会压 token</strong>——MLP 只对齐维度,数量不变。③ <strong>以为压缩无损</strong>——Resampler/Q-Former 压到固定数会丢细节(OCR、小目标受影响)。④ <strong>把「patch 数」「视觉 token 数」「序列长度」混为一谈</strong>——压缩后视觉 token 数 ≠ patch 数。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 一张 448×448 切 4 tile,经 Pixel Shuffle(÷4)后多少视觉 token?②为什么视觉 token 太多是大问题?和 attention 复杂度的关系?③ 对比 MLP / Pixel Shuffle / Resampler / Q-Former 的优劣。④ 做高分辨率文档理解,你会怎么平衡「看清小字」和「token 不爆」?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2301.12597" target="_blank">BLIP-2</a>（Q-Former 压缩范式）</li>
+        <li><a href="https://arxiv.org/abs/2310.03744" target="_blank">LLaVA-1.5 / NeXT 系列</a>（MLP projector + 动态分辨率 AnyRes）</li>
+        <li><a href="https://arxiv.org/abs/2404.16821" target="_blank">InternVL 1.5</a>（动态分辨率 + Pixel Shuffle 的工程细节）</li>
+      </ul>
     </div>
   </div>
 
@@ -1508,19 +1876,126 @@ def merge(input_ids, text_embeds, image_embeds, IMG_ID):
     </div>
   </div>
 
-  <div class="day" data-day="15"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D15</span><span class="day-title">LLaVA 代码精读 + 动手推理</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>今日目标</h4><p>读 LLaVA 的核心代码，理解图像如何流过整个模型；在本地跑一个视觉模型做推理。</p><div class="code-block"># 用 Ollama 直接体验
-ollama pull llava:7b
-ollama run llava:7b
-# 然后粘贴图片或提供图片路径进行对话
+  <div class="day" data-day="15"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D15</span><span class="day-title">LLaVA 代码精读 + 动手推理</span><span class="day-arrow">▶</span></div><div class="day-body">
 
-# 或用 mlx-vlm（推荐，更接近原始实现）
+      <div class="arch-fig">
+        <div class="af-cap">📊 LLaVA 代码数据流（函数视角）</div>
+        <svg viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LLaVA 代码数据流：pixel_values 经 encode_images，input_ids 经 embed_tokens，在 prepare_inputs 处合并后送入 generate">
+          <defs>
+            <marker id="d15ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 视觉支路 -->
+          <rect x="10" y="40" width="104" height="42" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="62" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">pixel_values</text>
+          <text x="62" y="74" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">(B,3,336,336)</text>
+          <line x1="114" y1="61" x2="142" y2="61" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d15ar)"/>
+          <rect x="144" y="38" width="150" height="46" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/>
+          <text x="219" y="57" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10.5" fill="#a8341f">encode_images()</text>
+          <text x="219" y="72" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">vision_tower + mm_projector</text>
+          <line x1="294" y1="61" x2="322" y2="61" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d15ar)"/>
+          <text x="360" y="58" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">image_features</text>
+          <text x="360" y="71" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">(B,576,4096)</text>
+          <!-- 文本支路 -->
+          <rect x="10" y="160" width="104" height="42" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="62" y="180" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">input_ids</text>
+          <text x="62" y="194" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">含 &lt;image&gt; id</text>
+          <line x1="114" y1="181" x2="142" y2="181" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d15ar)"/>
+          <rect x="144" y="158" width="150" height="46" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="219" y="184" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10.5" fill="#26211a">embed_tokens()</text>
+          <line x1="294" y1="181" x2="322" y2="181" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d15ar)"/>
+          <text x="360" y="178" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">text_embeds</text>
+          <text x="360" y="191" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">(B,L,4096)</text>
+          <!-- 合并 -->
+          <rect x="412" y="92" width="170" height="60" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="2"/>
+          <text x="497" y="114" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#b5832f">prepare_inputs_</text>
+          <text x="497" y="128" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#b5832f">labels_for_multimodal</text>
+          <text x="497" y="143" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">在 &lt;image&gt; 处插入 576 视觉向量</text>
+          <path d="M408,61 C440,61 430,110 410,116" fill="none" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d15ar)"/>
+          <path d="M408,181 C440,181 430,134 410,128" fill="none" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d15ar)"/>
+          <line x1="582" y1="122" x2="612" y2="122" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d15ar)"/>
+          <!-- generate -->
+          <rect x="614" y="98" width="132" height="48" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="680" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10.5" fill="#26211a">LLM.generate()</text>
+          <text x="680" y="135" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#2f6f63">自回归输出文本</text>
+          <!-- 图例 -->
+          <text x="10" y="250" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">关键:视觉 token 在「embedding 层」合并(不是 token 层),图像只在首步编码一次,之后靠 KV cache</text>
+          <text x="10" y="266" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">对照源码:llava/model/llava_arch.py</text>
+        </svg>
+      </div>
+
+      <h4>今日目标</h4>
+      <p>纯实操日。读懂 LLaVA 把图像「插进」文本序列的<em class="term">真实代码</em>,并在本地跑通推理。学完你应能:<strong>(1)</strong> 在 3 种后端(Ollama / mlx-vlm / HF)里任选一种跑通;<strong>(2)</strong> 讲清 <code>encode_images → prepare_inputs_labels_for_multimodal → generate</code> 三步;<strong>(3)</strong> 说清视觉 token 为什么在 <em class="term">embedding 层</em>合并、而不是 token 层;<strong>(4)</strong> 解释推理时图像只编码一次的原因(KV cache)。</p>
+
+      <h4>一、先跑起来：三种后端任选其一</h4>
+      <div class="code-block"># —— 方式 A：Ollama（最快上手，一行体验）——
+ollama run llava:7b           # 启动后直接拖入图片或给路径对话
+
+# —— 方式 B：mlx-vlm（Apple Silicon 友好，量化版）——
 pip install mlx-vlm
 python -m mlx_vlm.generate \
-  --model mlx-community/llava-1.5-7b-hf-4bit-mlx \
+  --model mlx-community/llava-1.5-7b-hf-4bit \
   --image your_image.jpg \
-  --prompt "Describe this image in detail"</div>
-      <div class="box-important"><span class="label">🔥 代码阅读要点</span><p>在 LLaVA 代码中找到这几个关键部分：① <code>encode_images()</code>：CLIP ViT 提取视觉特征 · ② <code>mm_projector</code>：MLP projector 映射 · ③ <code>prepare_inputs_labels_for_multimodal()</code>：视觉 token 和文本 token 的拼接逻辑 · ④ &lt;image&gt; 特殊 token 被替换为视觉 token 的位置</p></div>
-      <div class="box-tip"><span class="label">💡 本周回顾</span><p>你应该能画出「图像从输入到 LLM 输出文字」的完整数据流图。能解释 CLIP 的训练方式。能说清 projector 的作用。</p></div>
+  --prompt "请详细描述这张图"
+
+# —— 方式 C：HF transformers（看得清内部，见 D14 推理代码）——
+# from transformers import LlavaForConditionalGeneration, AutoProcessor ...</div>
+
+      <h4>二、代码精读：图像是怎么「插进」序列的</h4>
+      <p>LLaVA 的灵魂在 <code>llava/model/llava_arch.py</code>。把下面这段(简化版)和源码对照着读,你就彻底懂了 D14 讲的「占位符替换」机制在代码里长什么样。</p>
+      <div class="code-block">import torch
+
+IMAGE_TOKEN_INDEX = -200    # &lt;image&gt; 占位符的特殊 id（不在正常词表里）
+
+def encode_images(self, images):
+    feats = self.vision_tower(images)        # CLIP ViT -> (B, 576, 1024)
+    return self.mm_projector(feats)          # MLP      -> (B, 576, 4096)
+
+def prepare_inputs_labels_for_multimodal(self, input_ids, labels, images):
+    image_features = self.encode_images(images)      # (B, 576, 4096)
+    new_embeds, new_labels = [], []
+    for ids, lab, feat in zip(input_ids, labels, image_features):
+        emb = self.embed_tokens(ids.clamp(min=0))     # 文本 -> (L, 4096)
+        pos = (ids == IMAGE_TOKEN_INDEX).nonzero()[0].item()   # 找 &lt;image&gt;
+        # 在 embedding 层把 1 个占位符展开成 576 个视觉向量
+        emb = torch.cat([emb[:pos], feat, emb[pos+1:]], dim=0)
+        # 视觉 token 的 label 设为 -100（不计 loss）
+        vlab = torch.full((feat.size(0),), -100, device=lab.device)
+        lab = torch.cat([lab[:pos], vlab, lab[pos+1:]], dim=0)
+        new_embeds.append(emb); new_labels.append(lab)
+    return pad_and_stack(new_embeds, new_labels)   # 处理变长 + attention_mask</div>
+
+      <div class="box-important">
+        <span class="label">🔥 四个必看的点</span>
+        <p>① <code>encode_images()</code>:vision_tower(CLIP) + mm_projector(MLP),出 <code>(B,576,4096)</code>。② <code>IMAGE_TOKEN_INDEX = -200</code>:负数 id,故意不在词表里——所以必须在 <strong>embedding 层</strong>替换,不能走正常 embedding。③ 合并发生在 <code>prepare_inputs_labels_for_multimodal()</code>:用 <code>torch.cat</code> 把视觉向量插进占位符位置。④ 视觉 token 的 <code>label=-100</code>:自回归 loss 不算在图像上(呼应 D14 的 loss 落点)。</p>
+      </div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① <code>IMAGE_TOKEN_INDEX</code> 为什么取负数、不在词表里?② 合并为什么必须在 embedding 层而不是 token id 层?③ 视觉 token 的 label 为什么设 -100?④ 一个 batch 里不同样本合并后长度不同,怎么办?⑤ 推理生成第 50 个字时,需要重新跑一遍 CLIP 吗?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 &lt;image&gt; 在词表里有真实 embedding</strong>——它是占位 index,会被整段替换。② <strong>以为每生成一个 token 都重编码图像</strong>——不会,图像只在首步编码,之后靠 KV cache。③ <strong>以为视觉 token 参与 loss</strong>——label=-100 被忽略。④ <strong>把 input_ids 和 inputs_embeds 搞混</strong>——多模态合并操作的是 embeds,不是 ids。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 完整讲一遍 LLaVA 前向的函数调用链。② 为什么要在 embedding 层合并视觉与文本?③ 推理时图像编码一次还是每步一次?和 KV cache 的关系?④ batch 内变长序列如何 pad,attention_mask 怎么配合?</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 本周（Week 03）回顾</span>
+        <p>到这里你应能:画出「图像 → CLIP/SigLIP → 视觉 token → connector → 拼接 → LLM → 文字」的完整数据流;解释 CLIP/SigLIP 的对比学习与区别;算出任意分辨率的视觉 token 数、说清压缩方案;并在代码层面讲清视觉 token 如何插入序列。下一周(Week 04)进入 InternVL / Qwen-VL 等前沿模型,看它们在这套框架上各做了什么改进。</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://github.com/haotian-liu/LLaVA" target="_blank">LLaVA 官方代码</a>（精读 <code>llava/model/llava_arch.py</code>）</li>
+        <li><a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/llava/modeling_llava.py" target="_blank">HF transformers 的 LLaVA 实现</a>（更工业化、可对照）</li>
+        <li><a href="https://github.com/Blaizzy/mlx-vlm" target="_blank">mlx-vlm</a>（Apple Silicon 本地推理）</li>
+      </ul>
     </div>
   </div>
 </div><!-- week 3 -->
@@ -2164,7 +2639,6 @@ function initRefs(){
     '9' :[{t:'Qwen Technical Report',u:'2309.16609',tag:'Qwen',c:'report'}],
     '10':[{t:'Mixtral of Experts（稀疏 MoE）',u:'2401.04088',tag:'Mistral',c:'report'},
           {t:'DeepSeek-V3 技术报告（MoE 大模型）',u:'2412.19437',tag:'DeepSeek',c:'report'}],
-    '12':[{t:'SigLIP：Sigmoid Loss 图文预训练',u:'2303.15343',tag:'ICCV',c:'conf'}],
     '14':[{t:'Flamingo：少样本视觉语言模型',u:'2204.14198',tag:'NeurIPS',c:'conf'},
           {t:'BLIP-2：Q-Former 连接冻结视觉与 LLM',u:'2301.12597',tag:'ICML',c:'conf'},
           {t:'LLaVA-1.5：更强的简洁基线',u:'2310.03744',tag:'CVPR',c:'conf'}],
