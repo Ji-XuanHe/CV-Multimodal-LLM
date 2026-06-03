@@ -1113,8 +1113,49 @@ for epoch in range(10):
       <span class="day-arrow">▶</span>
     </div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 三种架构 = 三种注意力可见性</div>
+        <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Encoder-only 双向注意力全可见，Decoder-only 因果注意力只看左侧，Encoder-Decoder 组合两者加 cross-attention">
+          <!-- Encoder-only -->
+          <text x="120" y="30" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#2f6f63">Encoder-only</text>
+          <text x="120" y="46" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">BERT / ViT · 双向</text>
+          <g>
+            <rect x="76" y="56" width="88" height="88" fill="#efe8d8" stroke="#26211a"/>
+            <g fill="#2f6f63">
+              <rect x="76" y="56" width="22" height="22"/><rect x="98" y="56" width="22" height="22"/><rect x="120" y="56" width="22" height="22"/><rect x="142" y="56" width="22" height="22"/>
+              <rect x="76" y="78" width="22" height="22"/><rect x="98" y="78" width="22" height="22"/><rect x="120" y="78" width="22" height="22"/><rect x="142" y="78" width="22" height="22"/>
+              <rect x="76" y="100" width="22" height="22"/><rect x="98" y="100" width="22" height="22"/><rect x="120" y="100" width="22" height="22"/><rect x="142" y="100" width="22" height="22"/>
+              <rect x="76" y="122" width="22" height="22"/><rect x="98" y="122" width="22" height="22"/><rect x="120" y="122" width="22" height="22"/><rect x="142" y="122" width="22" height="22"/>
+            </g>
+          </g>
+          <text x="120" y="166" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">每个 token 看到所有 token</text>
+          <!-- Decoder-only -->
+          <text x="380" y="30" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">Decoder-only</text>
+          <text x="380" y="46" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">GPT / Llama · 因果（主流）</text>
+          <g>
+            <rect x="336" y="56" width="88" height="88" fill="#efe8d8" stroke="#26211a"/>
+            <g fill="#a8341f">
+              <rect x="336" y="56" width="22" height="22"/>
+              <rect x="336" y="78" width="22" height="22"/><rect x="358" y="78" width="22" height="22"/>
+              <rect x="336" y="100" width="22" height="22"/><rect x="358" y="100" width="22" height="22"/><rect x="380" y="100" width="22" height="22"/>
+              <rect x="336" y="122" width="22" height="22"/><rect x="358" y="122" width="22" height="22"/><rect x="380" y="122" width="22" height="22"/><rect x="402" y="122" width="22" height="22"/>
+            </g>
+          </g>
+          <text x="380" y="166" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#a8341f">只看到自己和左边（下三角）</text>
+          <!-- Encoder-Decoder -->
+          <text x="630" y="30" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#b5832f">Encoder-Decoder</text>
+          <text x="630" y="46" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">T5 · 编码双向+解码因果</text>
+          <rect x="560" y="60" width="140" height="80" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.3"/>
+          <text x="630" y="86" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#5a5043">Encoder(双向)</text>
+          <text x="630" y="104" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#5a5043">+ Decoder(因果)</text>
+          <text x="630" y="122" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">+ Cross-Attention</text>
+          <text x="14" y="194" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">主流 LLM 选 Decoder-only：训练目标统一（预测下一词）、可无限自回归生成、规模化最简单</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>理解 Encoder-only（BERT / ViT）、Decoder-only（GPT）、Encoder-Decoder（T5）三种架构的本质差异，搞清楚为什么现在主流 LLM 都选择 decoder-only。</p>
+      <p>理解 Encoder-only（BERT / ViT）、Decoder-only（GPT）、Encoder-Decoder（T5）三种架构的本质差异，搞清楚为什么现在主流 LLM 都选择 decoder-only。这是从你熟悉的 ViT 转向 GPT 的<strong>第一个思维转变</strong>。</p>
 
       <div class="box-important">
         <span class="label">🔥 核心概念</span>
@@ -1147,6 +1188,35 @@ Causal Self-Attention（GPT 使用的）：
         <span class="label">💡 CV 视角</span>
         <p>ViT 的 patch embedding 和 LLM 的 token embedding 本质上是同一件事——把输入离散化为序列。这个直觉后面学多模态时非常关键。</p>
       </div>
+
+      <h4>动手：causal mask 一行实现</h4>
+      <div class="code-block">import torch, torch.nn.functional as F
+
+def causal_attention(Q, K, V):
+    n = Q.size(-2)
+    S = Q @ K.transpose(-2, -1) / Q.size(-1)**0.5
+    mask = torch.triu(torch.full((n, n), float("-inf")), diagonal=1)  # 上三角 -inf
+    A = F.softmax(S + mask, dim=-1)        # 未来位置权重→0
+    return A @ V
+
+# 等价于内置（更快，走 FlashAttention，见 D34）：
+#   F.scaled_dot_product_attention(Q, K, V, is_causal=True)
+q = k = v = torch.randn(1, 5, 64)
+print(causal_attention(q, k, v).shape)     # [1, 5, 64]，每个位置只看自己和左边</div>
+
+      <h4>自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 三种架构各看哪些 token？② causal mask 怎么实现「看不到未来」？③ 为什么主流 LLM 选 decoder-only？④ 自回归生成是什么意思？⑤ ViT 和 GPT 的注意力差别（连 P03/P04）？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 decoder-only 不能做理解任务</strong>——它一样能，且训练/扩展更简单。② <strong>把 causal mask 加在 V 上</strong>——是加在 attention 分数（softmax 前）。③ <strong>以为 encoder-decoder 已过时</strong>——翻译/多模态里仍有用（cross-attention）。④ <strong>混淆双向与因果</strong>——能不能看未来是分水岭。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 三种架构的代表模型与适用场景。② 为什么 GPT 系列统一用 decoder-only？③ causal mask 的实现与作用。④ 双向注意力为什么不能直接做自回归生成？</p>
+      </div>
     </div>
   </div>
 
@@ -1159,8 +1229,29 @@ Causal Self-Attention（GPT 使用的）：
       <span class="day-arrow">▶</span>
     </div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 文本 → token id：语言模型的「入口」</div>
+        <svg viewBox="0 0 760 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tokenization：文本经 BPE 切成子词，映射为整数 id，再查 embedding 表成向量">
+          <defs>
+            <marker id="d2ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <rect x="14" y="56" width="120" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="74" y="76" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">文本</text><text x="74" y="92" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">"lowest"</text>
+          <line x1="134" y1="78" x2="160" y2="78" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d2ar)"/>
+          <rect x="162" y="50" width="150" height="56" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/><text x="237" y="70" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">BPE 切分</text><text x="237" y="87" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">合并高频 pair</text><text x="237" y="99" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">→ "low","est"</text>
+          <line x1="312" y1="78" x2="338" y2="78" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d2ar)"/>
+          <rect x="340" y="56" width="130" height="44" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/><text x="405" y="76" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">token id</text><text x="405" y="92" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">[3984, 525]</text>
+          <line x1="470" y1="78" x2="496" y2="78" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d2ar)"/>
+          <rect x="498" y="56" width="140" height="44" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.4"/><text x="568" y="76" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">Embedding 查表</text><text x="568" y="92" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">id → d 维向量</text>
+          <line x1="638" y1="78" x2="664" y2="78" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d2ar)"/>
+          <rect x="666" y="56" width="80" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="706" y="82" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">进模型</text>
+          <text x="14" y="138" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">词表越大 → 同段文本 token 越少，但 embedding 层越大；BPE 在「字符级」和「词级」之间取平衡</text>
+          <text x="14" y="156" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">中文在英文 tokenizer 里很吃亏（一个汉字常占 2–3 token）→ Qwen 等用更大词表</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>理解文本如何变成 token ID 序列。这是 CV 人最容易忽略的部分——图像天然是连续的，但语言模型的输入是离散的整数序列。</p>
+      <p>理解文本如何变成 token ID 序列。这是 CV 人最容易忽略的部分——图像天然是连续的，但语言模型的输入是<strong>离散的整数序列</strong>。这也直接关系到中文效率和多模态里「视觉 token vs 文本 token」的统一（D13）。</p>
 
       <div class="box-important">
         <span class="label">🔥 核心概念</span>
@@ -1203,6 +1294,20 @@ for t in texts:
         <span class="label">💡 中文注意</span>
         <p>中文在多数英文为主的 tokenizer 中效率很低（一个汉字可能要 2-3 个 token），这就是为什么 Qwen 等中文优化模型用了更大的词表。</p>
       </div>
+
+      <h4>自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① BPE 是怎么从字符一步步合并出子词的？② 词表变大对 embedding 层、序列长度各有什么影响？③ 为什么中文在英文 tokenizer 里 token 数多？④ Byte-level BPE 和 SentencePiece 的区别？⑤ token id 之后接什么（embedding）？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为一个词=一个 token</strong>——常被切成多个子词。② <strong>以为 token 数=字符数</strong>——差很多，尤其中文/代码。③ <strong>忽视特殊 token</strong>——&lt;bos&gt;/&lt;eos&gt;/&lt;pad&gt; 也占位（多模态里 &lt;image&gt; 同理，D15）。④ <strong>以为换 tokenizer 不用重训</strong>——词表变了 embedding 全废。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 手动走一遍 BPE 合并。② 词表大小如何权衡（序列长度 vs 参数量 vs 多语言）？③ 为什么大模型多用 byte-level BPE？④ 中文/多语言 tokenization 的挑战与对策？</p>
+      </div>
     </div>
   </div>
 
@@ -1215,8 +1320,36 @@ for t in texts:
       <span class="day-arrow">▶</span>
     </div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 GPT 前向：从 token id 到下一个词的概率</div>
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GPT 前向：token embedding 加位置编码，经 N 层 decoder block，LayerNorm 后 lm_head 加 softmax 得下一词概率">
+          <defs>
+            <marker id="d3ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <rect x="12" y="60" width="84" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="54" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">token id</text><text x="54" y="94" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">+ Embedding</text>
+          <line x1="96" y1="82" x2="120" y2="82" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d3ar)"/>
+          <rect x="122" y="60" width="74" height="44" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/><text x="159" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">+位置编码</text><text x="159" y="94" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">PE (D04)</text>
+          <line x1="196" y1="82" x2="220" y2="82" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d3ar)"/>
+          <!-- decoder block ×N -->
+          <rect x="222" y="40" width="200" height="84" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="322" y="58" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">Decoder Block × N</text>
+          <text x="322" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">LN → Causal-MHA →(+残差)</text>
+          <text x="322" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">LN → FFN(MLP) →(+残差)</text>
+          <text x="322" y="108" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">和 ViT Block 几乎一样，只是 attention 带 causal mask</text>
+          <line x1="422" y1="82" x2="446" y2="82" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d3ar)"/>
+          <rect x="448" y="60" width="100" height="44" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.4"/><text x="498" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">LN → lm_head</text><text x="498" y="94" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">投到词表 V 维</text>
+          <line x1="548" y1="82" x2="572" y2="82" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d3ar)"/>
+          <rect x="574" y="60" width="84" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="616" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">softmax</text><text x="616" y="94" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">下一词概率</text>
+          <line x1="658" y1="82" x2="682" y2="82" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d3ar)"/>
+          <rect x="684" y="60" width="62" height="44" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/><text x="715" y="86" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">采样</text>
+          <text x="14" y="162" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">参数量 ≈ 12·N·d²（面试常考）：7B → N=32, d=4096 → 12×32×4096² ≈ 6.4B</text>
+          <text x="14" y="180" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">现代改进：Pre-Norm、SwiGLU FFN、RMSNorm、RoPE（D04）—— 骨架不变，细节进化</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>完整理解 GPT 系列的前向传播过程：token embedding + positional encoding → N 层 decoder block → lm_head → 概率分布。</p>
+      <p>完整理解 GPT 系列的前向传播过程：token embedding + positional encoding → N 层 decoder block → lm_head → 概率分布。<strong>这是后面所有 LLM / MLLM 的语言骨架</strong>。</p>
 
       <div class="box-important">
         <span class="label">🔥 GPT Decoder Block</span>
@@ -1252,6 +1385,42 @@ for t in texts:
         </div>
       </div>
 
+      <h4>动手：一个 GPT Decoder Block</h4>
+      <div class="code-block">import torch, torch.nn as nn
+
+class Block(nn.Module):                       # Pre-Norm 风格（GPT-2/Llama 都是）
+    def __init__(self, d, h):
+        super().__init__()
+        self.ln1, self.ln2 = nn.LayerNorm(d), nn.LayerNorm(d)
+        self.attn = nn.MultiheadAttention(d, h, batch_first=True)
+        self.ffn  = nn.Sequential(nn.Linear(d, 4*d), nn.GELU(), nn.Linear(4*d, d))
+    def forward(self, x, causal_mask):
+        a, _ = self.attn(self.ln1(x), self.ln1(x), self.ln1(x),
+                         attn_mask=causal_mask, need_weights=False)
+        x = x + a                              # 残差①
+        x = x + self.ffn(self.ln2(x))          # 残差②（残差思想来自 P02 ResNet）
+        return x
+
+d, h, n = 768, 12, 16
+blk = Block(d, h)
+mask = torch.triu(torch.full((n, n), float("-inf")), diagonal=1)   # causal
+print(blk(torch.randn(1, n, d), mask).shape)  # [1, 16, 768]
+# 把 N 个 Block 叠起来 + embedding + lm_head 就是一个完整 GPT（对照 nanoGPT model.py）</div>
+
+      <h4>自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 写出 GPT 一层的数据流（LN/Attn/FFN/残差顺序）。② GPT Block 和 ViT Block 差在哪？③ 估算 7B 模型的参数量。④ lm_head 和 embedding 为什么常共享权重？⑤ Pre-Norm 相比 Post-Norm 的好处？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>忘了 causal mask</strong>——GPT 必须只看左侧。② <strong>把 LN 放错位置</strong>——Pre-Norm 是先 LN 再进子层。③ <strong>以为 FFN 不重要</strong>——它占了大部分参数（~8d²/层）。④ <strong>忽略权重共享</strong>——embedding 与 lm_head 共享省大量参数。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 手画 GPT decoder block。② 参数量公式 12·N·d² 怎么来的？③ Pre-Norm vs Post-Norm？④ SwiGLU 相比标准 FFN 的改动（连 D04/现代模型）？</p>
+      </div>
+
       <h4>阅读和实践</h4>
       <ul>
         <li>继续看 Karpathy 视频（30 分钟到 1 小时部分），对照代码理解每一层</li>
@@ -1269,8 +1438,44 @@ for t in texts:
       <span class="day-arrow">▶</span>
     </div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 位置编码三代演进（RoPE 是当下标准）</div>
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="位置编码三代：Sinusoidal 加在 embedding 上的绝对位置，ALiBi 加在注意力分数上的偏置，RoPE 旋转 q k 编码相对位置">
+          <defs>
+            <marker id="d4ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <!-- gen1 -->
+          <rect x="14" y="44" width="150" height="58" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/>
+          <text x="89" y="64" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">① Sinusoidal</text>
+          <text x="89" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">加到 embedding</text>
+          <text x="89" y="93" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#a8341f">绝对位置·难外推</text>
+          <line x1="164" y1="73" x2="186" y2="73" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d4ar)"/>
+          <!-- gen2 -->
+          <rect x="188" y="44" width="150" height="58" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/>
+          <text x="263" y="64" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">② ALiBi</text>
+          <text x="263" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">加到 attention 分数</text>
+          <text x="263" y="93" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#2f6f63">−m·|i−j|·天然外推</text>
+          <line x1="338" y1="73" x2="360" y2="73" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d4ar)"/>
+          <!-- gen3 RoPE -->
+          <rect x="362" y="40" width="170" height="66" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="447" y="60" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">③ RoPE（标准）</text>
+          <text x="447" y="77" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">旋转 q,k 向量</text>
+          <text x="447" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">内积只依赖相对距离 m−n</text>
+          <text x="447" y="101" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#8a7d6a">Llama/Qwen/InternVL 都用</text>
+          <!-- 旋转示意 -->
+          <circle cx="630" cy="73" r="36" fill="none" stroke="#d8cdb6" stroke-width="1"/>
+          <line x1="630" y1="73" x2="660" y2="53" stroke="#2f6f63" stroke-width="2" marker-end="url(#d4ar)"/>
+          <line x1="630" y1="73" x2="658" y2="88" stroke="#a8341f" stroke-width="2" marker-end="url(#d4ar)"/>
+          <path d="M662,58 A20 20 0 0 1 660,86" fill="none" stroke="#b5832f" stroke-width="1.2" marker-end="url(#d4ar)"/>
+          <text x="630" y="128" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">位置=旋转角 m·θ</text>
+          <text x="14" y="162" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">RoPE 把「位置」编码成「旋转角度」：两个 token 的注意力只看它们的角度差 = 相对距离</text>
+          <text x="14" y="180" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">这正是 D17 Qwen2-VL 把 RoPE 升级成 3D 的 M-RoPE 的基础</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>Transformer 本身对位置不敏感（permutation invariant），必须注入位置信息。理解三代位置编码的演进。</p>
+      <p>Transformer 本身对位置不敏感（permutation invariant），必须注入位置信息。理解三代位置编码的演进——尤其 <strong>RoPE</strong>，它是后面所有现代模型（含 D17 的 M-RoPE）的基础。</p>
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 三代位置编码对比（RoPE 重点理解）</div>
@@ -1304,6 +1509,40 @@ for t in texts:
         <p>它优雅地实现了：(1) 注意力分数只依赖相对位置；(2) 通过 NTK-aware scaling 可以外推到更长序列；(3) 计算开销极小。你后面看的所有模型（Llama、Qwen、InternVL）都用 RoPE。</p>
       </div>
 
+      <h4>动手：RoPE 旋转实现</h4>
+      <div class="code-block">import torch
+
+def rope(x, theta=10000.0):
+    # x: (B, T, d)，d 为偶数；对每对维度按位置旋转
+    B, T, d = x.shape
+    pos   = torch.arange(T).float()
+    freqs = theta ** (-torch.arange(0, d, 2).float() / d)     # θ_i = 10000^(-2i/d)
+    ang   = pos[:, None] * freqs[None, :]                     # (T, d/2) 旋转角 = 位置×θ
+    cos, sin = ang.cos(), ang.sin()
+    x1, x2 = x[..., 0::2], x[..., 1::2]                       # 成对取维度
+    out = torch.empty_like(x)
+    out[..., 0::2] = x1 * cos - x2 * sin                      # 旋转矩阵作用
+    out[..., 1::2] = x1 * sin + x2 * cos
+    return out
+
+q = torch.randn(1, 8, 64)
+print(rope(q).shape)        # [1, 8, 64]
+# 对 q、k 各做一次 rope 再算注意力 → 分数自动只依赖相对位置（见推导）</div>
+
+      <h4>自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 为什么 Transformer 必须额外加位置编码？② Sinusoidal、ALiBi、RoPE 各加在哪个环节？③ RoPE 为什么能让注意力只依赖相对位置？④ RoPE 怎么外推到更长序列（NTK scaling）？⑤ RoPE 和 D17 的 M-RoPE 什么关系？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为绝对/相对位置无所谓</strong>——相对位置对长度外推更友好。② <strong>把 RoPE 加到 embedding 上</strong>——它作用在每层的 q、k 上。③ <strong>以为换长度免训</strong>——不做 scaling 直接外推会崩。④ <strong>忽略它是「乘性」旋转而非「加性」</strong>——和 Sinusoidal 的注入方式本质不同。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 推导 RoPE 为什么内积只依赖 m−n。② 三代位置编码的优劣对比。③ RoPE 长度外推的做法（位置插值/NTK）。④ 多模态里位置编码怎么扩到 2D/3D（M-RoPE，D17）？</p>
+      </div>
+
       <h4>阅读材料</h4>
       <ul>
         <li><a href="https://arxiv.org/abs/2104.09864" target="_blank">RoFormer 论文</a>（苏剑林原始论文，中文作者，推导清晰）</li>
@@ -1321,8 +1560,49 @@ for t in texts:
       <span class="day-arrow">▶</span>
     </div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 训练：预测下一词　推理：从分布采样</div>
+        <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="左：训练时每个位置预测下一个词算交叉熵；右：推理时对输出概率分布用 greedy/temperature/top-k/top-p 采样">
+          <defs>
+            <marker id="d5ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <!-- 训练 -->
+          <text x="180" y="28" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#2f6f63">训练：Next Token Prediction</text>
+          <g font-family="'JetBrains Mono',monospace" font-size="10">
+            <rect x="20" y="46" width="46" height="30" rx="4" fill="#e2ece8" stroke="#2f6f63"/><text x="43" y="66" text-anchor="middle" fill="#26211a">低</text>
+            <rect x="72" y="46" width="46" height="30" rx="4" fill="#e2ece8" stroke="#2f6f63"/><text x="95" y="66" text-anchor="middle" fill="#26211a">光</text>
+            <rect x="124" y="46" width="46" height="30" rx="4" fill="#e2ece8" stroke="#2f6f63"/><text x="147" y="66" text-anchor="middle" fill="#26211a">图</text>
+            <rect x="176" y="46" width="46" height="30" rx="4" fill="#efe8d8" stroke="#26211a" stroke-dasharray="3 2"/><text x="199" y="66" text-anchor="middle" fill="#8a7d6a">?</text>
+          </g>
+          <line x1="43" y1="76" x2="43" y2="98" stroke="#a8341f" stroke-width="1.2" marker-end="url(#d5ar)"/>
+          <line x1="95" y1="76" x2="95" y2="98" stroke="#a8341f" stroke-width="1.2" marker-end="url(#d5ar)"/>
+          <line x1="147" y1="76" x2="147" y2="98" stroke="#a8341f" stroke-width="1.2" marker-end="url(#d5ar)"/>
+          <text x="110" y="116" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">每个位置预测「下一个字」</text>
+          <text x="110" y="138" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#5a5043">L = −∑ log P(xᵢ | x₍&lt;ᵢ₎)　就是交叉熵</text>
+          <text x="110" y="158" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">评估：Perplexity = exp(L/T)，越低越好</text>
+          <!-- 分隔 -->
+          <line x1="380" y1="40" x2="380" y2="180" stroke="#d8cdb6" stroke-width="1"/>
+          <!-- 采样 -->
+          <text x="570" y="28" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">推理：从概率分布采样</text>
+          <!-- 概率柱 -->
+          <g>
+            <rect x="410" y="58" width="20" height="46" fill="#a8341f"/><rect x="436" y="74" width="20" height="30" fill="#c25a44"/><rect x="462" y="84" width="20" height="20" fill="#b5832f"/><rect x="488" y="92" width="20" height="12" fill="#d8cdb6"/><rect x="514" y="96" width="20" height="8" fill="#d8cdb6"/>
+            <line x1="406" y1="104" x2="540" y2="104" stroke="#5a5043" stroke-width="1"/>
+          </g>
+          <text x="473" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">下一词的概率分布</text>
+          <g font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">
+            <text x="558" y="58">Greedy：选最高（确定但单调）</text>
+            <text x="558" y="76">Temperature：T 调随机度</text>
+            <text x="558" y="94">Top-k：留前 k 个</text>
+            <text x="558" y="112">Top-p：留累积概率到 p</text>
+          </g>
+          <text x="14" y="196" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">训练 = 海量文本上「猜下一个字」；生成 = 一个字一个字采样（连 D01 自回归）。采样参数决定「确定 vs 有创意」</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>理解预训练目标（next token prediction）的损失函数，以及推理时如何从概率分布采样生成文本。</p>
+      <p>理解预训练目标（next token prediction）的损失函数，以及推理时如何从概率分布采样生成文本。这是 Week 01 的收束——<strong>从架构走到「怎么训、怎么生成」</strong>。</p>
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 预训练损失与 Perplexity</div>
@@ -1361,9 +1641,23 @@ curl http://localhost:11434/api/generate -d '{
 }'
 # 尝试 temperature: 0.1, 0.5, 1.0, 1.5 感受差异</div>
 
+      <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
-        <span class="label">💡 本周回顾</span>
-        <p>到这里你应该能回答：GPT 和 ViT 的架构有什么区别？什么是自回归生成？为什么用 RoPE？Tokenizer 做了什么？如果能给别人讲清楚，第一周就过关了。</p>
+        <span class="label">✅ 检查点自测</span>
+        <p>① 预训练损失和你做分类的 CE loss 有何异同？② Perplexity 的直觉含义？③ temperature 调大/调小分别怎样？④ top-k 和 top-p 的区别，谁更自适应？⑤ 为什么 greedy 容易重复无聊？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为生成时也算 loss</strong>——loss 只在训练；生成是采样。② <strong>temperature 当成 top-p</strong>——一个缩放 logits，一个截断候选集。③ <strong>top-k 固定就够好</strong>——分布尖锐/平坦时 top-p 更稳。④ <strong>把 PPL 当能力绝对值</strong>——只在同 tokenizer/同分布下可比。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 写出预训练损失，解释为什么是「自监督」。② 各采样策略的机制与适用场景。③ temperature 的数学作用（对 softmax）。④ 为什么 PPL 不同 tokenizer 间不可直接比？</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 本周（Week 01）回顾</span>
+        <p>到这里你应该能回答：GPT 和 ViT 的架构有什么区别？什么是自回归生成？为什么用 RoPE？Tokenizer 做了什么？预训练目标和采样策略是什么？如果能给别人讲清楚，第一周就过关了。下一周（Week 02）进入 LLM 的训练范式（SFT/RLHF/DPO）与高效微调（LoRA），是你能在本地动手的部分。</p>
       </div>
     </div>
   </div>
