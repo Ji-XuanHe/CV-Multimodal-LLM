@@ -430,6 +430,19 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
   .rp-resize{display:none;}
 }
 </style>
+
+<!-- KaTeX：数学公式渲染 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<style>
+  /* 行内/块级公式排版 */
+  .deriv-body .katex{font-size:1.04em;}
+  .deriv-body .katex-display{margin:.5em 0;text-align:left;}
+  .deriv-body .math-note{color:var(--ink-faint);font-size:.85rem;margin:6px 0 2px;}
+  .deriv-body .math-cap{font-family:"Noto Serif SC",serif;font-weight:700;color:var(--teal);margin:14px 0 4px;font-size:.95rem;}
+  .deriv-body .math-cap:first-child{margin-top:2px;}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -656,24 +669,19 @@ W1 -= 0.1 * dW1;  W2 -= 0.1 * dW2       # W ← W − lr·∂L/∂W
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 卷积操作的数学定义与输出尺寸计算</div>
-        <div class="deriv-body"><pre>
-2D 卷积操作（单通道简化版）：
-  输入 X ∈ ℝ^{H×W}，卷积核 K ∈ ℝ^{k×k}
-  输出 Y[i,j] = ∑_m ∑_n X[i+m, j+n] · K[m, n]
+        <div class="deriv-body">
+          <div class="math-cap">2D 卷积（单通道简化版）</div>
+          <p class="math-note">输入 $X \in \mathbb{R}^{H\times W}$，卷积核 $K \in \mathbb{R}^{k\times k}$，输出特征图：</p>
+          $$Y[i,j] \;=\; \sum_{m}\sum_{n} X[i+m,\;j+n]\cdot K[m,n]$$
 
-输出尺寸公式（面试常考）：
-  H_out = (H_in - k + 2·padding) / stride + 1
-  
-例：输入 224×224，卷积核 3×3，padding=1，stride=1
-  → H_out = (224 - 3 + 2) / 1 + 1 = 224   （尺寸不变）
+          <div class="math-cap">输出尺寸（面试常考）</div>
+          $$H_{\text{out}} \;=\; \frac{H_{\text{in}} - k + 2\,\text{padding}}{\text{stride}} + 1$$
+          <p class="math-note">例 ① 输入 $224\times224$、核 $3\times3$、padding $=1$、stride $=1$：$\,H_{\text{out}}=\frac{224-3+2}{1}+1=224$（尺寸不变）</p>
+          <p class="math-note">例 ② 输入 $224\times224$、核 $7\times7$、padding $=3$、stride $=2$：$\,H_{\text{out}}=\frac{224-7+6}{2}+1=112$（尺寸减半）</p>
 
-例：输入 224×224，卷积核 7×7，padding=3，stride=2
-  → H_out = (224 - 7 + 6) / 2 + 1 = 112   （尺寸减半）
-
-多通道卷积：
-  输入 C_in 个通道，每个卷积核大小 = C_in × k × k
-  N 个卷积核 → 输出 N 个通道
-  参数量 = N × C_in × k × k + N（bias）</pre>
+          <div class="math-cap">多通道卷积</div>
+          <p class="math-note">输入 $C_{\text{in}}$ 个通道，单个卷积核大小 $=C_{\text{in}}\times k\times k$；$N$ 个卷积核 → 输出 $N$ 个通道。</p>
+          <p class="math-note">参数量 $=\; N \times C_{\text{in}} \times k \times k \;+\; N$（末项 $N$ 为 bias）</p>
         </div>
       </div>
 
@@ -5448,11 +5456,28 @@ function boot(){
 
   updateBar();
   prettifyMath();
+  renderKatex();
   initReader();
   initRefs();
 }
 
-/* ================= 推导公式：上下标自动美化 ================= */
+/* ================= KaTeX 渲染（$…$ 行内、$$…$$ 块级） ================= */
+function renderKatex(){
+  if(typeof renderMathInElement === 'function'){
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$', right:'$$', display:true},
+        {left:'$',  right:'$',  display:false}
+      ],
+      throwOnError: false,
+      ignoredClasses: ['code-block']
+    });
+  } else {
+    setTimeout(renderKatex, 150);   // CDN 尚未就绪，稍后重试
+  }
+}
+
+/* ================= 推导公式：上下标自动美化（尚未转 KaTeX 的旧推导） ================= */
 function prettifyMath(){
   document.querySelectorAll('.deriv-body pre').forEach(function(pre){
     var h = pre.innerHTML;
