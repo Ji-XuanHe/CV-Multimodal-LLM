@@ -191,8 +191,12 @@ em.term{font-style:normal;color:var(--red);font-weight:600;}
 .deriv.open .deriv-body{display:block;animation:fadeIn .25s ease;}
 .deriv-body pre{
   font-family:"JetBrains Mono",monospace;font-size:.8rem;line-height:1.85;
-  white-space:pre-wrap;word-break:break-all;color:var(--ink-soft);margin:6px 0;
+  white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;color:var(--ink-soft);margin:6px 0;
 }
+/* 数学上下标美化（由 JS 自动注入，不影响行高） */
+.deriv-body pre sub,.deriv-body pre sup{font-size:.78em;line-height:0;}
+.deriv-body pre sub{vertical-align:-.25em;}
+.deriv-body pre sup{vertical-align:.45em;}
 
 /* ========== 重点块（red） ========== */
 .box-important{
@@ -5443,9 +5447,23 @@ function boot(){
   });
 
   updateBar();
+  prettifyMath();
   initReader();
   initRefs();
 }
+
+/* ================= 推导公式：上下标自动美化 ================= */
+function prettifyMath(){
+  document.querySelectorAll('.deriv-body pre').forEach(function(pre){
+    var h = pre.innerHTML;
+    h = h.replace(/\^\{([^}]*)\}/g, '<sup>$1</sup>');     // 上标 ^{...}
+    h = h.replace(/_\{([^}]*)\}/g, '<sub>$1</sub>');      // 下标 _{...}
+    // 单字符下标：变量 + _ + 单个下标字符（后面不接字母/数字/下划线，避免误伤 d_model、im_start 等）
+    h = h.replace(/([A-Za-z0-9Α-Ωα-ωℝℚℤℕ\)])_([A-Za-z0-9Α-Ωα-ω])(?![A-Za-z0-9Α-Ωα-ω_])/g, '$1<sub>$2</sub>');
+    pre.innerHTML = h;
+  });
+}
+
 // DOM 就绪即初始化（兼容 htmlpreview 等在 DOMContentLoaded 之后注入内容的环境）
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 else boot();
