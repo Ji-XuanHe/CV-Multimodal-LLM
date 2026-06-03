@@ -2005,53 +2005,566 @@ def prepare_inputs_labels_for_multimodal(self, input_ids, labels, images):
   <div class="week-head"><span class="week-num">04</span><h2 class="week-title">前沿多模态大模型深入</h2></div>
   <p class="week-lead">从 LLaVA 扩展到 InternVL、Qwen-VL 等前沿模型，理解它们在架构和训练数据上的改进。</p>
 
-  <div class="day" data-day="16"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D16</span><span class="day-title">InternVL 系列：超大视觉编码器的路线</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>InternVL 代表了「增强视觉编码器」的路线——不用 CLIP 现成的，自己训一个更大更强的 ViT。</p><div class="box-important"><span class="label">🔥 InternVL 关键创新</span><p>① InternViT-6B：专门为多模态训练的 6B 参数 ViT（CLIP ViT-L 只有 300M）· ② 动态分辨率：输入图像按比例切成多个 448×448 tile · ③ Pixel Shuffle 下采样：(32×32) tokens → (16×16) = 256 tokens · ④ 国产团队（上海 AI Lab），中文支持好，发论文引用合适</p></div><h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2312.14238" target="_blank">InternVL 论文</a></li><li><a href="https://arxiv.org/abs/2404.16821" target="_blank">InternVL 1.5 论文</a>（动态分辨率方案的细节）</li></ul></div></div>
+  <div class="day" data-day="16"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D16</span><span class="day-title">InternVL 系列：超大视觉编码器的路线</span><span class="day-arrow">▶</span></div><div class="day-body">
 
-  <div class="day" data-day="17"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D17</span><span class="day-title">Qwen-VL 系列：中文多模态的标杆</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>Qwen-VL 在中文多模态领域几乎是标杆。理解它的架构特点和训练数据策略。</p><div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> M-RoPE（Multimodal RoPE，Qwen2-VL 的创新）</div><div class="deriv-body"><pre>
-标准 RoPE：每个 token 有 1D 位置 m
-M-RoPE：每个 token 有 3D 位置 (t, h, w)
-  t = 时间维度（视频帧号）
-  h, w = 空间维度（patch 的行列位置）
+      <div class="arch-fig">
+        <div class="af-cap">📊 InternVL：大 ViT + 动态分辨率 + Pixel Shuffle</div>
+        <svg viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="InternVL 流程：高清图动态切 tile，经 InternViT-6B 编码，Pixel Shuffle 压缩后经 MLP 送入 LLM">
+          <defs>
+            <marker id="d16ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 高清图 + 切 tile -->
+          <rect x="12" y="44" width="76" height="76" rx="4" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <line x1="50" y1="44" x2="50" y2="120" stroke="#2f6f63" stroke-width=".7"/><line x1="12" y1="82" x2="88" y2="82" stroke="#2f6f63" stroke-width=".7"/>
+          <text x="50" y="138" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">动态切 n 个 448 tile</text>
+          <line x1="88" y1="82" x2="118" y2="82" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d16ar)"/>
+          <!-- InternViT-6B -->
+          <rect x="120" y="56" width="128" height="52" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="184" y="78" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#a8341f">InternViT-6B</text>
+          <text x="184" y="95" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">自训练超大 ViT</text>
+          <line x1="248" y1="82" x2="278" y2="82" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d16ar)"/>
+          <!-- tokens 多 -->
+          <rect x="280" y="58" width="92" height="48" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="326" y="78" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">1024 tok</text>
+          <text x="326" y="92" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#a8341f">每 tile · 偏多</text>
+          <line x1="372" y1="82" x2="402" y2="82" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d16ar)"/>
+          <!-- pixel shuffle -->
+          <rect x="404" y="56" width="116" height="52" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="462" y="76" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">Pixel Shuffle</text>
+          <text x="462" y="93" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#2f6f63">÷4 → 256/tile</text>
+          <line x1="520" y1="82" x2="550" y2="82" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d16ar)"/>
+          <!-- MLP -->
+          <rect x="552" y="58" width="74" height="48" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="589" y="86" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">MLP</text>
+          <line x1="626" y1="82" x2="656" y2="82" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d16ar)"/>
+          <!-- LLM -->
+          <rect x="658" y="58" width="90" height="48" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="703" y="86" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" fill="#26211a">LLM</text>
+          <!-- 对比注释 -->
+          <rect x="120" y="178" width="500" height="40" rx="6" fill="#f7e9e4" stroke="#c25a44" stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="370" y="195" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">路线对比：LLaVA 用现成 CLIP ViT-L (0.3B) ✦ InternVL 自训 InternViT (6B)</text>
+          <text x="370" y="210" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">视觉塔越强 → 看得越细，但训练成本高得多</text>
+          <!-- 图例 -->
+          <text x="12" y="270" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">核心思想：与其用现成小 CLIP，不如自己训一个超大视觉编码器 + 动态分辨率看清高清细节</text>
+        </svg>
+      </div>
 
-将 d 维 head 分成三段：
-  dim[0:d/3]    → 用 t 做 RoPE（时间位置）
-  dim[d/3:2d/3] → 用 h 做 RoPE（垂直位置）
-  dim[2d/3:d]   → 用 w 做 RoPE（水平位置）
+      <h4>学习目标</h4>
+      <p>InternVL 代表「<em class="term">增强视觉编码器</em>」这条路线——不用现成的小 CLIP,自己训一个更大更强的 ViT。学完今天你应能:<strong>(1)</strong> 说清「大 ViT 路线」vs「现成 CLIP 路线」的取舍;<strong>(2)</strong> 讲清动态分辨率怎么处理高清/任意长宽比的图;<strong>(3)</strong> 算出动态分辨率 + Pixel Shuffle 后的 token 数;<strong>(4)</strong> 知道 InternVL 为什么在 OCR、文档、中文上强。</p>
 
-对于文本 token：t=h=w=当前序列位置（退化为标准 RoPE）
-对于图像 token：t=固定，h/w=patch 在图像中的行列坐标
+      <h4>一、两条路线之争：视觉塔要不要自己训</h4>
+      <p>D14 的 LLaVA 用<strong>现成 CLIP ViT-L(0.3B)</strong>当视觉塔,简单够用,但视觉能力被 CLIP 封顶。InternVL 走另一条路:<strong>自己从头训一个 6B 参数的 InternViT</strong>,视觉能力天花板大幅抬高。代价是训练成本巨大——这是典型的「<em class="term">买现成 vs 自研</em>」工程权衡。</p>
 
-这样模型天然知道「这个 patch 在图像的左上角还是右下角」。</pre></div></div>
-      <h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2409.12191" target="_blank">Qwen2-VL 论文</a>（重点看 M-RoPE 和动态分辨率部分）</li></ul></div></div>
+      <div class="box-important">
+        <span class="label">🔥 InternVL 的四个关键点</span>
+        <p>① <strong>InternViT-6B</strong>:专为多模态训练的 6B 视觉编码器(CLIP ViT-L 仅 0.3B),视觉特征更强。② <strong>动态高分辨率</strong>:按原图长宽比切成若干 448×448 tile + 一张缩略全图,既看清细节又保留全局。③ <strong>Pixel Shuffle 压缩</strong>:每 tile 的 1024 token 折叠成 256(÷4),控制总 token 数(呼应 D13)。④ <strong>ViT–MLP–LLM</strong> 范式:结构仍是 LLaVA 那套,只是把视觉塔换成大家伙。</p>
+      </div>
 
-  <div class="day" data-day="18"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D18</span><span class="day-title">多模态训练数据：从哪来、怎么造</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>模型架构大同小异，数据才是多模态模型之间拉开差距的核心。理解数据工程。</p><div class="box-important"><span class="label">🔥 多模态训练数据的层级</span><p>① <strong>Image-Text Pairs</strong>（预训练用）：LAION-5B、CC12M、DataComp。网上爬取的 alt-text 配对，量大质低。<br>② <strong>高质量 Caption</strong>（对齐用）：ShareGPT4V、ALLaVA。用 GPT-4V 给图像生成详细描述。<br>③ <strong>Visual Instruction Data</strong>（SFT 用）：LLaVA-Instruct-150K、多种任务混合。<br>④ <strong>合成数据</strong>：越来越重要，用强模型生成训练数据给弱模型。</p></div>
-      <div class="box-tip"><span class="label">💡 你的机会</span><p>你做低光超分辨率的数据经验在这里很有用：如何做数据清洗、如何平衡数据分布、如何处理噪声标注。想想看，能不能构建一个「低光图像质量评估」的多模态指令数据集？这可能就是你的第一个研究方向。</p></div></div></div>
+      <div class="box-tip">
+        <span class="label">💡 为什么 InternVL 在 OCR / 文档 / 中文上强</span>
+        <p>动态高分辨率让它能「看清」密集小字(OCR、文档、图表),大视觉塔 + 海量中文图文数据让中文场景表现突出。对你来说,<strong>上海 AI Lab 的开源模型,中文友好、文档/可复现性好,做实验和写论文引用都顺手</strong>。</p>
+      </div>
 
-  <div class="day" data-day="19"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D19</span><span class="day-title">多模态评测体系：MMBench、MME、MMMU</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>了解多模态模型怎么评估，各个 benchmark 测什么能力。发论文需要跑这些指标。</p><div class="box-important"><span class="label">🔥 核心评测基准</span><p><strong>MMBench</strong>：多维度能力评测，中英文版本都有 · <strong>MME</strong>：感知 + 认知两大类，共 14 个子任务 · <strong>MMMU</strong>：大学级多学科多模态理解 · <strong>MathVista</strong>：数学推理 + 视觉 · <strong>OCRBench</strong>：文字识别能力 · <strong>POPE</strong>：幻觉检测</p></div><h4>阅读和实践</h4><ul><li>浏览 <a href="https://opencompass.org.cn/" target="_blank">OpenCompass</a> 排行榜，看看各模型在不同维度的表现</li><li>用 <a href="https://github.com/open-compass/VLMEvalKit" target="_blank">VLMEvalKit</a> 对你本地模型跑几个 benchmark</li></ul></div></div>
+      <h4>二、动态分辨率 + 压缩：token 数怎么算</h4>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 动态分辨率 + Pixel Shuffle 的 token 预算</div><div class="deriv-body"><pre>
+动态分辨率（InternVL 1.5）：
+  目标:把任意长宽比/高分辨率图,切成若干 448×448 的 tile
+  例:一张 1344×896 的图 ≈ 切成 3×2 = 6 个 tile，再 + 1 张缩略全图 = 7 块
 
-  <div class="day" data-day="20"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D20</span><span class="day-title">动手：用 LLaVA 代码训练你自己的多模态模型</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>今日目标</h4><p>在 4×4090 服务器上走一遍 LLaVA 的完整训练流程。</p><div class="code-block"># 在你的 4×4090 服务器上
+每个 448 tile（patch=14）：
+  (448/14)² = 32×32 = 1024 token
 
-# 1. 克隆 LLaVA 代码
+不压缩的话：
+  7 块 × 1024 = 7168 token  ⚠ 太多
+
+Pixel Shuffle 压缩（÷4，呼应 D13）：
+  每块 1024 → 256
+  7 块 × 256 = 1792 token  ✓ 可控
+
+InternViT-6B vs CLIP ViT-L：
+  参数量:6B vs 0.3B（约 20 倍）
+  → 视觉特征更强,但显存/算力开销也大得多
+  → 工程上常用蒸馏 / 量化把它用起来</pre></div></div>
+
+      <h4>三、动手：跑一次 InternVL 推理</h4>
+      <div class="code-block"># pip install transformers torch torchvision pillow
+# InternVL2 在 HF 上可直接加载（小尺寸如 2B/8B 适合单卡）
+from transformers import AutoModel, AutoTokenizer
+import torch
+
+path = "OpenGVLab/InternVL2-2B"      # 先用小号验证流程
+model = AutoModel.from_pretrained(
+    path, torch_dtype=torch.bfloat16, trust_remote_code=True).eval().cuda()
+tok = AutoTokenizer.from_pretrained(path, trust_remote_code=True)
+
+# InternVL 仓库提供 load_image()，内部做动态分辨率切 tile + Pixel Shuffle
+# pixel_values = load_image("doc.jpg", max_num=12).to(torch.bfloat16).cuda()
+# resp = model.chat(tok, pixel_values, "请逐字读出图中的文字", dict(max_new_tokens=512))
+# print(resp)   # 重点体会它在 OCR / 文档上的高分辨率优势</div>
+
+      <h4>四、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 「自训大 ViT」相比「用现成 CLIP」的利弊各是什么?② 动态分辨率为什么要额外加一张缩略全图?③ 一张图切 6 tile,不压缩 / Pixel Shuffle 后各多少 token?④ InternVL 为什么在文档/OCR 上强?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 InternVL 换了全新架构</strong>——仍是 ViT–MLP–LLM,创新在「视觉塔变大 + 动态分辨率」。② <strong>以为分辨率越高越好</strong>——不压缩会 token 爆炸,必须配 Pixel Shuffle。③ <strong>以为大 ViT 一定全面更好</strong>——成本高,小场景未必划算。④ <strong>忽略缩略全图</strong>——只切 tile 会丢全局关系。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 比较 LLaVA(现成 CLIP)与 InternVL(自训大 ViT)两条路线。② 动态分辨率如何兼顾「看清细节」与「保留全局」?③ 高分辨率带来的 token 爆炸怎么解决?④ 给一个文档理解任务,你会选哪类模型,为什么?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2312.14238" target="_blank">InternVL 论文</a>（视觉塔对齐 LLM 的整体设计）</li>
+        <li><a href="https://arxiv.org/abs/2404.16821" target="_blank">InternVL 1.5</a>（动态高分辨率 + Pixel Shuffle 工程细节）</li>
+        <li><a href="https://arxiv.org/abs/2412.05271" target="_blank">InternVL 2.5</a>（更强的后续版本与训练配方）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="17"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D17</span><span class="day-title">Qwen-VL 系列：中文多模态的标杆</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 M-RoPE：给视觉 token 一个 3D 位置 (t,h,w)</div>
+        <svg viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="M-RoPE：把 head 维度分成 t/h/w 三段，图像 patch 用其行列坐标做旋转位置编码">
+          <defs>
+            <marker id="d17ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 左：patch grid 带坐标 -->
+          <text x="118" y="32" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">图像 patch 的 (h,w) 坐标</text>
+          <g font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">
+            <rect x="48" y="44" width="46" height="34" fill="#e2ece8" stroke="#2f6f63"/><text x="71" y="65" text-anchor="middle">0,0</text>
+            <rect x="94" y="44" width="46" height="34" fill="#e2ece8" stroke="#2f6f63"/><text x="117" y="65" text-anchor="middle">0,1</text>
+            <rect x="140" y="44" width="46" height="34" fill="#e2ece8" stroke="#2f6f63"/><text x="163" y="65" text-anchor="middle">0,2</text>
+            <rect x="48" y="78" width="46" height="34" fill="#e2ece8" stroke="#2f6f63"/><text x="71" y="99" text-anchor="middle">1,0</text>
+            <rect x="94" y="78" width="46" height="34" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.6"/><text x="117" y="99" text-anchor="middle" fill="#a8341f">1,1</text>
+            <rect x="140" y="78" width="46" height="34" fill="#e2ece8" stroke="#2f6f63"/><text x="163" y="99" text-anchor="middle">1,2</text>
+            <rect x="48" y="112" width="46" height="34" fill="#e2ece8" stroke="#2f6f63"/><text x="71" y="133" text-anchor="middle">2,0</text>
+            <rect x="94" y="112" width="46" height="34" fill="#e2ece8" stroke="#2f6f63"/><text x="117" y="133" text-anchor="middle">2,1</text>
+            <rect x="140" y="112" width="46" height="34" fill="#e2ece8" stroke="#2f6f63"/><text x="163" y="133" text-anchor="middle">2,2</text>
+          </g>
+          <text x="118" y="164" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">每个 patch 知道自己在第几行第几列</text>
+          <line x1="196" y1="95" x2="236" y2="95" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d17ar)"/>
+          <!-- 右：head 维度三分 -->
+          <text x="500" y="32" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">head 维度切三段，各编一种位置</text>
+          <rect x="248" y="62" width="168" height="36" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="332" y="85" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#2f6f63">t（时间 / 帧号）</text>
+          <rect x="416" y="62" width="168" height="36" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="500" y="85" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#b5832f">h（垂直 / 行）</text>
+          <rect x="584" y="62" width="160" height="36" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.5"/>
+          <text x="664" y="85" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#a8341f">w（水平 / 列）</text>
+          <text x="496" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#5a5043">dim[0:d/3] | dim[d/3:2d/3] | dim[2d/3:d]</text>
+          <!-- 退化说明 -->
+          <rect x="248" y="150" width="496" height="56" rx="6" fill="#efe8d8" stroke="#5a5043" stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="496" y="172" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">文本 token：t = h = w = 序列位置 → 退化为普通 1D RoPE</text>
+          <text x="496" y="192" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">图像 token：t 固定，h/w = patch 行列；视频再让 t = 帧号</text>
+          <!-- 图例 -->
+          <text x="14" y="270" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">一句话：标准 RoPE 只有 1D 位置，看不懂「左上/右下」；M-RoPE 给图像 2D、视频 3D 的位置感</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>Qwen-VL 是中文多模态的标杆,Qwen2-VL 的 <em class="term">M-RoPE</em> 是其代表性创新。学完今天你应能:<strong>(1)</strong> 说清标准 1D RoPE 处理图像/视频「位置感」的不足;<strong>(2)</strong> 默写 M-RoPE 怎么把 head 切成 t/h/w 三段、文本如何退化;<strong>(3)</strong> 讲清 Qwen-VL→Qwen2-VL 的架构演进(resampler → 动态分辨率 + M-RoPE);<strong>(4)</strong> 用 HF 跑通 Qwen2-VL 推理。</p>
+
+      <h4>一、动机：1D 位置编码「看不懂」二维图像</h4>
+      <p>LLM 的 RoPE 给每个 token 一个 <em class="term">1D 位置 m</em>(第几个 token)。但图像 patch 是<strong>二维排布</strong>的——把它们拉平成一维序列后,模型就丢了「这个 patch 在左上还是右下」的信息;视频还多了「第几帧」。M-RoPE 的思路:<strong>给每个 token 一个 (t,h,w) 三维位置</strong>,让模型天然感知时间和空间。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 Qwen-VL 系列的架构演进</span>
+        <p><strong>Qwen-VL(2023)</strong>:ViT(OpenCLIP bigG) + 一个 <em class="term">position-aware adapter</em>(单层 cross-attention,把视觉 token 压到 256) + Qwen LLM;原生支持 grounding、OCR。</p>
+        <p><strong>Qwen2-VL(2024)</strong>:两大升级——① <em class="term">Naive Dynamic Resolution</em>:任意分辨率 → 动态数量的视觉 token(不再强制固定 256);② <em class="term">M-RoPE</em>:3D 位置编码,统一处理文本/图像/视频。</p>
+        <p>这条线让 Qwen-VL 在<strong>中文、OCR、文档、视频</strong>上都很能打,是国内做实验最常用的强基线之一。</p>
+      </div>
+
+      <h4>二、M-RoPE 推导</h4>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> Multimodal RoPE：把 1D 位置升级成 (t,h,w)</div><div class="deriv-body"><pre>
+标准 RoPE：每个 token 一个 1D 位置 m
+  对 query/key 的每一对维度施加角度 m·θ 的旋转
+
+M-RoPE：每个 token 一个 3D 位置 (t, h, w)
+  t = 时间维（视频帧号；图像/文本无时间则固定）
+  h = 垂直位置（patch 所在行）
+  w = 水平位置（patch 所在列）
+
+把 head 维度 d 切成三段，各编一种位置：
+  dim[0   : d/3 ] → 用 t 做旋转
+  dim[d/3 : 2d/3] → 用 h 做旋转
+  dim[2d/3: d   ] → 用 w 做旋转
+
+不同模态如何取 (t,h,w)：
+  文本 token：t = h = w = 当前序列位置  → 退化成普通 1D RoPE（向后兼容！）
+  图像 token：t = 固定，(h,w) = patch 在图像里的行列坐标
+  视频 token：t = 帧号，(h,w) = 该帧内 patch 的行列
+
+效果：
+  模型天然知道「这个 patch 在左上还是右下」「这是第几帧」，
+  对 grounding（定位）、视频时序理解尤其关键。</pre></div></div>
+
+      <h4>三、动手：跑一次 Qwen2-VL</h4>
+      <div class="code-block"># pip install "transformers>=4.45" accelerate qwen-vl-utils torchvision
+from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
+from qwen_vl_utils import process_vision_info
+
+mid = "Qwen/Qwen2-VL-7B-Instruct"
+model = Qwen2VLForConditionalGeneration.from_pretrained(
+    mid, torch_dtype="auto", device_map="auto")
+proc = AutoProcessor.from_pretrained(mid)
+
+messages = [{"role": "user", "content": [
+    {"type": "image", "image": "doc.jpg"},
+    {"type": "text",  "text": "读出图中所有文字，并指出标题的大致位置"}]}]
+
+text = proc.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+imgs, vids = process_vision_info(messages)
+inputs = proc(text=[text], images=imgs, videos=vids,
+              padding=True, return_tensors="pt").to(model.device)
+out = model.generate(**inputs, max_new_tokens=256)
+# 去掉 prompt 部分再 decode
+trimmed = [o[len(i):] for i, o in zip(inputs.input_ids, out)]
+print(proc.batch_decode(trimmed, skip_special_tokens=True)[0])</div>
+
+      <h4>四、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 标准 1D RoPE 处理图像有什么缺陷?② M-RoPE 怎么把 head 维度分给 t/h/w?③ 文本 token 的 (t,h,w) 取什么?为什么这样能向后兼容纯文本?④ M-RoPE 对视频/grounding 为什么特别有用?⑤ Qwen-VL 和 Qwen2-VL 在视觉 token 数量处理上有何不同?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 M-RoPE 增加了参数</strong>——它只是改变位置索引怎么取,不新增可学习参数。② <strong>以为文本也要三套坐标</strong>——文本 t=h=w=序列位置,退化为普通 RoPE。③ <strong>把 M-RoPE 和动态分辨率混为一谈</strong>——一个管「位置」,一个管「token 数量」,是两件事。④ <strong>以为 Qwen-VL 固定 256 token</strong>——那是初代;Qwen2-VL 已是动态数量。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 为什么图像/视频需要比 1D 更丰富的位置编码?② 详述 M-RoPE 如何编码 (t,h,w) 且兼容纯文本。③ Qwen-VL 到 Qwen2-VL 的关键改进。④ M-RoPE 对 visual grounding 任务为何有帮助(引出 D21)?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2308.12966" target="_blank">Qwen-VL 论文</a>（初代：adapter + grounding/OCR 能力）</li>
+        <li><a href="https://arxiv.org/abs/2409.12191" target="_blank">Qwen2-VL 论文</a>（重点读 M-RoPE 与 Naive Dynamic Resolution）</li>
+        <li><a href="https://arxiv.org/abs/2502.13923" target="_blank">Qwen2.5-VL</a>（更强后续，文档/视频/agent 能力增强）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="18"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D18</span><span class="day-title">多模态训练数据：从哪来、怎么造</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 多模态数据金字塔：量与质的权衡</div>
+        <svg viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="多模态数据金字塔：底层是海量低质图文对，向上质量递增、数量递减，顶层是合成数据">
+          <!-- 金字塔四层（梯形） -->
+          <polygon points="120,196 600,196 540,150 180,150" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="360" y="178" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" fill="#26211a">① 图文对（预训练）　LAION-5B · CC12M · DataComp</text>
+          <polygon points="180,148 540,148 492,108 228,108" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="360" y="132" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12.5" fill="#26211a">② 高质量 Caption（对齐）　ShareGPT4V · ALLaVA</text>
+          <polygon points="228,106 492,106 456,70 264,70" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="360" y="92" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">③ 视觉指令数据（SFT）　LLaVA-Instruct</text>
+          <polygon points="264,68 456,68 360,30 360,30" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/>
+          <text x="360" y="56" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#a8341f">④ 合成数据</text>
+          <!-- 左右轴标注 -->
+          <text x="78" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">质 ↑</text>
+          <text x="78" y="190" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">质 ↓</text>
+          <line x1="78" y1="70" x2="78" y2="180" stroke="#d8cdb6" stroke-width="1.2" marker-end=""/>
+          <text x="660" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">量 少</text>
+          <text x="660" y="190" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">量 大</text>
+          <line x1="660" y1="70" x2="660" y2="180" stroke="#d8cdb6" stroke-width="1.2"/>
+          <!-- 图例 -->
+          <text x="14" y="270" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">越往下越多越脏（堆规模、学对齐）；越往上越少越精（教指令、提质量）。模型差距主要来自数据，不是架构</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>一句残酷的真相:<strong>当代 MLLM 架构大同小异,真正拉开差距的是数据。</strong>学完今天你应能:<strong>(1)</strong> 画出多模态数据金字塔、说清每层「量 vs 质」;<strong>(2)</strong> 把每类数据对应到 D14 的两阶段训练;<strong>(3)</strong> 讲清高质量 caption 和合成数据为什么越来越重要;<strong>(4)</strong> 自己造一条 LLaVA 格式的指令数据。</p>
+
+      <h4>一、为什么说「数据 &gt; 架构」</h4>
+      <p>从 LLaVA、InternVL 到 Qwen-VL,核心结构都是 <em class="term">ViT–Connector–LLM</em>,差别不大。真正决定一个 MLLM 强不强的,是<strong>喂了什么数据、配比如何、清洗得多干净</strong>。理解数据工程,比记住又一个架构变体更重要。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 数据金字塔四层（对应训练阶段）</span>
+        <p><strong>① 图文对（预训练 / Stage 1 对齐）</strong>:LAION-5B、CC12M、DataComp。网上爬的 alt-text,<em class="term">量极大、质很低</em>,用来学「视觉↔语言」的粗对齐。</p>
+        <p><strong>② 高质量 Caption（对齐增强）</strong>:ShareGPT4V、ALLaVA。用 GPT-4V 给图像生成<em class="term">详细描述</em>,质量远高于 alt-text。</p>
+        <p><strong>③ 视觉指令数据（SFT / Stage 2）</strong>:LLaVA-Instruct、各类 VQA/OCR/对话混合,教模型<em class="term">按指令做任务</em>。</p>
+        <p><strong>④ 合成数据</strong>:用强模型(GPT-4V/Qwen-VL)给弱模型造训练数据,<em class="term">越来越主流</em>——这是当前最活跃的研究面。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 你的机会（结合低光/图像质量背景）</span>
+        <p>你做低光/超分的<strong>数据清洗、分布平衡、噪声标注处理</strong>经验,在这里直接值钱。一个具体的研究切口:<strong>构建「低光图像质量评估 / 退化感知」的多模态指令数据集</strong>——现有数据几乎不覆盖退化场景,这可能就是你的第一篇论文的数据贡献点。</p>
+      </div>
+
+      <h4>二、数据配比与清洗（实践要点）</h4>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 要点</span> 数据工程里真正影响效果的几件事</div><div class="deriv-body"><pre>
+1) 阶段匹配（呼应 D14 两阶段）
+   Stage 1 对齐 → 用「量大」的图文对（①②），把 projector 训到对齐
+   Stage 2 指令 → 用「质精」的指令数据（③④），教会做任务
+   用错阶段：拿脏 alt-text 做 SFT，模型学一身坏毛病
+
+2) 配比（mixture ratio）
+   VQA / OCR / 对话 / grounding / 纯文本 各占多少，
+   直接决定模型在各 benchmark 的强弱 —— 调配比是「炼丹」核心
+
+3) 清洗（质量决定上限）
+   去重（图像哈希 + 文本近重复）、过滤低质 alt-text、
+   剔除图文不匹配对、平衡长尾类别
+
+4) 合成数据的风险
+   强模型造的数据会把它的「幻觉」也教给弱模型，
+   需要回环校验 / 人工抽检，否则放大错误
+
+口诀：预训练堆量学对齐，SFT 提质教指令，配比和清洗才是分水岭。</pre></div></div>
+
+      <h4>三、动手：造一条 LLaVA 格式指令数据</h4>
+      <div class="code-block">import json
+
+# LLaVA / 多数 MLLM 通用的对话数据格式
+sample = {
+    "id": "lowlight_0001",
+    "image": "images/dark_street.jpg",
+    "conversations": [
+        {"from": "human",
+         "value": "&lt;image&gt;\n这张低光照片里有哪些物体？光照条件如何？"},
+        {"from": "gpt",
+         "value": "图中可见一辆轿车和两名行人。整体光照不足、噪点明显，"
+                  "暗部细节丢失，属于典型的低光退化场景。"}
+    ]
+}
+print(json.dumps(sample, ensure_ascii=False, indent=2))
+
+# 训练时：&lt;image&gt; 会被替换成视觉 token（见 D15），
+# 只有 gpt 的回答参与 loss（见 D14 的 loss 落点）。</div>
+
+      <h4>四、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 金字塔每层数据对应哪个训练阶段?② alt-text 图文对为什么不能直接拿来做 SFT?③ 高质量 caption 通常怎么造出来的?④ 合成数据的主要风险是什么?⑤ 数据配比会影响什么?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为数据越多越好</strong>——脏数据有上限,SFT 阶段质量比数量重要。② <strong>把对齐数据和指令数据混用</strong>——阶段错配会拖垮效果。③ <strong>盲目信合成数据</strong>——会继承强模型的幻觉,需校验。④ <strong>忽视去重</strong>——重复/泄露会让评测虚高。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 为什么说现在 MLLM「数据 &gt; 架构」?② 各阶段分别该用什么数据?③ 高质量 caption / 合成数据怎么造、风险在哪?④ 如果两个模型架构相同但效果差很多,你会先查什么?(数据)</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2311.12793" target="_blank">ShareGPT4V</a>（用 GPT-4V 造高质量详细 caption）</li>
+        <li><a href="https://arxiv.org/abs/2210.08402" target="_blank">LAION-5B</a>（开放大规模图文数据集，预训练基石）</li>
+        <li><a href="https://arxiv.org/abs/2304.08485" target="_blank">LLaVA-Instruct</a>（视觉指令数据的开创性构造方法）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="19"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D19</span><span class="day-title">多模态评测体系：MMBench、MME、MMMU</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 能力维度 → 对应 benchmark</div>
+        <svg viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="多模态评测：感知、认知推理、OCR文档、数学、幻觉、中文六个能力维度各自对应的 benchmark">
+          <g font-family="'Noto Serif SC',serif">
+            <!-- 感知 -->
+            <rect x="14" y="40" width="232" height="64" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+            <text x="30" y="62" font-size="13" fill="#26211a">🔍 感知 Perception</text>
+            <text x="30" y="82" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#5a5043">MME-Perception · MMBench</text>
+            <text x="30" y="96" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">存在/颜色/计数/位置…基础看图</text>
+            <!-- 认知 -->
+            <rect x="264" y="40" width="232" height="64" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+            <text x="280" y="62" font-size="13" fill="#26211a">🧠 认知推理 Cognition</text>
+            <text x="280" y="82" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#5a5043">MMMU · MME-Cognition</text>
+            <text x="280" y="96" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">大学多学科 · 跨模态推理</text>
+            <!-- OCR -->
+            <rect x="514" y="40" width="232" height="64" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+            <text x="530" y="62" font-size="13" fill="#26211a">📄 OCR / 文档</text>
+            <text x="530" y="82" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#5a5043">OCRBench · DocVQA · ChartQA</text>
+            <text x="530" y="96" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">密集小字 · 表格 · 图表</text>
+            <!-- 数学 -->
+            <rect x="14" y="120" width="232" height="64" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+            <text x="30" y="142" font-size="13" fill="#26211a">➗ 数学 / 图表推理</text>
+            <text x="30" y="162" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#5a5043">MathVista · MathVision</text>
+            <text x="30" y="176" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">看图做题 · 几何 · 函数图</text>
+            <!-- 幻觉 -->
+            <rect x="264" y="120" width="232" height="64" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/>
+            <text x="280" y="142" font-size="13" fill="#a8341f">👻 幻觉 Hallucination</text>
+            <text x="280" y="162" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#5a5043">POPE · HallusionBench</text>
+            <text x="280" y="176" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">看到不存在的东西?(见 D25)</text>
+            <!-- 中文 -->
+            <rect x="514" y="120" width="232" height="64" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+            <text x="530" y="142" font-size="13" fill="#26211a">🇨🇳 中文能力</text>
+            <text x="530" y="162" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#5a5043">MMBench-CN · CMMMU</text>
+            <text x="530" y="176" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">中文场景 · 本土知识</text>
+          </g>
+          <!-- 底部工具 -->
+          <rect x="180" y="208" width="400" height="34" rx="6" fill="#efe8d8" stroke="#5a5043" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <text x="380" y="230" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">统一评测工具：VLMEvalKit / OpenCompass</text>
+          <text x="14" y="266" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">发论文要在多个维度都报指标；单看一个 benchmark 容易被「刷分」误导</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>了解 MLLM 怎么被科学评估、各 benchmark 测什么——<strong>这是写论文必须跑的指标</strong>。学完今天你应能:<strong>(1)</strong> 把主流 benchmark 按能力维度归类;<strong>(2)</strong> 说清 circular evaluation、GPT 辅助评分等评测方法;<strong>(3)</strong> 识别常见评测陷阱(选项泄露、单指标刷分);<strong>(4)</strong> 用 VLMEvalKit 给本地模型跑一套评测。</p>
+
+      <h4>一、为什么评测体系这么重要</h4>
+      <p>MLLM 能力是<strong>多维</strong>的:会看图不代表会推理,会推理不代表不幻觉。所以评测不是一个数字,而是一张<em class="term">能力雷达</em>。发论文时,审稿人看的就是你在<strong>感知 / 认知 / OCR / 数学 / 幻觉 / 中文</strong>这几个维度上是否都站得住——只刷一个榜很容易被质疑。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 核心 benchmark 速查</span>
+        <p><strong>MMBench</strong>:多维度能力,中英文双版,用 circular eval 防蒙对 · <strong>MME</strong>:感知+认知共 14 子任务,是/否判断 · <strong>MMMU</strong>:大学级多学科,最难的综合推理 · <strong>MathVista</strong>:视觉数学 · <strong>OCRBench / DocVQA / ChartQA</strong>:文字/文档/图表 · <strong>POPE / HallusionBench</strong>:幻觉(见 D25) · <strong>MMBench-CN / CMMMU</strong>:中文。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 评测方法论里的门道</span>
+        <p><strong>Circular Evaluation</strong>(MMBench):把选项顺序打乱多次问,全对才算对——防止模型「蒙」或利用选项偏置。<strong>GPT 辅助评分</strong>:开放式回答用 GPT-4 当裁判打分(注意裁判本身的偏差)。<strong>选项泄露/数据污染</strong>:有些 benchmark 答案能从文本先验猜出,或已混进训练集,导致虚高——读论文要警惕。</p>
+      </div>
+
+      <h4>二、动手：用 VLMEvalKit 跑评测</h4>
+      <div class="code-block"># git clone https://github.com/open-compass/VLMEvalKit
+# cd VLMEvalKit && pip install -e .
+
+# 一条命令，多个 benchmark × 你的模型，自动汇总成 csv
+python run.py \
+  --data MMBench_DEV_EN MME POPE MMMU_DEV_VAL \
+  --model llava_v1.5_7b \
+  --verbose
+
+# 结果会落到 outputs/，含每个维度的分数；
+# 想对比多模型，把 --model 换成多个名字即可一起跑。
+# 重点：同一套数据、同一评测协议下比较，结论才可信。</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① MME、MMBench、MMMU 各偏重测什么?② circular evaluation 防的是什么问题?③ 为什么不能只报一个 benchmark 的分?④ 用 GPT-4 当裁判有什么隐患?⑤ 什么是数据污染/选项泄露?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>只看一个榜单排名</strong>——单指标易被针对性刷分。② <strong>忽视评测协议差异</strong>——同名 benchmark 不同实现/prompt 分数不可直接比。③ <strong>把 GPT 评分当绝对真值</strong>——裁判有偏差和波动。④ <strong>不查数据污染</strong>——训练集混入测试题会让分数虚高。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 你会用哪些 benchmark 全面评估一个 MLLM?分别测什么?② circular evaluation 的动机?③ 怎么判断一个高分是不是「刷」出来的?④ 评测开放式生成有哪些做法,各自局限?</p>
+      </div>
+
+      <h4>阅读和实践</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2307.06281" target="_blank">MMBench 论文</a>（多维能力 + circular evaluation）</li>
+        <li><a href="https://arxiv.org/abs/2311.16502" target="_blank">MMMU 论文</a>（大学级多学科多模态基准）</li>
+        <li><a href="https://github.com/open-compass/VLMEvalKit" target="_blank">VLMEvalKit</a> + <a href="https://opencompass.org.cn/" target="_blank">OpenCompass 榜单</a>（动手跑 + 看排行）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="20"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D20</span><span class="day-title">动手：用 LLaVA 代码训练你自己的多模态模型</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 LLaVA 训练 pipeline（实操视角）</div>
+        <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LLaVA 训练流程：环境准备、Stage1 训 projector、Stage2 LoRA 指令微调、评测">
+          <defs>
+            <marker id="d20ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 环境 -->
+          <rect x="12" y="80" width="96" height="56" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="60" y="104" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">环境 + 数据</text>
+          <text x="60" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">clone · pip · json</text>
+          <line x1="108" y1="108" x2="138" y2="108" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d20ar)"/>
+          <!-- Stage1 -->
+          <rect x="140" y="64" width="190" height="88" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.8"/>
+          <text x="235" y="86" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#2f6f63">Stage 1 · 对齐</text>
+          <text x="235" y="104" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">❄️ViT ❄️LLM · 🔥projector</text>
+          <text x="235" y="119" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">558k 图文对 · ZeRO-2</text>
+          <text x="235" y="138" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">≈ 1 小时（4×4090）</text>
+          <line x1="330" y1="108" x2="360" y2="108" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d20ar)"/>
+          <!-- Stage2 -->
+          <rect x="362" y="64" width="200" height="88" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/>
+          <text x="462" y="86" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#a8341f">Stage 2 · 指令微调</text>
+          <text x="462" y="104" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">❄️ViT · 🔥projector+LLM(LoRA)</text>
+          <text x="462" y="119" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">665k 指令 · ZeRO-3</text>
+          <text x="462" y="138" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">≈ 5–6 小时（4×4090）</text>
+          <line x1="562" y1="108" x2="592" y2="108" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d20ar)"/>
+          <!-- 评测 -->
+          <rect x="594" y="80" width="154" height="56" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="671" y="104" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">评测（D19）</text>
+          <text x="671" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">VLMEvalKit</text>
+          <!-- 图例 -->
+          <text x="12" y="210" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">两阶段严格对应 D14：先用海量图文对训 projector 对齐，再用指令数据 LoRA 微调。</text>
+          <text x="12" y="226" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">DeepSpeed ZeRO 切分状态省显存，LoRA 只训低秩增量（呼应 D8），单机 4 卡可跑通 7B。</text>
+        </svg>
+      </div>
+
+      <h4>今日目标</h4>
+      <p>纯实操日:在 4×4090 上完整走一遍 LLaVA 训练,把前面学的「两阶段(D14)+ LoRA(D8)+ 数据(D18)+ 评测(D19)」全部串起来跑一次。学完你应能:<strong>(1)</strong> 独立跑通 Stage1/Stage2;<strong>(2)</strong> 看懂每个训练参数;<strong>(3)</strong> 用 ZeRO + LoRA 在有限显存上训 7B;<strong>(4)</strong> 训完用 VLMEvalKit 评测。</p>
+
+      <h4>一、完整训练流程</h4>
+      <div class="code-block"># —— 0. 环境 + 数据 ——
 git clone https://github.com/haotian-liu/LLaVA.git
-cd LLaVA && pip install -e .
+cd LLaVA && pip install -e ".[train]"
+# 下载 558k 对齐数据 + 665k 指令数据（见仓库 README）
 
-# 2. Stage 1: Pretrain projector（4卡，约1小时）
+# —— 1. Stage 1：预训练 projector（❄️ViT ❄️LLM，只训 projector）——
 deepspeed --num_gpus 4 llava/train/train_mem.py \
   --deepspeed scripts/zero2.json \
   --model_name_or_path lmsys/vicuna-7b-v1.5 \
   --vision_tower openai/clip-vit-large-patch14-336 \
   --mm_projector_type mlp2x_gelu \
+  --tune_mm_mlp_adapter True \              # 只训 projector
+  --freeze_backbone True \                  # 冻结 LLM
   --data_path ./data/blip_laion_cc_sbu_558k.json \
   --bf16 True --num_train_epochs 1 \
-  --per_device_train_batch_size 16
+  --per_device_train_batch_size 16 --gradient_accumulation_steps 1 \
+  --output_dir ./ckpt/stage1            # ≈ 1 小时
 
-# 3. Stage 2: Visual Instruction Tuning（4卡 LoRA，约5-6小时）
+# —— 2. Stage 2：视觉指令微调（❄️ViT，LoRA 训 projector+LLM）——
 deepspeed --num_gpus 4 llava/train/train_mem.py \
   --deepspeed scripts/zero3.json \
-  --lora_enable True --lora_r 128 --lora_alpha 256 \
+  --lora_enable True --lora_r 128 --lora_alpha 256 \   # LoRA（省显存）
+  --pretrain_mm_mlp_adapter ./ckpt/stage1/mm_projector.bin \
   --data_path ./data/llava_v1_5_mix665k.json \
-  --bf16 True --num_train_epochs 1</div>
-      <div class="box-tip"><span class="label">💡 本周回顾</span><p>你应该能读懂 MLLM 论文的方法部分；知道 LLaVA、InternVL、Qwen-VL 的架构差异；完成过至少一个多模态模型的训练。</p></div></div></div>
+  --bf16 True --num_train_epochs 1 \
+  --per_device_train_batch_size 16 --gradient_accumulation_steps 1 \
+  --output_dir ./ckpt/stage2            # ≈ 5–6 小时
+
+# —— 3. 评测（接 D19）——
+# python run.py --data MMBench_DEV_EN MME POPE --model 你的ckpt</div>
+
+      <div class="box-important">
+        <span class="label">🔥 显存与并行：4×4090 怎么塞下 7B</span>
+        <p>① <strong>DeepSpeed ZeRO</strong>:ZeRO-2 切分优化器状态+梯度,ZeRO-3 连参数也切到多卡,大幅省单卡显存。② <strong>LoRA</strong>(呼应 D8):只训低秩增量矩阵,可训参数从几十亿降到几千万,显存和存储都省。③ <strong>bf16 + gradient checkpointing</strong>:半精度 + 用计算换显存。④ <strong>global batch = per_device × grad_accum × num_gpus</strong>:显存不够就调小 per_device、调大 grad_accum 维持等效 batch。</p>
+      </div>
+
+      <h4>二、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① Stage1 为什么 <code>freeze_backbone</code> 只训 projector?② ZeRO-2 和 ZeRO-3 切分的东西有何不同?③ LoRA 为什么能大幅省显存?④ per_device_batch=8、grad_accum=4、4 卡,global batch 多少?⑤ 训完该跑哪些 benchmark 验收?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>跳过 Stage1 直接 SFT</strong>——projector 没对齐,效果差且不稳(见 D14)。② <strong>忘了载入 Stage1 的 projector</strong>——Stage2 要 <code>pretrain_mm_mlp_adapter</code> 接上。③ <strong>没冻结 ViT</strong>——视觉塔被指令数据带偏。④ <strong>OOM 就盲目减 batch</strong>——先上 ZeRO-3 / LoRA / grad checkpointing,再用 grad_accum 补回等效 batch。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 完整描述 LLaVA 两阶段训练,各冻结/训练什么。② ZeRO-1/2/3 分别切分什么?③ LoRA 的显存收益从哪来?④ 有限显存训大模型,你有哪些手段(ZeRO/LoRA/量化/梯度检查点/梯度累积)?</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 本周（Week 04）回顾</span>
+        <p>到这里你应能:读懂 MLLM 论文的方法部分;说清 LLaVA / InternVL(大 ViT)/ Qwen-VL(M-RoPE)三条路线的差异;理解「数据 &gt; 架构」与评测体系;并亲手完整训练 + 评测过一个多模态模型。下一周(Week 05)进入<strong>视觉 Grounding 与细粒度理解</strong>——从「看图说话」升级到「指哪看哪」,这正是你 CV 检测/分割背景的主场。</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://github.com/haotian-liu/LLaVA" target="_blank">LLaVA 训练脚本与文档</a>（<code>scripts/</code> 下有完整两阶段配置）</li>
+        <li><a href="https://arxiv.org/abs/1910.02054" target="_blank">ZeRO 论文</a>（DeepSpeed 显存优化原理）</li>
+        <li><a href="https://arxiv.org/abs/2106.09685" target="_blank">LoRA 论文</a>（低秩适配，回顾 D8）</li>
+      </ul>
+    </div>
+  </div>
 </div><!-- week 4 -->
 
 <!-- ====================== WEEK 5 ====================== -->
@@ -2643,12 +3156,6 @@ function initRefs(){
           {t:'BLIP-2：Q-Former 连接冻结视觉与 LLM',u:'2301.12597',tag:'ICML',c:'conf'},
           {t:'LLaVA-1.5：更强的简洁基线',u:'2310.03744',tag:'CVPR',c:'conf'}],
     '16':[{t:'Gemini 1.5：百万级上下文多模态',u:'2403.05530',tag:'Google',c:'report'}],
-    '17':[{t:'Qwen-VL：通用视觉语言模型',u:'2308.12966',tag:'Qwen',c:'report'},
-          {t:'Qwen2-VL：动态分辨率 + M-RoPE',u:'2409.12191',tag:'Qwen',c:'report'}],
-    '18':[{t:'ShareGPT4V：用 GPT-4V 造高质量描述',u:'2311.12793',tag:'ECCV',c:'conf'},
-          {t:'LAION-5B：开放大规模图文数据集',u:'2210.08402',tag:'NeurIPS',c:'conf'}],
-    '19':[{t:'MMBench：多维度多模态能力评测',u:'2307.06281',tag:'ECCV',c:'conf'},
-          {t:'MMMU：大学级多学科多模态基准',u:'2311.16502',tag:'CVPR',c:'conf'}],
     '21':[{t:'Grounding DINO：开放集目标检测',u:'2303.05499',tag:'ECCV',c:'conf'}],
     '22':[{t:'Segment Anything（SAM）',u:'2304.02643',tag:'ICCV',c:'conf'}],
     '24':[{t:'LLaVA-OneVision：图像/多图/视频统一',u:'2408.03326',tag:'arXiv',c:'arxiv'}],
