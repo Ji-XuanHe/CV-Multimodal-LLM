@@ -398,6 +398,7 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
 .rp-card{padding:36px 28px;display:flex;flex-direction:column;gap:15px;height:100%;overflow-y:auto;background:var(--paper);box-sizing:border-box;}
 .rp-card .c-title{font-family:"Fraunces",serif;font-weight:700;font-size:1.3rem;color:var(--ink);line-height:1.25;}
 .rp-card .c-url{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--ink-faint);word-break:break-all;}
+.rp-card .yt-thumb{width:100%;border-radius:6px;border:1px solid var(--rule);display:block;}
 .rp-card .c-note{font-size:.9rem;color:var(--ink-soft);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;}
 .rp-card .c-actions{display:flex;flex-direction:column;gap:9px;margin-top:6px;}
 .rp-card .c-btn{text-decoration:none;border:1px solid var(--rule);color:var(--ink);border-radius:4px;padding:11px 15px;font-family:"JetBrains Mono",monospace;font-size:.78rem;cursor:pointer;transition:.15s;background:var(--paper);text-align:left;}
@@ -1813,7 +1814,7 @@ function initRefs(){
     var m = url.match(/arxiv\.org\/(?:abs|pdf)\/([0-9]+\.[0-9]+)/);
     if(m) return {embed:true, src:'https://arxiv.org/pdf/'+m[1], kind:'pdf'};
     var y = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
-    if(y) return {embed:true, src:'https://www.youtube.com/embed/'+y[1], kind:'yt'};
+    if(y) return {embed:false, kind:'yt', vid:y[1], src:'https://www.youtube.com/embed/'+y[1]};
     var h; try{ h = new URL(url).hostname; }catch(e){ return {embed:false}; }
     if(/github\.io/.test(h) && !/github\.com/.test(h)) return {embed:true, src:url, kind:'page'};
     return {embed:false};
@@ -1877,6 +1878,30 @@ function initRefs(){
 
   function renderCard(){
     var v = cur.v, url = cur.url, id = cur.id, title = cur.title || (v.tag + ' 资源');
+    // —— 视频（YouTube）专属卡片 ——
+    if(cur.e && cur.e.kind === 'yt'){
+      var vid = cur.e.vid;
+      var vcard = document.createElement('div'); vcard.className = 'rp-card';
+      vcard.innerHTML =
+        '<span class="rp-tag video" style="align-self:flex-start">视频</span>'+
+        '<div class="c-title">'+title+'</div>'+
+        '<a href="https://www.youtube.com/watch?v='+vid+'" target="_blank" rel="noopener"><img class="yt-thumb" src="https://img.youtube.com/vi/'+vid+'/hqdefault.jpg" alt="视频封面"></a>'+
+        '<div class="c-note">YouTube 在本地文件（file://）中常无法内嵌播放（error 153）。建议直接在 YouTube 打开；若本页部署在 http(s) 环境，可尝试侧窗播放。</div>'+
+        '<div class="c-actions">'+
+          '<a class="c-btn primary" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v='+vid+'">▶ 在 YouTube 打开</a>'+
+          '<button class="c-btn" data-act="ytplay">↪ 在侧窗内尝试播放</button>'+
+        '</div>';
+      rpBody.appendChild(vcard);
+      vcard.querySelector('[data-act="ytplay"]').addEventListener('click', function(){
+        clearBody();
+        var f = document.createElement('iframe'); f.src = cur.e.src;
+        f.setAttribute('allow','accelerometer; autoplay; encrypted-media; picture-in-picture');
+        f.setAttribute('allowfullscreen',''); rpBody.appendChild(f);
+        rpHint.textContent = '尝试播放中 · 若报 error 153 则需在 YouTube 打开（file:// 限制）';
+      });
+      rpHint.textContent = '视频 · 推荐在 YouTube 打开';
+      return;
+    }
     var acts, note;
     if(id){
       acts =
