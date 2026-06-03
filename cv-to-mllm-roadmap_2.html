@@ -3087,42 +3087,509 @@ print("Acc:", correct/len(questions), " Yes 比例:", yes_cnt/len(questions))
   <div class="week-head"><span class="week-num">06</span><h2 class="week-title">Agent 基础与工具调用</h2></div>
   <p class="week-lead">你已经在做 CV+Agent 了，本周把 LLM/MLLM Agent 的理论框架补齐。</p>
 
-  <div class="day" data-day="26"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D26</span><span class="day-title">LLM Agent 框架：ReAct、Tool Use、Planning</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>Agent 的核心：感知 → 推理 → 行动 → 观察 的循环。理解 ReAct 范式。</p><div class="box-important"><span class="label">🔥 ReAct 范式</span><p>LLM 交替生成「思考」和「动作」：Thought → Action → Observation → Thought → ... 这比固定 CV pipeline 灵活得多——不是固定流程，而是根据中间结果动态决策。</p></div><div class="box-important"><span class="label">🔥 Function Calling / Tool Use</span><p>模型输出结构化的函数调用（JSON 格式），外部系统执行后把结果返回给模型。例：模型输出 <code>{"name": "enhance_image", "args": {"path": "dark.jpg"}}</code>，系统执行图像增强，返回增强后的图像。</p></div><h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct 论文</a>（Yao et al., 2022）</li><li><a href="https://arxiv.org/abs/2305.10601" target="_blank">Toolformer 论文</a></li></ul></div></div>
+  <div class="day" data-day="26"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D26</span><span class="day-title">LLM Agent 框架：ReAct、Tool Use、Planning</span><span class="day-arrow">▶</span></div><div class="day-body">
 
-  <div class="day" data-day="27"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D27</span><span class="day-title">GUI Agent：多模态 Agent 的落地方向</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>GUI Agent 让 MLLM 看屏幕截图并操作电脑/手机。不需要机械臂，纯软件环境，适合你的条件。</p><div class="box-important"><span class="label">🔥 GUI Agent 工作流程</span><p>① 截取当前屏幕 → 送入 MLLM<br>② MLLM 理解界面内容，规划下一步操作<br>③ 输出动作：click(x,y)、type("text")、scroll(direction)<br>④ 执行动作 → 截取新屏幕 → 循环<br>代表工作：CogAgent、SeeClick、OS-Atlas</p></div><div class="box-tip"><span class="label">💡 研究方向</span><p>低光/低质量屏幕截图下 GUI Agent 的鲁棒性，直接结合你的背景！</p></div><h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2312.08914" target="_blank">CogAgent 论文</a></li><li><a href="https://arxiv.org/abs/2401.10935" target="_blank">SeeClick 论文</a></li></ul></div></div>
+      <div class="arch-fig">
+        <div class="af-cap">📊 ReAct：Thought → Action → Observation 循环</div>
+        <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ReAct 范式：LLM 交替生成思考与动作，调用工具得到观察，循环直到给出答案">
+          <defs>
+            <marker id="d26ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- Thought -->
+          <rect x="60" y="100" width="120" height="52" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.8"/>
+          <text x="120" y="122" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#2f6f63">Thought</text>
+          <text x="120" y="139" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">推理下一步该做什么</text>
+          <!-- Action -->
+          <rect x="320" y="40" width="120" height="52" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/>
+          <text x="380" y="62" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#a8341f">Action</text>
+          <text x="380" y="79" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">调用工具（function call）</text>
+          <!-- Observation -->
+          <rect x="320" y="160" width="120" height="52" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.8"/>
+          <text x="380" y="182" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#b5832f">Observation</text>
+          <text x="380" y="199" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">工具返回的结果</text>
+          <!-- 循环箭头 -->
+          <path d="M180,116 C250,96 270,72 318,66" fill="none" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d26ar)"/>
+          <path d="M380,92 L380,158" fill="none" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d26ar)"/>
+          <path d="M318,186 C270,180 250,156 180,136" fill="none" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d26ar)"/>
+          <text x="250" y="58" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">决定动作</text>
+          <text x="250" y="178" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">读结果再想</text>
+          <text x="396" y="130" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">执行</text>
+          <!-- 终止 -->
+          <line x1="120" y1="100" x2="120" y2="60" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d26ar)"/>
+          <rect x="60" y="34" width="120" height="26" rx="13" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="120" y="51" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">✓ 足够 → Answer</text>
+          <!-- Function call 示例 -->
+          <rect x="500" y="78" width="248" height="96" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.2"/>
+          <text x="624" y="98" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">Action 的结构化形式（JSON）</text>
+          <text x="514" y="118" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#a8341f">{</text>
+          <text x="528" y="133" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#26211a">"name": "enhance_image",</text>
+          <text x="528" y="148" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#26211a">"args": {"path": "dark.jpg"}</text>
+          <text x="514" y="163" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#a8341f">}</text>
+          <!-- 图例 -->
+          <text x="60" y="235" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">关键：不是固定 pipeline，而是 LLM 根据每步「观察」动态决定下一步——这才叫 Agent</text>
+        </svg>
+      </div>
 
-  <div class="day" data-day="28"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D28</span><span class="day-title">Multi-Agent 与复杂任务分解</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>单 Agent 能力有限，Multi-Agent 让多个专业 Agent 协作完成复杂任务。</p><div class="box-important"><span class="label">🔥 Multi-Agent 架构模式</span><p><strong>管道式</strong>：Agent A → Agent B → Agent C<br><strong>讨论式</strong>：多个 Agent 各自推理，汇总（类似 ensemble）<br><strong>层级式</strong>：Manager Agent 拆解任务，分配给 Worker Agents<br>框架：AutoGen（微软）、CrewAI、LangGraph</p></div><h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2308.08155" target="_blank">AutoGen 论文</a></li></ul></div></div>
+      <h4>学习目标</h4>
+      <p>Agent 的核心:<strong>感知 → 推理 → 行动 → 观察</strong> 的循环。学完今天你应能:<strong>(1)</strong> 讲清 ReAct 范式、它和固定 pipeline 的本质区别;<strong>(2)</strong> 说清 Function Calling / Tool Use 的机制;<strong>(3)</strong> 自己写一个最小 ReAct loop;<strong>(4)</strong> 把它和你 CV+Agent 的工作对应起来。</p>
 
-  <div class="day" data-day="29"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D29</span><span class="day-title">RAG：检索增强生成</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>RAG 让 LLM 接入外部知识库，减少幻觉。多模态 RAG（文档+图像检索）是当前热点。</p><div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> RAG 基本流程</div><div class="deriv-body"><pre>
-1. 离线索引阶段：
-   文档 → 分块 → Embedding Model → 向量数据库
+      <h4>一、从「固定流程」到「动态决策」</h4>
+      <p>传统 CV pipeline 是<em class="term">写死的流程</em>:检测→分类→输出。Agent 不一样:<strong>LLM 在每一步先「想」(Thought),再决定「做什么」(Action),执行后看「结果」(Observation),再据此想下一步</strong>——流程不是写死的,而是<em class="term">根据中间结果动态生成</em>的。这就是 ReAct(Reason + Act)。</p>
 
-2. 在线检索阶段：
-   用户 Query → Embedding → 向量检索 Top-K 相关文档
-   → 拼接到 prompt 中 → LLM 生成回答
+      <div class="box-important">
+        <span class="label">🔥 ReAct 范式 + Function Calling</span>
+        <p><strong>ReAct 循环</strong>:<code>Thought → Action → Observation → Thought → …</code>,直到信息足够就给 Answer。每个 Action 都是一次工具调用。</p>
+        <p><strong>Function Calling / Tool Use</strong>:模型输出<em class="term">结构化的函数调用</em>(JSON),外部系统执行后把结果喂回模型。例:模型输出 <code>{"name":"enhance_image","args":{"path":"dark.jpg"}}</code> → 系统跑图像增强 → 把结果返回 → 模型继续推理。<strong>LLM 负责「决策」,工具负责「执行」</strong>(正是 D22 的延伸)。</p>
+      </div>
 
-相似度计算（通常用余弦相似度）：
-  sim(q, d) = (q · d) / (||q|| × ||d||)
+      <div class="box-tip">
+        <span class="label">💡 和你的 CV+Agent 工作对接</span>
+        <p>你已经在做 CV+Agent,这里只是把理论补齐。一个直接的升级:把流水线里写死的「先增强再检测」换成 <strong>MLLM 自己判断「这张图退化严重 → 先调增强工具 → 再检测」</strong>——让决策从硬编码变成模型推理,泛化性大增。</p>
+      </div>
 
-多模态 RAG 扩展：
-  不只检索文本，还检索图像/图表/表格
-  用 CLIP 做跨模态检索：文本 query → 检索相关图像</pre></div></div>
-      <h4>动手实践</h4><div class="code-block"># 用 LlamaIndex 搭一个简单的 RAG
-pip install llama-index chromadb
-# 1. 把你的论文 PDF 切分成 chunks
-# 2. 用 embedding model 建索引
-# 3. 用 Qwen 或 Llama 做回答</div></div></div>
+      <h4>二、动手：最小 ReAct loop</h4>
+      <div class="code-block">import json
 
-  <div class="day" data-day="30"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D30</span><span class="day-title">动手：搭建一个视觉 Agent Demo</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>今日目标</h4><p>综合本周内容，搭建一个简单的视觉 Agent：输入图像 + 指令，Agent 调用不同工具完成任务。</p><div class="code-block"># 思路：用 Qwen-VL + Function Calling 搭一个图像分析 Agent
-# 工具列表：
-# 1. describe_image(img)   - 描述图像
-# 2. detect_objects(img)   - 目标检测
-# 3. enhance_image(img)    - 图像增强（你的老本行！）
-# 4. ocr(img)              - 文字识别
-# 5. measure_quality(img)  - 图像质量评估（PSNR/SSIM）
+TOOLS = {
+    "enhance_image": lambda path: f"已增强 {path}，亮度+40%",
+    "detect_objects": lambda path: "检测到: 1辆车, 2个人",
+}
 
-# Agent 根据用户指令自动选择调用哪些工具
-# 可以用 LangChain 或自己写 ReAct loop</div><div class="box-tip"><span class="label">💡 本周回顾</span><p>Agent 的核心是 LLM 的推理能力 + 外部工具。你做的 CV+Agent 工作，现在可以用 MLLM 替换传统 CV 模块，获得更强的泛化能力。</p></div></div></div>
+def react(llm, question, max_steps=5):
+    scratch = question
+    for _ in range(max_steps):
+        out = llm(scratch)                     # LLM 生成 Thought + Action(JSON)
+        if out.get("answer"):                  # 信息够了 → 收尾
+            return out["answer"]
+        act = out["action"]                    # {"name":..., "args":...}
+        obs = TOOLS[act["name"]](**act["args"])# 执行工具 → Observation
+        scratch += f"\nAction: {json.dumps(act, ensure_ascii=False)}\nObservation: {obs}"
+    return "达到最大步数"
+
+# LLM 每一步看着 scratch（含历史 Thought/Action/Observation）决定下一步——
+# 这就是 Agent 的全部秘密：把"历史 + 工具结果"喂回去，让它自己接着想。</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① ReAct 的三要素是什么?循环怎么终止?② Function Calling 里 LLM 和工具各负责什么?③ ReAct 和写死的 pipeline 本质区别?④ 为什么要把 Observation 喂回模型?⑤ Planning 和 ReAct 什么关系?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 LLM 自己执行工具</strong>——LLM 只生成调用指令,执行在外部系统。② <strong>以为 Agent = 一次问答</strong>——它是多步循环。③ <strong>忘记把 Observation 回灌</strong>——不回灌就退化成单步,失去「根据结果调整」的能力。④ <strong>无终止条件</strong>——容易死循环,必须有 max_steps / 完成判定。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 完整描述 ReAct 一个回合的数据流。② Function Calling 的输入输出格式和执行流程。③ Agent 相比固定 pipeline 的优势与代价(可控性/成本)?④ 怎么防止 Agent 死循环或乱调工具?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct 论文</a>（Reason + Act，Yao et al. 2022）</li>
+        <li><a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion</a>（Agent 用语言反馈自我反思、迭代改进）</li>
+        <li><a href="https://platform.openai.com/docs/guides/function-calling" target="_blank">Function Calling 实践文档</a>（工具调用的工程接口）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="27"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D27</span><span class="day-title">GUI Agent：多模态 Agent 的落地方向</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 GUI Agent：看屏幕 → 决策动作 → 执行 → 再看</div>
+        <svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GUI Agent 循环：截屏送入 MLLM，输出 click/type/scroll 等动作，执行后再截屏循环">
+          <defs>
+            <marker id="d27ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 截屏 -->
+          <rect x="20" y="80" width="100" height="64" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <rect x="30" y="90" width="80" height="8" fill="#2f6f63" opacity=".3"/>
+          <rect x="30" y="104" width="50" height="6" fill="#2f6f63" opacity=".2"/>
+          <text x="70" y="160" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">① 截屏</text>
+          <line x1="120" y1="112" x2="150" y2="112" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d27ar)"/>
+          <!-- MLLM -->
+          <rect x="152" y="84" width="150" height="56" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="227" y="106" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#a8341f">② MLLM 理解 + 规划</text>
+          <text x="227" y="124" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">看懂界面 → 决定下一步</text>
+          <line x1="302" y1="112" x2="332" y2="112" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d27ar)"/>
+          <!-- 动作 -->
+          <rect x="334" y="78" width="160" height="68" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="414" y="98" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">③ 输出动作</text>
+          <text x="414" y="116" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">click(x,y)</text>
+          <text x="414" y="130" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#5a5043">type("...") · scroll</text>
+          <line x1="494" y1="112" x2="524" y2="112" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d27ar)"/>
+          <!-- 执行 -->
+          <rect x="526" y="84" width="120" height="56" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="586" y="106" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">④ 执行</text>
+          <text x="586" y="124" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">点击/输入界面</text>
+          <!-- 循环回截屏 -->
+          <path d="M586,140 C586,196 70,196 70,146" fill="none" stroke="#5a5043" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#d27ar)"/>
+          <text x="330" y="192" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">界面变了 → 重新截屏，循环直到完成任务</text>
+          <!-- 图例 -->
+          <text x="20" y="228" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">点击坐标 = visual grounding(回扣 D21)；纯软件环境、无需机械臂，最适合你的条件</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>GUI Agent 让 MLLM <strong>看屏幕截图、操作电脑/手机</strong>——纯软件环境,不需要机械臂,最适合你的条件。学完今天你应能:<strong>(1)</strong> 画出 GUI Agent 的感知-动作循环;<strong>(2)</strong> 说清动作空间和「点击坐标 = grounding」的联系(回扣 D21);<strong>(3)</strong> 知道代表模型各自的侧重;<strong>(4)</strong> 找到结合你低光背景的研究切口。</p>
+
+      <h4>一、让模型「用」软件</h4>
+      <p>GUI Agent = 把 ReAct(D26)落到「操作界面」这个具体场景:<strong>截屏当观察、点击/输入当动作</strong>。它的难点是 <em class="term">视觉定位</em>——要准确点到「那个登录按钮」,本质就是 D21 的 grounding:看懂界面 + 输出该点的坐标。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 工作流程与代表模型</span>
+        <p><strong>循环</strong>:① 截取当前屏幕 → 送入 MLLM;② MLLM 理解界面、规划下一步;③ 输出动作 <code>click(x,y)</code> / <code>type("文本")</code> / <code>scroll</code>;④ 执行后界面变化 → 重新截屏 → 循环,直到任务完成。</p>
+        <p><strong>代表工作</strong>:<strong>CogAgent</strong>(高分辨率看清小图标/文字) · <strong>SeeClick</strong>(强化点击定位 grounding) · <strong>OS-Atlas</strong>(跨平台 GUI 基础模型) · <strong>UI-TARS</strong>(端到端原生 GUI agent)。共同瓶颈都是<em class="term">高分辨率 + 精确定位</em>。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 你的研究方向（强相关）</span>
+        <p><strong>低光/低质量屏幕截图下 GUI Agent 的鲁棒性</strong>——夜间手机截图、低亮度/反光屏幕会让定位失准。这是你图像增强背景 × GUI Agent 的直接交叉,现有工作几乎默认截图清晰,是个干净的空白点。</p>
+      </div>
+
+      <h4>二、动手：GUI Agent loop 骨架</h4>
+      <div class="code-block"># 把 D26 的 ReAct loop 落到「操作界面」
+def gui_agent(mllm, goal, env, max_steps=15):
+    for _ in range(max_steps):
+        screenshot = env.capture()                  # ① 截屏（观察）
+        action = mllm(goal, screenshot)             # ② 看懂界面 → 决定动作
+        # action 形如 {"type":"click","x":0.46,"y":0.12}  坐标常归一化(回扣 D21)
+        if action["type"] == "done":
+            return "任务完成"
+        env.execute(action)                          # ③④ 执行 → 界面变化
+    return "超出步数"
+
+# env.execute 把归一化坐标换算成真实像素再点击：
+#   px = int(action["x"] * screen_w);  py = int(action["y"] * screen_h)</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① GUI Agent 的感知和动作分别是什么?② 「点对按钮」和 D21 的 grounding 什么关系?③ 为什么 GUI Agent 强依赖高分辨率?④ 动作执行后为什么要重新截屏?⑤ 低光截图会怎样影响它?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为有界面元素的结构化信息</strong>——纯视觉 GUI Agent 只有截图,要自己「看」出按钮在哪。② <strong>以为一次就能完成</strong>——是多步循环,每步依赖最新界面。③ <strong>坐标当像素</strong>——多为归一化值,要换算。④ <strong>忽视错误恢复</strong>——点错后要能从新截图里自我纠正。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 描述 GUI Agent 完整闭环。② 点击定位为什么是核心难点?和 grounding 的关系?③ 纯视觉 vs 借助 a11y 树,各有何利弊?④ 如何评测 GUI Agent(成功率/步数/鲁棒性)?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2312.08914" target="_blank">CogAgent</a>（高分辨率 GUI 理解）</li>
+        <li><a href="https://arxiv.org/abs/2401.10935" target="_blank">SeeClick</a>（GUI grounding 预训练）</li>
+        <li><a href="https://arxiv.org/abs/2410.23218" target="_blank">OS-Atlas</a>（跨平台 GUI 基础动作模型）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="28"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D28</span><span class="day-title">Multi-Agent 与复杂任务分解</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 Multi-Agent 三种协作模式</div>
+        <svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Multi-Agent 三种模式：管道式串联、讨论式汇总、层级式由 Manager 分派 Worker">
+          <defs>
+            <marker id="d28ar" markerWidth="8" markerHeight="8" refX="6" refY="2.6" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L6,2.6 L0,5.2 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 管道式 -->
+          <text x="120" y="34" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#2f6f63">① 管道式</text>
+          <rect x="40" y="80" width="44" height="34" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="62" y="102" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#26211a">A</text>
+          <rect x="98" y="80" width="44" height="34" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="120" y="102" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#26211a">B</text>
+          <rect x="156" y="80" width="44" height="34" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="178" y="102" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#26211a">C</text>
+          <line x1="84" y1="97" x2="96" y2="97" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d28ar)"/>
+          <line x1="142" y1="97" x2="154" y2="97" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d28ar)"/>
+          <text x="120" y="150" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">依次接力 · 流水线</text>
+          <!-- 讨论式 -->
+          <text x="380" y="34" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#b5832f">② 讨论式</text>
+          <rect x="300" y="58" width="44" height="30" rx="5" fill="#f0e6cf" stroke="#b5832f"/><text x="322" y="78" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">A</text>
+          <rect x="300" y="94" width="44" height="30" rx="5" fill="#f0e6cf" stroke="#b5832f"/><text x="322" y="114" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">B</text>
+          <rect x="300" y="130" width="44" height="30" rx="5" fill="#f0e6cf" stroke="#b5832f"/><text x="322" y="150" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">C</text>
+          <rect x="412" y="94" width="50" height="32" rx="5" fill="#efe8d8" stroke="#26211a"/><text x="437" y="114" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">汇总</text>
+          <line x1="344" y1="73" x2="410" y2="104" stroke="#5a5043" stroke-width="1.2" marker-end="url(#d28ar)"/>
+          <line x1="344" y1="109" x2="410" y2="110" stroke="#5a5043" stroke-width="1.2" marker-end="url(#d28ar)"/>
+          <line x1="344" y1="145" x2="410" y2="116" stroke="#5a5043" stroke-width="1.2" marker-end="url(#d28ar)"/>
+          <text x="380" y="178" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">各自推理 · 投票/汇总</text>
+          <!-- 层级式 -->
+          <text x="640" y="34" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">③ 层级式</text>
+          <rect x="600" y="56" width="80" height="30" rx="5" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.6"/><text x="640" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#a8341f">Manager</text>
+          <rect x="556" y="120" width="44" height="30" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="578" y="140" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">W1</text>
+          <rect x="618" y="120" width="44" height="30" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="640" y="140" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">W2</text>
+          <rect x="680" y="120" width="44" height="30" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="702" y="140" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">W3</text>
+          <line x1="630" y1="86" x2="582" y2="118" stroke="#5a5043" stroke-width="1.2" marker-end="url(#d28ar)"/>
+          <line x1="640" y1="86" x2="640" y2="118" stroke="#5a5043" stroke-width="1.2" marker-end="url(#d28ar)"/>
+          <line x1="650" y1="86" x2="698" y2="118" stroke="#5a5043" stroke-width="1.2" marker-end="url(#d28ar)"/>
+          <text x="640" y="178" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">拆解 · 分派 · 汇报</text>
+          <text x="40" y="208" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">单 Agent 能力有限；让多个「专才」分工协作，复杂任务更可控 —— 但通信成本与失控风险也上升</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>单 Agent 能力有限,Multi-Agent 让多个<strong>专才协作</strong>完成复杂任务。学完今天你应能:<strong>(1)</strong> 区分管道/讨论/层级三种协作模式及适用场景;<strong>(2)</strong> 说清各自的代价(通信成本、失控风险);<strong>(3)</strong> 知道主流框架;<strong>(4)</strong> 写一个最小的层级式分派骨架。</p>
+
+      <h4>一、为什么需要「一群」Agent</h4>
+      <p>让一个 Agent 既当规划者、又当程序员、又当审稿人,容易顾此失彼。把角色拆开——<strong>每个 Agent 专注一件事,再让它们协作</strong>,复杂任务更可控、可调试。代价是:Agent 之间要<em class="term">通信</em>,轮次多了 token 成本高,还可能互相带偏(失控)。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 三种协作模式 + 框架</span>
+        <p><strong>① 管道式</strong>:A→B→C 接力,每个 Agent 处理上一个的输出(像流水线)。简单可控,但错误会顺着传。</p>
+        <p><strong>② 讨论式</strong>:多个 Agent 各自推理,再投票/汇总(类似 ensemble),适合需要多视角、纠错的任务。</p>
+        <p><strong>③ 层级式</strong>:Manager 拆解任务、分派给 Worker、收集汇报(像项目经理带团队),适合可分解的大任务。</p>
+        <p><strong>框架</strong>:AutoGen(微软,对话式多 agent)、CrewAI(角色编排)、LangGraph(把多 agent 表达成状态图)。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 和你方向的连接</span>
+        <p>一个低光视觉任务可以拆成:<strong>质量评估 Agent</strong>(判退化程度)→ <strong>增强 Agent</strong>(调工具复原)→ <strong>理解 Agent</strong>(检测/识别)→ <strong>审查 Agent</strong>(校验结果)。这正是层级/管道式的天然落地,也比单模型更鲁棒。</p>
+      </div>
+
+      <h4>二、动手：最小层级式骨架</h4>
+      <div class="code-block"># 层级式：Manager 拆任务 → Worker 各自做 → 汇总
+def manager(llm, goal):
+    subtasks = llm.plan(goal)          # 拆成若干子任务（如 ["评估质量","增强","检测"]）
+    results = []
+    for st in subtasks:
+        worker = make_worker(st)       # 为每个子任务选/造一个专才 Agent
+        results.append(worker.run(st)) # 每个 Worker 独立完成（可内部跑 ReAct）
+    return llm.aggregate(goal, results)  # Manager 汇总成最终答案
+
+# 关键设计点：
+#   - 子任务划分是否清晰（影响能不能并行、好不好调试）
+#   - Worker 之间是否需要共享中间结果（共享多→更强但更乱）
+#   - 终止与预算控制（防止 Agent 之间无限对话烧 token）</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 三种协作模式各自适合什么任务?② 管道式的主要风险?③ 讨论式为什么能纠错?④ 层级式里 Manager 负责什么?⑤ Multi-Agent 相比单 Agent 的代价是什么?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 Agent 越多越好</strong>——通信/token 成本飙升,还可能互相带偏。② <strong>忽略终止条件</strong>——Agent 间可能无限对话。③ <strong>子任务划分含糊</strong>——拆不清就没法分工。④ <strong>把讨论式当真·并行</strong>——多数实现仍是串行轮流发言。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 对比三种 Multi-Agent 模式。② 什么任务适合 Multi-Agent、什么时候单 Agent 更好?③ 怎么控制多 Agent 的成本与失控风险?④ 举一个用层级式解决的复杂任务设计。</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2308.08155" target="_blank">AutoGen</a>（对话式多 Agent 框架）</li>
+        <li><a href="https://arxiv.org/abs/2303.17760" target="_blank">CAMEL</a>（角色扮演式 Agent 协作）</li>
+        <li><a href="https://github.com/langchain-ai/langgraph" target="_blank">LangGraph</a>（把多 Agent 表达成状态图，工程常用）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="29"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D29</span><span class="day-title">RAG：检索增强生成</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 RAG：离线建索引 + 在线检索增强</div>
+        <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG 两阶段：离线把文档分块嵌入存进向量库，在线把问题嵌入检索 Top-K 拼进 prompt 喂 LLM">
+          <defs>
+            <marker id="d29ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 离线 -->
+          <text x="20" y="32" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#2f6f63">离线：建索引</text>
+          <rect x="14" y="44" width="58" height="38" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="43" y="67" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">文档</text>
+          <line x1="72" y1="63" x2="96" y2="63" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d29ar)"/>
+          <rect x="98" y="44" width="58" height="38" rx="5" fill="#efe8d8" stroke="#26211a"/><text x="127" y="61" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">分块</text><text x="127" y="74" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">chunk</text>
+          <line x1="156" y1="63" x2="180" y2="63" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d29ar)"/>
+          <rect x="182" y="44" width="72" height="38" rx="5" fill="#efe8d8" stroke="#26211a"/><text x="218" y="61" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">Embedding</text><text x="218" y="74" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">向量化</text>
+          <line x1="254" y1="63" x2="278" y2="63" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d29ar)"/>
+          <rect x="280" y="42" width="92" height="42" rx="5" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.6"/><text x="326" y="61" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">向量数据库</text><text x="326" y="75" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">vector DB</text>
+          <!-- 在线 -->
+          <text x="20" y="132" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">在线：检索增强生成</text>
+          <rect x="14" y="146" width="72" height="40" rx="5" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.5"/><text x="50" y="164" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">用户 Query</text><text x="50" y="178" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">→ Embedding</text>
+          <line x1="86" y1="166" x2="110" y2="166" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d29ar)"/>
+          <rect x="112" y="146" width="96" height="40" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/><text x="160" y="164" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">向量检索</text><text x="160" y="178" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">Top-K 相关块</text>
+          <line x1="208" y1="166" x2="232" y2="166" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d29ar)"/>
+          <rect x="234" y="146" width="110" height="40" rx="5" fill="#efe8d8" stroke="#26211a" stroke-width="1.2"/><text x="289" y="164" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">检索结果+Query</text><text x="289" y="178" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">拼进 prompt</text>
+          <line x1="344" y1="166" x2="368" y2="166" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d29ar)"/>
+          <rect x="370" y="146" width="76" height="40" rx="5" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/><text x="408" y="170" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">LLM 生成</text>
+          <!-- 索引被检索 -->
+          <path d="M326,84 C326,120 200,118 160,144" fill="none" stroke="#5a5043" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#d29ar)"/>
+          <text x="300" y="116" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">查同一个库</text>
+          <!-- 右侧说明 -->
+          <rect x="470" y="60" width="278" height="120" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1" stroke-dasharray="3 2"/>
+          <text x="609" y="82" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" font-weight="700" fill="#26211a">为什么有用</text>
+          <text x="486" y="104" font-family="'JetBrains Mono',monospace" font-size="9" fill="#5a5043">· 接入外部/最新知识，无需重训</text>
+          <text x="486" y="122" font-family="'JetBrains Mono',monospace" font-size="9" fill="#5a5043">· 回答有出处 → 减少幻觉</text>
+          <text x="486" y="140" font-family="'JetBrains Mono',monospace" font-size="9" fill="#5a5043">· 相似度: cos(q,d)=q·d/(‖q‖‖d‖)</text>
+          <text x="486" y="158" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">· 多模态 RAG：用 CLIP 跨模态检索</text>
+          <text x="486" y="174" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">  文本 query → 检索相关图/表/页</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>RAG 让 LLM <strong>接入外部知识库</strong>:回答有出处、减少幻觉、知识可更新而无需重训。学完今天你应能:<strong>(1)</strong> 画出 RAG 离线/在线两阶段;<strong>(2)</strong> 解释向量检索(相似度)怎么工作;<strong>(3)</strong> 说清多模态 RAG 怎么用 CLIP 跨模态检索;<strong>(4)</strong> 用 LlamaIndex 搭一个能问你论文的 RAG。</p>
+
+      <h4>一、给 LLM 配一个「可查的外挂知识库」</h4>
+      <p>LLM 的知识冻结在训练时,且容易幻觉。RAG 的思路:<strong>先把外部文档变成向量存起来,回答前先「查资料」,把检索到的相关内容拼进 prompt 再生成</strong>。模型不再纯靠记忆,而是<em class="term">带着证据作答</em>,这天然减少幻觉(回扣 D25)。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 两阶段流程</span>
+        <p><strong>① 离线建索引</strong>:文档 → 分块(chunk)→ Embedding 模型向量化 → 存进向量数据库。</p>
+        <p><strong>② 在线检索增强</strong>:用户 Query → 同一个 Embedding 模型向量化 → 在向量库里检索 <em class="term">Top-K</em> 最相似的块 → 把这些块和 Query 一起拼进 prompt → LLM 生成带出处的回答。</p>
+        <p><strong>相似度</strong>:通常用余弦相似度 <code>cos(q,d)=q·d/(‖q‖‖d‖)</code>(回扣 D11 CLIP 的归一化点积)。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 多模态 RAG（当前热点）</span>
+        <p>不只检索文本,还检索<strong>图像 / 图表 / 文档页</strong>。用 CLIP(D11)做<em class="term">跨模态检索</em>:文本 query → 找到相关图像;或像 <strong>ColPali</strong> 那样,直接把文档页当图像做视觉检索,绕开易出错的 OCR。对你而言,「<strong>带视觉证据的退化图像知识检索</strong>」是个可做的方向。</p>
+      </div>
+
+      <h4>二、动手：用 LlamaIndex 搭 RAG</h4>
+      <div class="code-block"># pip install llama-index chromadb
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+
+# 1) 离线：读文档（如你的论文 PDF）→ 自动分块 + 向量化 + 建索引
+docs  = SimpleDirectoryReader("./papers").load_data()
+index = VectorStoreIndex.from_documents(docs)
+
+# 2) 在线：提问 → 检索 Top-K → 拼 prompt → LLM 作答（带出处）
+engine = index.as_query_engine(similarity_top_k=4)
+resp = engine.query("这篇论文用什么方法缓解低光下的幻觉？")
+print(resp)                       # 回答
+print(resp.source_nodes)          # 命中的原文片段（出处，可核查）</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① RAG 两阶段分别做什么?② 为什么 RAG 能减少幻觉?③ Query 和文档必须用同一个 embedding 模型吗?为什么?④ 多模态 RAG 怎么用 CLIP?⑤ chunk 太大/太小各有什么问题?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 RAG 要重训模型</strong>——不用,只是检索 + 拼 prompt。② <strong>Query 和文档用不同 embedding</strong>——会对不齐,检索失效。③ <strong>chunk 切得太大</strong>——检索不精准、噪声多;太小又丢上下文。④ <strong>以为检索到就一定对</strong>——检索错/不全,生成照样幻觉(垃圾进垃圾出)。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 完整描述 RAG 的离线+在线流程。② RAG 减少幻觉的机制是什么?局限在哪?③ chunking 策略怎么影响效果?④ 多模态 RAG 与纯文本 RAG 的区别?ColPali 的核心思想?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2407.01449" target="_blank">ColPali</a>（把文档页当图像做视觉检索，绕开 OCR）</li>
+        <li><a href="https://arxiv.org/abs/2312.10997" target="_blank">RAG 综述</a>（检索增强生成的系统化梳理）</li>
+        <li><a href="https://docs.llamaindex.ai/" target="_blank">LlamaIndex 文档</a>（工程落地最常用的 RAG 框架）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="30"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D30</span><span class="day-title">动手：搭建一个视觉 Agent Demo</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 视觉 Agent：MLLM 决策 + 调用视觉工具</div>
+        <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="视觉 Agent：MLLM 作为大脑，按 ReAct 循环调用描述、检测、增强、OCR、质量评估等工具">
+          <defs>
+            <marker id="d30ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 指令 -->
+          <rect x="14" y="96" width="100" height="48" rx="6" fill="#efe8d8" stroke="#5a5043" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <text x="64" y="116" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">图像 + 指令</text>
+          <text x="64" y="132" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">「这张暗图里有啥」</text>
+          <line x1="114" y1="120" x2="146" y2="120" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d30ar)"/>
+          <!-- MLLM 大脑 -->
+          <rect x="148" y="92" width="150" height="56" rx="8" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="223" y="115" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#a8341f">MLLM（大脑）</text>
+          <text x="223" y="133" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">ReAct：想→调工具→看结果</text>
+          <!-- 工具集 -->
+          <text x="540" y="40" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" font-weight="700" fill="#2f6f63">工具集</text>
+          <g font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">
+            <rect x="360" y="50" width="170" height="28" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="372" y="68">describe_image()</text>
+            <rect x="360" y="84" width="170" height="28" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="372" y="102">detect_objects()</text>
+            <rect x="360" y="118" width="170" height="28" rx="5" fill="#f0e6cf" stroke="#b5832f"/><text x="372" y="136" fill="#a8341f">enhance_image() ← 你的老本行</text>
+            <rect x="360" y="152" width="170" height="28" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="372" y="170">ocr()</text>
+            <rect x="360" y="186" width="170" height="28" rx="5" fill="#f0e6cf" stroke="#b5832f"/><text x="372" y="204" fill="#a8341f">measure_quality()  PSNR/SSIM</text>
+          </g>
+          <!-- 双向箭头 -->
+          <path d="M298,112 C330,96 340,72 358,66" fill="none" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d30ar)"/>
+          <path d="M358,196 C330,180 320,150 300,140" fill="none" stroke="#5a5043" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#d30ar)"/>
+          <text x="318" y="60" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">调用</text>
+          <text x="312" y="172" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">结果回灌</text>
+          <!-- 输出 -->
+          <line x1="223" y1="148" x2="223" y2="178" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d30ar)"/>
+          <rect x="150" y="180" width="146" height="30" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+          <text x="223" y="200" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">综合结论</text>
+          <text x="600" y="232" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">把本周(ReAct/工具/grounding/SAM)落成一个能跑的 Demo</text>
+        </svg>
+      </div>
+
+      <h4>今日目标</h4>
+      <p>综合本周:搭一个<strong>视觉 Agent</strong>——输入图像 + 指令,Agent 用 ReAct(D26)自动决定调用哪些视觉工具完成任务。这把你的 CV 老本行(增强、质量评估)变成 Agent 的工具,是<em class="term">结合你背景的最佳练手项目</em>。</p>
+
+      <h4>一、设计：大脑 + 工具箱</h4>
+      <p>视觉 Agent = <strong>MLLM 当大脑</strong>(D26 的 ReAct 决策)+ <strong>一组视觉工具</strong>。模型不亲自做每件事,而是<em class="term">看情况调工具</em>:图太暗 → 先调 <code>enhance_image</code>;要找东西 → 调 <code>detect_objects</code>;要读字 → 调 <code>ocr</code>。这正是「理解 + 执行」(D22)的完整体。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 工具集（含你的老本行）</span>
+        <p><code>describe_image(img)</code> 描述 · <code>detect_objects(img)</code> 检测(可接 D22 Grounded-SAM) · <strong><code>enhance_image(img)</code> 图像增强(你的老本行!)</strong> · <code>ocr(img)</code> 文字识别(接 D23) · <strong><code>measure_quality(img)</code> 质量评估(PSNR/SSIM)</strong>。Agent 按指令和中间结果<em class="term">动态编排</em>这些工具。</p>
+      </div>
+
+      <h4>二、动手：完整视觉 Agent loop</h4>
+      <div class="code-block">import json
+
+# 1) 注册工具（把你的 CV 模型包成函数）
+TOOLS = {
+    "measure_quality": lambda img: {"psnr": 18.3, "verdict": "低光退化严重"},
+    "enhance_image":   lambda img: {"out": "enhanced.jpg", "note": "亮度/对比已恢复"},
+    "detect_objects":  lambda img: {"objects": ["car", "person", "person"]},
+    "ocr":             lambda img: {"text": "夜间限速 40"},
+}
+
+# 2) ReAct loop：MLLM 看历史 → 决定下一步工具 → 回灌结果
+def visual_agent(mllm, image, instruction, max_steps=6):
+    history = f"任务：{instruction}\n图像：{image}"
+    for _ in range(max_steps):
+        step = mllm(history)                         # 返回 {"thought","action"|"answer"}
+        if "answer" in step:
+            return step["answer"]
+        act = step["action"]                         # {"name":"enhance_image","args":{...}}
+        obs = TOOLS[act["name"]](image)
+        history += f"\nThought: {step['thought']}"
+        history += f"\nAction: {json.dumps(act, ensure_ascii=False)}\nObservation: {obs}"
+    return "未在步数内完成"
+
+# 典型轨迹：measure_quality → (太暗) enhance_image → detect_objects → ocr → 汇总作答
+# 关键：让 MLLM「先评估质量、退化就先增强」——把你的研究做成 Agent 的一条决策路径</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 视觉 Agent 里 MLLM 和工具各负责什么?② 一条「低光图理解」的典型工具调用轨迹是什么?③ 这和 D22 Grounded-SAM 的关系?④ 怎么防止 Agent 反复调同一个工具?⑤ 工具返回的结果如何影响下一步?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>让 MLLM 亲自做所有事</strong>——该交给专用工具的(精确检测/分割/复原)就交出去。② <strong>工具结果不回灌</strong>——退化成单步,失去自适应。③ <strong>工具描述不清</strong>——模型不知何时该调哪个。④ <strong>无步数/预算上限</strong>——容易死循环烧 token。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 设计一个视觉 Agent 解决「低光图像理解」,画出工具与决策流。② Agent 编排工具相比写死 pipeline 的优势?③ 怎么评测一个工具型 Agent?④ 工具调用失败/结果不可靠时,Agent 该怎么办?</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 本周（Week 06）回顾</span>
+        <p>Agent 的核心 = <strong>LLM 的推理(ReAct)+ 外部工具</strong>。你已掌握:ReAct 循环(D26)、GUI Agent(D27)、Multi-Agent 协作(D28)、RAG 接外部知识(D29),并把它们落成一个视觉 Agent。你原有的 CV+Agent 工作,现在可以用 MLLM 替换写死的模块,获得更强泛化。下一周(Week 07)进入<strong>前沿主题与研究方向探索</strong>——多模态推理、token 压缩、训练效率,正是你能切入做论文的地方。</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://github.com/QwenLM/Qwen-Agent" target="_blank">Qwen-Agent</a>（带 function calling 的多模态 Agent 框架，可直接接 Qwen-VL）</li>
+        <li><a href="https://github.com/langchain-ai/langchain" target="_blank">LangChain</a>（工具/Agent 编排的工程库）</li>
+        <li><a href="https://github.com/microsoft/autogen" target="_blank">AutoGen</a>（多 Agent 对话编排，回顾 D28）</li>
+      </ul>
+    </div>
+  </div>
 </div><!-- week 6 -->
 
 <!-- ====================== WEEK 7 ====================== -->
