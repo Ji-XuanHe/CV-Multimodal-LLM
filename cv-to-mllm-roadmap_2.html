@@ -1301,25 +1301,151 @@ L = -∑ᵢ∑ⱼ [ y_ij·log σ(S_ij) + (1-y_ij)·log(1-σ(S_ij)) ]
     </div>
   </div>
 
-  <div class="day" data-day="14"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D14</span><span class="day-title">LLaVA 架构精读：整体设计与两阶段训练</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>LLaVA 是多模态大模型最经典、最干净的架构。理解它的设计哲学。</p><div class="box-important"><span class="label">🔥 LLaVA 架构（大道至简）</span><p>Image → CLIP ViT → Visual Tokens → <strong>Linear Projector</strong> → 拼接 Text Tokens → LLM → Response<br>就这么简单。没有复杂的 cross-attention，没有 Q-Former，一个 MLP projector 搞定。这个设计打败了一堆复杂架构。</p></div>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> LLaVA 两阶段训练策略</div><div class="deriv-body"><pre>
-═══ Stage 1: 预训练 Projector（feature alignment）═══
-  数据：595K image-caption pairs（CC3M 子集）
-  冻结：CLIP ViT ❄️ + LLM ❄️
-  只训练：Projector（线性层或 MLP）
-  目的：学会把 CLIP 特征「翻译」成 LLM 能理解的表示
+  <div class="day" data-day="14"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D14</span><span class="day-title">LLaVA 架构精读：整体设计与两阶段训练</span><span class="day-arrow">▶</span></div><div class="day-body">
 
-═══ Stage 2: 指令微调（visual instruction tuning）═══
-  数据：158K 多模态指令数据（LLaVA-Instruct）
-  冻结：CLIP ViT ❄️
-  训练：Projector 🔥 + LLM 🔥（或 LoRA）
-  目的：让模型学会根据图像回答各种问题
+      <h4>学习目标</h4>
+      <p>LLaVA 是把视觉接入 LLM 最经典、最干净的范式。学完今天，你应当能：<strong>(1)</strong> 讲清 LLaVA 的「三件套」各自做什么；<strong>(2)</strong> 把一张图到一段回答的<em class="term">维度变换</em>全程画出来；<strong>(3)</strong> 说清视觉 token 是<em class="term">怎么塞进文本序列</em>的（面试必考）；<strong>(4)</strong> 解释两阶段训练各冻结什么、loss 算在哪；<strong>(5)</strong> 用 Hugging Face 跑通一次 LLaVA 推理。</p>
 
-为什么分两阶段？
-  直接端到端训练，projector 从随机初始化开始，
-  会产生噪声梯度干扰 LLM，导致灾难性遗忘。
-  先对齐特征空间，再做指令微调，稳定得多。</pre></div></div>
-      <h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2304.08485" target="_blank">LLaVA 原论文</a>（2023，必读经典）</li><li><a href="https://arxiv.org/abs/2310.03744" target="_blank">LLaVA-1.5</a>（换了 MLP projector，效果大幅提升）</li></ul>
+      <h4>一、动机：让「只懂文字」的 LLM「看见」图像</h4>
+      <p>LLM 的输入是一串 token 的<em class="term">词向量</em>（embedding 序列），而图像是连续像素。要让 LLM 处理图像，核心问题只有一个：<strong>找一个「翻译官」，把图像变成 LLM 词向量空间里的若干个「伪词」</strong>，和文本词向量拼在一起喂进去。LLaVA 给出的答案简单到令人意外——这个翻译官就是<strong>一个 MLP</strong>。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 LLaVA 三件套</span>
+        <p><strong>① 视觉编码器</strong>（CLIP ViT-L/14，❄️ 冻结）：把图像切成 patch，编码成一串视觉特征 <code>Z_v ∈ ℝ^(576×1024)</code>。用的是 CLIP 倒数第二层的 grid 特征（不是 CLS）。</p>
+        <p><strong>② Projector / 连接器</strong>（🔥 要训练）：一个把 <code>1024</code> 维视觉特征映射到 LLM 词向量维度 <code>4096</code> 的小网络。LLaVA-1 是单层 Linear，LLaVA-1.5 换成 2 层 MLP。<strong>它是整个架构里唯一为「对齐」而新增的部件。</strong></p>
+        <p><strong>③ 大语言模型</strong>（Vicuna / Llama）：把这 576 个「视觉词」当外语词，和文本词拼成一个序列，<em class="term">自回归</em>生成回答。</p>
+        <p>没有 cross-attention，没有 Q-Former。就这么三件套，却在当年打穿了一堆复杂架构——<strong>说明瓶颈不在「怎么融合」，而在「数据质量 + LLM 本身够强」。</strong></p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 和你的 CV 直觉对接</span>
+        <p>ViT 把图像变成 patch token 序列，你已经很熟。LLaVA 做的事，本质就是你做过无数次的<strong>「特征空间对齐」</strong>——只不过这次是把 CLIP 的视觉特征，用一个线性/MLP 投影对齐到 LLM 的词向量空间。把它类比成「域适配里的一层 projection head」，直觉立刻通了。</p>
+      </div>
+
+      <h4>二、数据怎么流过模型（维度全程跟踪）</h4>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 从一张图到一段回答的完整维度变换（务必能默画）</div><div class="deriv-body"><pre>
+输入：一张 RGB 图像 X_v ∈ ℝ^(336×336×3)
+
+① 视觉编码（CLIP ViT-L/14，patch=14）
+   patch 数 = (336/14)² = 24×24 = 576
+   取倒数第二层 grid features（去掉 [CLS]）：
+   Z_v = g(X_v) ∈ ℝ^(576 × 1024)        1024 = CLIP ViT-L 隐藏维
+
+② Projector：视觉维度 → LLM 词向量维度
+   LLaVA-1（线性）:  H_v = W · Z_v ,         W ∈ ℝ^(4096 × 1024)
+   LLaVA-1.5（MLP）: H_v = W₂ · GELU(W₁ · Z_v)
+   得 H_v ∈ ℝ^(576 × 4096)               4096 = Vicuna-7B 隐藏维
+   —— 576 个「视觉词向量」，与文本词向量同维、可直接拼接
+
+③ 文本走正常 embedding
+   "USER: &lt;image&gt;\n描述这张图 ASSISTANT:"
+   → token ids → H_t ∈ ℝ^(L × 4096)
+
+④ 拼接成一个序列（关键！见下方机制）
+   把文本里的 &lt;image&gt; 占位符，替换成 ② 的 576 个视觉向量：
+   H = [ H_前 ; H_v(576) ; H_后 ] ∈ ℝ^((L-1+576) × 4096)
+
+⑤ LLM 自回归生成回答
+   p(X_a | X_v, X_q) = ∏_i p(x_i | H, x_&lt;i)
+   视觉 token 通过 self-attention 被每个文本 token「看到」
+
+一句话记忆：图像 → 576 个伪词 → 和文字排成一队 → LLM 照常说话。</pre></div></div>
+
+      <div class="box-important">
+        <span class="label">🔥 视觉 token 怎么「塞进」文本序列（面试必考）</span>
+        <p>输入里先放一个特殊占位符 <code>&lt;image&gt;</code>（对应一个保留 token id）。前向时：先用 LLM 的 embedding 层把文本 token 变成词向量，再把序列中那<strong>一个</strong> <code>&lt;image&gt;</code> 位置，<strong>替换/展开成 Projector 输出的 576 个视觉向量</strong>。所以「1 个占位符 → 576 个视觉 token」，序列长度相应变长。注意：替换的是<em class="term">输入 embedding</em>，不是 token id——视觉向量根本不在词表里。</p>
+      </div>
+
+      <h4>三、两阶段训练：先对齐，再教指令</h4>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 训练目标、loss 落点与两阶段冻结策略</div><div class="deriv-body"><pre>
+训练目标：标准自回归语言建模 loss，但只在「回答」上计算
+  L = - ∑_{i ∈ answer} log p(x_i | H, x_&lt;i)
+  → 图像 token、system 提示、用户问题都不计 loss（只学「怎么答」）
+
+═══ Stage 1　特征对齐 (feature alignment) ═══
+  数据：558K image–caption（LLaVA-1.5，过滤后的图文对）
+  ❄️ 冻结 CLIP ViT      ❄️ 冻结 LLM
+  🔥 只训 Projector
+  目的：把 CLIP 特征空间「翻译」到 LLM 词向量空间
+       此时模型只会「看图说标题」，还不会对话
+
+═══ Stage 2　视觉指令微调 (visual instruction tuning) ═══
+  数据：665K 指令数据（VQA + OCR + 多轮对话 + region 等）
+  ❄️ 冻结 CLIP ViT
+  🔥 训 Projector + 🔥 训 LLM（全参或 LoRA）
+  目的：学会按各种指令完成视觉任务
+
+为什么必须分两阶段？
+  若一上来就端到端：Projector 是随机初始化，
+  会向 LLM 灌「乱码」梯度 → 破坏 LLM 已有能力（灾难性遗忘）。
+  先用海量图文对把 Projector 训到「对齐」，再联合微调，稳得多。</pre></div></div>
+
+      <div class="box-tip">
+        <span class="label">💡 LLaVA-1.5 相比 LLaVA-1 改了什么</span>
+        <p>① <strong>Projector：Linear → 2 层 MLP</strong>（表达力更强）；② <strong>分辨率 224→336</strong>（视觉 token 256→576，看得更清）；③ 训练数据加入 <strong>VQA / OCR / 学术任务</strong>，并规范了 prompt 格式。改动都很「工程」，却带来大幅提升——再次印证<strong>数据和分辨率比架构花活更关键</strong>。</p>
+      </div>
+
+      <h4>四、动手：跑通 LLaVA 推理 + 看懂 Projector</h4>
+      <div class="code-block"># pip install "transformers>=4.39" accelerate pillow torch
+from transformers import LlavaForConditionalGeneration, AutoProcessor
+import torch
+from PIL import Image
+
+model_id = "llava-hf/llava-1.5-7b-hf"
+processor = AutoProcessor.from_pretrained(model_id)
+model = LlavaForConditionalGeneration.from_pretrained(
+    model_id, torch_dtype=torch.float16, device_map="auto")
+
+image  = Image.open("example.jpg")
+# &lt;image&gt; 占位符会被 processor 展开成 576 个视觉 token
+prompt = "USER: &lt;image&gt;\n这张图里有什么？请详细描述。 ASSISTANT:"
+
+inputs = processor(images=image, text=prompt,
+                   return_tensors="pt").to(model.device, torch.float16)
+out = model.generate(**inputs, max_new_tokens=256, do_sample=False)
+print(processor.decode(out[0], skip_special_tokens=True))</div>
+
+      <div class="code-block">import torch, torch.nn as nn
+
+# —— LLaVA-1.5 的 Projector：就是一个 2 层 MLP ——
+class Projector(nn.Module):
+    def __init__(self, vision_dim=1024, llm_dim=4096):
+        super().__init__()
+        self.fc1 = nn.Linear(vision_dim, llm_dim)
+        self.act = nn.GELU()
+        self.fc2 = nn.Linear(llm_dim, llm_dim)
+    def forward(self, feats):          # feats: (B, 576, 1024)
+        return self.fc2(self.act(self.fc1(feats)))   # -> (B, 576, 4096)
+
+# —— 核心机制：把 &lt;image&gt; 占位符替换成视觉 token（简化版）——
+def merge(input_ids, text_embeds, image_embeds, IMG_ID):
+    # text_embeds: (L, 4096)   image_embeds: (576, 4096)
+    pos = (input_ids == IMG_ID).nonzero()[0].item()   # 找占位符位置
+    return torch.cat([text_embeds[:pos],              # 占位符之前的文字
+                      image_embeds,                   # 576 个视觉向量插进来
+                      text_embeds[pos+1:]], dim=0)     # 占位符之后的文字
+# 文本里 1 个占位符 → 展开成 576 个视觉向量，序列随之变长</div>
+
+      <h4>五、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>能答出来才算过关：① 576 这个数是怎么算的？换成 224px 是多少？② Projector 把 1024→4096，单层 Linear 的参数量约多少？③ 为什么用 CLIP 倒数第二层而不是 CLS token？④ Stage 1 训完的模型能对话吗，为什么？⑤ loss 为什么不算在图像和问题上？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 Projector 是 cross-attention</strong>——其实是逐 token 独立的 MLP，视觉 token 之间不交互（交互发生在后面 LLM 的 self-attention）。② <strong>以为视觉 token 数随图像内容变化</strong>——固定 576（除非动态分辨率方案）。③ <strong>以为替换的是 token id</strong>——替换的是输入 embedding，视觉向量不在词表里。④ <strong>把「Stage 1 对齐」当成「已经会答题」</strong>——不会，指令能力来自 Stage 2。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 完整描述 LLaVA 前向：图像如何一步步变成进入 LLM 的向量？② 为什么这么简单的 Linear/MLP 能打败 BLIP-2 的 Q-Former？（答：高质量指令数据 + 端到端 + 强 LLM，融合模块不是瓶颈）③ 两阶段各冻结/训练什么？为什么不能直接端到端？④ 视觉 token 太多导致序列变长、推理变慢，你会怎么压缩？（引出 D32 token 压缩）</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2304.08485" target="_blank">LLaVA 原论文：Visual Instruction Tuning</a>（NeurIPS 2023，必读经典）</li>
+        <li><a href="https://github.com/haotian-liu/LLaVA" target="_blank">LLaVA 官方代码</a>（重点读 <code>llava/model/llava_arch.py</code> 里 <code>prepare_inputs_labels_for_multimodal</code>——视觉 token 合并的真实实现）</li>
+        <li><a href="https://llava-vl.github.io/" target="_blank">LLaVA 项目主页</a>（有在线 Demo 可直接试玩）</li>
+      </ul>
     </div>
   </div>
 
@@ -1503,7 +1629,7 @@ data = {
     "id": "lowlight_001",
     "image": "images/dark_scene_001.jpg",
     "conversations": [
-        {"from": "human", "value": "<image>\n这张低光照片中有什么物体？"},
+        {"from": "human", "value": "&lt;image&gt;\n这张低光照片中有什么物体？"},
         {"from": "gpt", "value": "这张图像虽然光线较暗，但可以辨识出..."}
     ]
 }
