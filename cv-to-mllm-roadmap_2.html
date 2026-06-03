@@ -399,8 +399,9 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
 .rp-card .c-title{font-family:"Fraunces",serif;font-weight:700;font-size:1.3rem;color:var(--ink);line-height:1.25;}
 .rp-card .c-url{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--ink-faint);word-break:break-all;}
 .rp-card .c-note{font-size:.9rem;color:var(--ink-soft);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;}
-.rp-card .c-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
-.rp-card .c-btn{text-decoration:none;border:1px solid var(--red-soft);color:var(--red);border-radius:4px;padding:9px 16px;font-family:"JetBrains Mono",monospace;font-size:.78rem;cursor:pointer;transition:.15s;background:var(--paper);}
+.rp-card .c-actions{display:flex;flex-direction:column;gap:9px;margin-top:6px;}
+.rp-card .c-btn{text-decoration:none;border:1px solid var(--rule);color:var(--ink);border-radius:4px;padding:11px 15px;font-family:"JetBrains Mono",monospace;font-size:.78rem;cursor:pointer;transition:.15s;background:var(--paper);text-align:left;}
+.rp-card .c-btn.primary{border-color:var(--red);}
 .rp-card .c-btn.primary{background:var(--red);color:var(--paper);border-color:var(--red);}
 .rp-card .c-btn:hover{transform:translateY(-1px);}
 .rp-hint{padding:8px 13px;font-family:"JetBrains Mono",monospace;font-size:.64rem;color:var(--ink-faint);border-top:1px solid var(--rule-soft);background:var(--paper-2);flex-shrink:0;line-height:1.5;}
@@ -1825,6 +1826,7 @@ function initRefs(){
     '<div class="rp-head">'+
       '<span class="rp-tag" id="rpTag"></span>'+
       '<span class="rp-title" id="rpTitle"></span>'+
+      '<button class="rp-btn" id="rpView">☰ 卡片</button>'+
       '<button class="rp-btn" id="rpOpen">↗ 新标签</button>'+
       '<button class="rp-btn" id="rpClose">✕</button>'+
     '</div>'+
@@ -1835,45 +1837,79 @@ function initRefs(){
       rpTag  = panel.querySelector('#rpTag'),
       rpTitle= panel.querySelector('#rpTitle'),
       rpHint = panel.querySelector('#rpHint'),
+      rpView = panel.querySelector('#rpView'),
       curUrl = '';
   panel.querySelector('#rpClose').addEventListener('click', closePanel);
   panel.querySelector('#rpOpen').addEventListener('click', function(){ if(curUrl) window.open(curUrl,'_blank','noopener'); });
+  rpView.addEventListener('click', function(){ if(cur) render(mode==='embed' ? 'card' : 'embed'); });
+
+  var cur = null, mode = 'embed';
+  function arxivId(u){ var m = u.match(/arxiv\.org\/(?:abs|pdf)\/([0-9]+\.[0-9]+)/); return m ? m[1] : null; }
+  function clearBody(){ [].forEach.call(rpBody.querySelectorAll('iframe,.rp-card'), function(n){ n.remove(); }); }
 
   function openPanel(url, title){
     curUrl = url;
-    var v = venue(url), e = embedInfo(url);
-    rpTag.textContent = v.tag; rpTag.className = 'rp-tag ' + (v.cls||'');
-    rpTitle.textContent = title || url; rpTitle.title = title || url;
-    [].forEach.call(rpBody.querySelectorAll('iframe,.rp-card'), function(n){ n.remove(); });
-    if(e.embed){
-      var f = document.createElement('iframe');
-      f.src = e.src; f.loading = 'lazy'; f.setAttribute('referrerpolicy','no-referrer');
-      rpBody.appendChild(f);
-      rpHint.textContent = e.kind==='pdf'
-        ? 'arXiv PDF 原版（官方）· 若未显示请点「↗ 新标签」打开'
-        : '若右侧长时间空白，说明站点禁止嵌入，请点「↗ 新标签」打开';
-    } else {
-      var card = document.createElement('div');
-      card.className = 'rp-card';
-      card.innerHTML =
-        '<span class="rp-tag '+(v.cls||'')+'" style="align-self:flex-start">'+v.tag+'</span>'+
-        '<div class="c-title">'+(title || (v.tag+' 资源'))+'</div>'+
-        '<div class="c-url">'+url+'</div>'+
-        '<div class="c-note">该站点禁止被嵌入网页（X-Frame-Options），无法在侧窗内直接预览。在新标签打开后，可与本页左右并排对照阅读。</div>'+
-        '<div class="c-actions">'+
-          '<a class="c-btn primary" href="'+url+'" target="_blank" rel="noopener">↗ 在新标签打开</a>'+
-          '<button class="c-btn" id="rpForce">↪ 仍在侧窗尝试</button>'+
-        '</div>';
-      rpBody.appendChild(card);
-      card.querySelector('#rpForce').addEventListener('click', function(){
-        [].forEach.call(rpBody.querySelectorAll('.rp-card'), function(n){ n.remove(); });
-        var f = document.createElement('iframe'); f.src = url; rpBody.appendChild(f);
-        rpHint.textContent = '强制加载中 · 若仍空白则该站点确实禁止嵌入';
-      });
-      rpHint.textContent = '该站点可能禁止嵌入 · 推荐新标签打开';
-    }
+    cur = { url:url, title:title || url, v:venue(url), e:embedInfo(url), id:arxivId(url) };
+    rpTag.textContent = cur.v.tag; rpTag.className = 'rp-tag ' + (cur.v.cls||'');
+    rpTitle.textContent = cur.title; rpTitle.title = cur.title;
+    rpView.style.display = (cur.e.embed || cur.id) ? '' : 'none';  // 有卡片可切才显示
+    render(cur.e.embed ? 'embed' : 'card');
     panel.classList.add('open');
     document.body.classList.add('split');
+  }
+
+  function render(m){
+    mode = m;
+    clearBody();
+    if(m === 'embed' && cur.e.embed){
+      var f = document.createElement('iframe');
+      f.src = cur.e.src; f.loading = 'lazy'; f.setAttribute('referrerpolicy','no-referrer');
+      rpBody.appendChild(f);
+      rpView.textContent = '☰ 卡片';
+      rpHint.textContent = cur.e.kind==='pdf'
+        ? 'arXiv PDF 原版（官方）· 点「☰ 卡片」可选 HTML 自适应版等阅读方式'
+        : '若右侧长时间空白，说明站点禁止嵌入，请点「↗ 新标签」打开';
+    } else {
+      renderCard();
+      rpView.textContent = cur.e.embed ? '📄 PDF' : '☰ 卡片';
+    }
+  }
+
+  function renderCard(){
+    var v = cur.v, url = cur.url, id = cur.id, title = cur.title || (v.tag + ' 资源');
+    var acts, note;
+    if(id){
+      acts =
+        (cur.e.embed ? '<button class="c-btn primary" data-act="pdf">📄 PDF 原版（侧窗内阅读）</button>' : '')+
+        '<a class="c-btn" target="_blank" rel="noopener" href="https://ar5iv.org/abs/'+id+'">📖 ar5iv · HTML 自适应版</a>'+
+        '<a class="c-btn" target="_blank" rel="noopener" href="https://www.alphaxiv.org/abs/'+id+'">🔬 alphaXiv · HTML + 社区讨论</a>'+
+        '<a class="c-btn" target="_blank" rel="noopener" href="'+url+'">🌐 arXiv 摘要 / BibTeX</a>'+
+        '<a class="c-btn" target="_blank" rel="noopener" href="https://www.connectedpapers.com/main/arxiv:'+id+'">🕸 Connected Papers · 关系图谱</a>';
+      note = '选择你习惯的阅读方式：PDF 排版精确（侧窗内对照）；ar5iv / alphaXiv 是 HTML 自适应版，窄屏阅读更舒适（在新标签全宽打开）。';
+    } else {
+      acts =
+        '<a class="c-btn primary" target="_blank" rel="noopener" href="'+url+'">↗ 在新标签打开</a>'+
+        '<button class="c-btn" data-act="force">↪ 仍在侧窗尝试加载</button>';
+      note = '该站点禁止被嵌入网页（X-Frame-Options），无法在侧窗内预览。在新标签打开后，可与本页左右并排对照阅读。';
+    }
+    var card = document.createElement('div');
+    card.className = 'rp-card';
+    card.innerHTML =
+      '<span class="rp-tag '+(v.cls||'')+'" style="align-self:flex-start">'+v.tag+'</span>'+
+      '<div class="c-title">'+title+'</div>'+
+      '<div class="c-url">'+url+'</div>'+
+      '<div class="c-note">'+note+'</div>'+
+      '<div class="c-actions">'+acts+'</div>';
+    rpBody.appendChild(card);
+    var pdfBtn = card.querySelector('[data-act="pdf"]');
+    if(pdfBtn) pdfBtn.addEventListener('click', function(){ render('embed'); });
+    var forceBtn = card.querySelector('[data-act="force"]');
+    if(forceBtn) forceBtn.addEventListener('click', function(){
+      clearBody();
+      var f = document.createElement('iframe'); f.src = cur.url; rpBody.appendChild(f);
+      rpHint.textContent = '强制加载中 · 若仍空白则该站点确实禁止嵌入';
+    });
+    rpHint.textContent = id ? '卡片视图 · 多种阅读入口任你选' : '该站点可能禁止嵌入 · 推荐新标签打开';
   }
   function closePanel(){ panel.classList.remove('open'); document.body.classList.remove('split'); }
 

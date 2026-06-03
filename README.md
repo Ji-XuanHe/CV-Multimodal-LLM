@@ -47,6 +47,7 @@ start cv-to-mllm-roadmap_2.html
 
 - **venue 标签**：每个链接自动标注来源（`arXiv` / `NeurIPS` / `CVPR` / `OpenAI` / `Qwen` / `DeepSeek` …），一眼看清分量
 - **arXiv 官方 PDF 原版**：arXiv 论文在侧窗内直接以官方 PDF 呈现（公式排版完美），可滚动阅读、左右对照
+- **PDF / 卡片 双视图**：侧窗顶部 `☰ 卡片` 可切换 —— 卡片视图汇总该论文的多种阅读入口（PDF 原版、ar5iv / alphaXiv 的 HTML 自适应版、arXiv 摘要、Connected Papers 关系图谱），窄屏想 reflow 阅读点一下即可
 - **优雅回退**：对禁止嵌入的站点（X-Frame-Options），侧窗显示信息卡片 + 「↗ 在新标签打开」
 - **可拖拽调宽**：拖侧窗左缘自由调节宽度；`Esc` 或 `✕` 关闭
 - **延伸资源**：在对应天追加了一批必读，如 GPT-3 / GPT-4 / Llama 3 / Qwen-VL / DeepSeek-V3·R1 / Gemini 1.5 / BLIP-2 / Flamingo / SAM / FlashAttention 等
