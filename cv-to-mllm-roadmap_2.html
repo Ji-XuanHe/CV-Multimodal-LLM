@@ -482,8 +482,35 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
       <span class="day-arrow">▶</span>
     </div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 前向传播 → 损失 → 反向传播</div>
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="神经网络：前向逐层计算得到预测和损失，反向用链式法则把梯度从损失传回每层参数">
+          <defs>
+            <marker id="p1f" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#2f6f63"/></marker>
+            <marker id="p1b" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#a8341f"/></marker>
+          </defs>
+          <rect x="14" y="50" width="70" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/><text x="49" y="77" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#26211a">x</text>
+          <rect x="146" y="50" width="120" height="44" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/><text x="206" y="70" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">W₁·x+b₁ → ReLU</text><text x="206" y="86" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">第 1 层</text>
+          <rect x="328" y="50" width="120" height="44" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/><text x="388" y="70" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">W₂·h+b₂ → softmax</text><text x="388" y="86" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">第 2 层</text>
+          <rect x="510" y="50" width="70" height="44" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/><text x="545" y="77" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#26211a">ŷ</text>
+          <rect x="624" y="50" width="120" height="44" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/><text x="684" y="70" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#a8341f">Loss</text><text x="684" y="86" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">和真实 y 比</text>
+          <!-- forward arrows -->
+          <g stroke="#2f6f63" stroke-width="1.6">
+            <line x1="84" y1="72" x2="144" y2="72" marker-end="url(#p1f)"/><line x1="266" y1="72" x2="326" y2="72" marker-end="url(#p1f)"/><line x1="448" y1="72" x2="508" y2="72" marker-end="url(#p1f)"/><line x1="580" y1="72" x2="622" y2="72" marker-end="url(#p1f)"/>
+          </g>
+          <text x="330" y="38" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#2f6f63">前向：数据从左往右算出预测与损失</text>
+          <!-- backward arrows -->
+          <g stroke="#a8341f" stroke-width="1.5" stroke-dasharray="5 3">
+            <line x1="622" y1="118" x2="450" y2="118" marker-end="url(#p1b)"/><line x1="326" y1="118" x2="268" y2="118" marker-end="url(#p1b)"/><line x1="144" y1="118" x2="86" y2="118" marker-end="url(#p1b)"/>
+          </g>
+          <text x="360" y="140" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">反向：链式法则把梯度 ∂L/∂W 从损失传回每层 → W ← W − lr·∂L/∂W</text>
+          <text x="14" y="178" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">这就是所有深度学习的引擎：前向算预测、反向算梯度、梯度下降更新 —— 大模型也不例外</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>理解神经网络最基础的工作方式——数据怎么流过网络（前向），怎么衡量好坏（损失），怎么更新参数（反向传播 + 梯度下降）。</p>
+      <p>理解神经网络最基础的工作方式——数据怎么流过网络（前向），怎么衡量好坏（损失），怎么更新参数（反向传播 + 梯度下降）。这是<strong>一切深度学习的引擎</strong>，后面的 Transformer、MLLM 都建立在它之上。</p>
 
       <div class="box-important">
         <span class="label">🔥 核心概念</span>
@@ -525,9 +552,48 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
         <li>Andrej Karpathy: <a href="https://www.youtube.com/watch?v=VMj-3S1tku0" target="_blank">micrograd</a>（从零实现自动微分，理解反向传播本质）</li>
       </ul>
 
+      <h4>动手：用 numpy 手写一次前向 + 反向</h4>
+      <div class="code-block">import numpy as np
+
+def softmax(z):
+    e = np.exp(z - z.max()); return e / e.sum()
+
+def forward(x, W1, b1, W2, b2):
+    z1 = W1 @ x + b1
+    h  = np.maximum(0, z1)              # ReLU
+    z2 = W2 @ h + b2
+    yhat = softmax(z2)
+    return yhat, (x, z1, h)
+
+def backward(y, yhat, cache, W2):
+    x, z1, h = cache
+    dz2 = yhat - y                      # softmax + CE 的简洁梯度（对照推导）
+    dW2 = np.outer(dz2, h)
+    dh  = W2.T @ dz2
+    dz1 = dh * (z1 > 0)                 # ReLU' = (z1>0)
+    dW1 = np.outer(dz1, x)
+    return dW1, dW2
+
+# 训练一步：前向 → 反向 → 梯度下降
+x, y = np.random.randn(4), np.eye(3)[1]
+W1,b1,W2,b2 = np.random.randn(8,4),np.zeros(8),np.random.randn(3,8),np.zeros(3)
+yhat, cache = forward(x, W1, b1, W2, b2)
+dW1, dW2 = backward(y, yhat, cache, W2)
+W1 -= 0.1 * dW1;  W2 -= 0.1 * dW2       # W ← W − lr·∂L/∂W
+# 看懂这 20 行，你就懂了所有深度学习训练的本质</div>
+
+      <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
-        <span class="label">💡 检查点</span>
-        <p>能回答这些就过关：为什么需要激活函数？没有的话多层线性层等价于什么？梯度消失/爆炸是怎么回事？BatchNorm / LayerNorm 解决什么问题？</p>
+        <span class="label">✅ 检查点自测</span>
+        <p>能回答这些就过关：① 为什么需要激活函数？没有的话多层线性层等价于什么？② 梯度消失/爆炸是怎么回事？③ BatchNorm / LayerNorm 各解决什么问题？④ 为什么 softmax + 交叉熵的梯度是简洁的 ŷ − y？⑤ SGD、Adam、AdamW 的区别？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为没有激活函数也能堆深</strong>——多层线性层等价于单层线性，白堆。② <strong>把 loss 当成网络的一部分</strong>——它是衡量标准，不参与前向特征计算。③ <strong>混淆学习率和梯度</strong>——梯度给方向，lr 给步长。④ <strong>忘了梯度要清零</strong>——PyTorch 里不 zero_grad 会累加。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 手推两层网络的反向传播。② 为什么需要非线性激活？③ 梯度消失的成因与缓解（残差/归一化/激活选择）？④ Adam 相比 SGD 的核心改进？</p>
       </div>
     </div>
   </div>
@@ -541,8 +607,41 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
       <span class="day-arrow">▶</span>
     </div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 卷积 + 残差连接（Transformer 每层都在用）</div>
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="左：卷积核滑过图像生成特征图；右：ResNet 残差块 output = F(x) + x 的跳跃连接">
+          <defs>
+            <marker id="p2ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <!-- 左：卷积 -->
+          <text x="120" y="28" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#2f6f63">卷积：局部 + 参数共享</text>
+          <rect x="30" y="50" width="80" height="80" rx="3" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.2"/>
+          <rect x="38" y="58" width="26" height="26" fill="none" stroke="#a8341f" stroke-width="1.8"/>
+          <text x="70" y="146" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">输入 + 卷积核滑动</text>
+          <line x1="110" y1="90" x2="150" y2="90" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p2ar)"/>
+          <rect x="152" y="58" width="64" height="64" rx="3" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.2"/>
+          <text x="184" y="146" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">特征图(多通道)</text>
+          <line x1="248" y1="90" x2="276" y2="90" stroke="#d8cdb6" stroke-width="1"/>
+          <!-- 右：残差块 -->
+          <text x="500" y="28" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">ResNet 残差块</text>
+          <rect x="300" y="68" width="48" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="324" y="94" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#26211a">x</text>
+          <line x1="348" y1="90" x2="372" y2="90" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p2ar)"/>
+          <rect x="374" y="68" width="84" height="44" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.4"/><text x="416" y="88" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">conv→ReLU</text><text x="416" y="102" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">→conv</text>
+          <text x="416" y="58" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">F(x)</text>
+          <line x1="458" y1="90" x2="486" y2="90" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p2ar)"/>
+          <circle cx="502" cy="90" r="15" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/><text x="502" y="96" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="15" fill="#a8341f">+</text>
+          <line x1="517" y1="90" x2="545" y2="90" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p2ar)"/>
+          <rect x="547" y="68" width="84" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="589" y="94" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">F(x)+x</text>
+          <!-- skip -->
+          <path d="M324,112 C324,160 502,160 502,107" fill="none" stroke="#a8341f" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#p2ar)"/>
+          <text x="413" y="152" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#a8341f">跳跃连接：直接把 x 加过去（学残差更好优化）</text>
+          <text x="30" y="186" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">输出尺寸 H_out=(H−k+2p)/s+1；残差连接让深层网络能训得动 —— 这招 Transformer 每层都在用</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>理解 CNN 的基本操作（卷积、池化、特征图），以及 ResNet 的残差连接——这个思想在 Transformer 中同样核心。</p>
+      <p>理解 CNN 的基本操作（卷积、池化、特征图），以及 ResNet 的残差连接——<strong>这个「F(x)+x」的思想在 Transformer 的每一层都在用</strong>，是承上启下的关键。</p>
 
       <div class="box-important">
         <span class="label">🔥 CNN 三个关键概念</span>
@@ -574,6 +673,40 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
         </div>
       </div>
 
+      <h4>动手：PyTorch 残差块 + 验证输出尺寸</h4>
+      <div class="code-block">import torch, torch.nn as nn
+
+class ResidualBlock(nn.Module):          # ResNet 的最小单元
+    def __init__(self, c):
+        super().__init__()
+        self.conv1 = nn.Conv2d(c, c, 3, padding=1)
+        self.conv2 = nn.Conv2d(c, c, 3, padding=1)
+        self.relu  = nn.ReLU()
+    def forward(self, x):
+        out = self.conv2(self.relu(self.conv1(x)))
+        return self.relu(out + x)         # ★ F(x) + x，残差连接
+
+x = torch.randn(1, 64, 56, 56)
+print(ResidualBlock(64)(x).shape)         # torch.Size([1, 64, 56, 56])，尺寸不变
+
+# 验证尺寸公式 H_out=(H−k+2p)/s+1
+conv = nn.Conv2d(3, 16, kernel_size=7, stride=2, padding=3)
+print(conv(torch.randn(1,3,224,224)).shape)   # [1,16,112,112]，尺寸减半</div>
+
+      <h4>自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 卷积的「参数共享 + 局部连接」为什么能大幅减参数？② 输入 224、核 3、pad 1、stride 2 输出多大？③ 残差连接解决了什么问题？④ 为什么说 Transformer 也在用残差？⑤ 池化的作用？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>把卷积核大小当感受野</strong>——深层感受野是逐层累积的。② <strong>以为残差是「跳过这层」</strong>——是把输入加到输出上，让层学「增量」。③ <strong>算错输出尺寸</strong>——padding/stride 要代进公式。④ <strong>以为 CNN 已被 ViT 淘汰</strong>——小数据/边缘部署 CNN 仍有优势。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 手算卷积输出尺寸与参数量。② 残差连接为什么能训很深的网络（梯度高速路）？③ 1×1 卷积的作用？④ CNN 的归纳偏置是什么，和 ViT 比有何取舍（连 P04）？</p>
+      </div>
+
       <h4>阅读材料</h4>
       <ul>
         <li>CS231n: <a href="https://cs231n.github.io/convolutional-networks/" target="_blank">Convolutional Neural Networks</a>（斯坦福经典课程笔记）</li>
@@ -591,8 +724,45 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
       <span class="day-arrow">▶</span>
     </div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 Scaled Dot-Product Attention</div>
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="注意力计算：Q 与 K 点积得相似度，除以根号 d_k 缩放，softmax 得权重，再加权求和 V">
+          <defs>
+            <marker id="p3ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <!-- Q K V -->
+          <rect x="14" y="40" width="50" height="30" rx="5" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.4"/><text x="39" y="60" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#a8341f">Q</text>
+          <rect x="14" y="84" width="50" height="30" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="39" y="104" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#2f6f63">K</text>
+          <rect x="14" y="140" width="50" height="30" rx="5" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/><text x="39" y="160" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#b5832f">V</text>
+          <!-- QKᵀ -->
+          <line x1="64" y1="55" x2="104" y2="72" stroke="#5a5043" stroke-width="1.4" marker-end="url(#p3ar)"/>
+          <line x1="64" y1="99" x2="104" y2="84" stroke="#5a5043" stroke-width="1.4" marker-end="url(#p3ar)"/>
+          <rect x="106" y="58" width="80" height="40" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.4"/><text x="146" y="78" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">Q·Kᵀ</text><text x="146" y="92" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">相似度</text>
+          <line x1="186" y1="78" x2="214" y2="78" stroke="#5a5043" stroke-width="1.4" marker-end="url(#p3ar)"/>
+          <!-- 缩放 -->
+          <rect x="216" y="58" width="80" height="40" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.6"/><text x="256" y="78" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#a8341f">÷ √d_k</text><text x="256" y="92" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#5a5043">稳住方差</text>
+          <line x1="296" y1="78" x2="324" y2="78" stroke="#5a5043" stroke-width="1.4" marker-end="url(#p3ar)"/>
+          <!-- softmax -->
+          <rect x="326" y="58" width="90" height="40" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.4"/><text x="371" y="78" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#26211a">softmax</text><text x="371" y="92" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">权重 A，每行和=1</text>
+          <line x1="416" y1="78" x2="444" y2="78" stroke="#5a5043" stroke-width="1.4" marker-end="url(#p3ar)"/>
+          <!-- 加权 V -->
+          <rect x="446" y="58" width="80" height="40" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.6"/><text x="486" y="82" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#26211a">A · V</text>
+          <line x1="64" y1="155" x2="486" y2="155" stroke="#b5832f" stroke-width="1.3" stroke-dasharray="5 3"/>
+          <line x1="486" y1="155" x2="486" y2="100" stroke="#b5832f" stroke-width="1.3" marker-end="url(#p3ar)"/>
+          <text x="270" y="148" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#b5832f">用权重加权提取 V 的内容</text>
+          <line x1="526" y1="78" x2="554" y2="78" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p3ar)"/>
+          <rect x="556" y="58" width="90" height="40" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.6"/><text x="601" y="82" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">Output</text>
+          <!-- 类比 -->
+          <text x="690" y="62" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">Q=要找什么</text>
+          <text x="690" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">K=书标签</text>
+          <text x="690" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">V=书内容</text>
+          <text x="14" y="190" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">Attention(Q,K,V)=softmax(QKᵀ/√d_k)·V　多头 = 并行跑 h 组，各关注一种模式，再拼接</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>注意力机制是 Transformer 的灵魂。彻底理解 Q/K/V 的含义、注意力分数的计算、以及为什么要多头。</p>
+      <p>注意力机制是 Transformer 的灵魂,也是后面 ViT、GPT、MLLM 的共同基石。彻底理解 Q/K/V 的含义、注意力分数的计算、为什么要缩放、以及为什么要多头。</p>
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 注意力机制完整推导（最重要的推导之一）</div>
@@ -646,16 +816,41 @@ h 个头，每个头的维度 d_k = d_model / h
         <p><strong>Cross-Attention</strong>：Q 来自一个序列，K/V 来自另一个序列。用于不同模态之间的交互（后面多模态会用到）。</p>
       </div>
 
+      <h4>动手：10 行实现注意力</h4>
+      <div class="code-block">import torch, torch.nn.functional as F
+
+def attention(Q, K, V):
+    d_k = Q.size(-1)
+    S = Q @ K.transpose(-2, -1) / d_k**0.5   # ① 相似度 + ② 缩放
+    A = F.softmax(S, dim=-1)                   # ③ 权重，每行和=1
+    return A @ V                               # ④ 加权求和
+
+Q = K = V = torch.randn(1, 8, 64)             # (batch, seq, d_k)
+print(attention(Q, K, V).shape)               # [1, 8, 64]
+
+# 生产中直接用内置（底层走 FlashAttention，见 D34）：
+#   F.scaled_dot_product_attention(Q, K, V)
+# Causal（GPT 用，见 D01）：加 is_causal=True 的上三角 mask</div>
+
+      <h4>自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 拿纸画出 Q、K、V 矩阵乘法的维度变化。② 为什么要除以 √d_k？不除会怎样？③ Self-Attention 和 Cross-Attention 的区别？④ 多头为什么比单头好？每个头维度怎么算？⑤ 注意力的计算复杂度是多少（连 D32/D34）？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>忘了缩放</strong>——d_k 大时 softmax 饱和、梯度消失。② <strong>以为多头是更大的单头</strong>——是并行多组、各学一种关注模式再拼接。③ <strong>把 softmax 按错维度</strong>——要对「每个 query 的所有 key」归一化。④ <strong>忽略 O(N²)</strong>——序列长时这是显存/速度瓶颈（引出 token 压缩与 FlashAttention）。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 完整写出 Attention(Q,K,V) 并解释每一步。② √d_k 缩放的数学原因（方差分析）。③ 多头注意力的动机与维度划分。④ Self / Cross / Causal attention 各用在哪（ViT/多模态/GPT）？</p>
+      </div>
+
       <h4>阅读材料</h4>
       <ul>
-        <li><a href="https://arxiv.org/abs/1706.03762" target="_blank">Attention Is All You Need</a>（原始 Transformer 论文，重点看 Section 3）</li>
+        <li><a href="https://arxiv.org/abs/1706.03762" target="_blank">Attention Is All You Need</a>（原始 Transformer，重点 Sec.3）</li>
         <li>Jay Alammar: <a href="http://jalammar.github.io/illustrated-transformer/" target="_blank">The Illustrated Transformer</a>（最好的可视化讲解）</li>
       </ul>
-
-      <div class="box-tip">
-        <span class="label">💡 检查点</span>
-        <p>拿纸画出 Q、K、V 矩阵乘法的维度变化；解释为什么要除以 √d_k；说清 Self-Attention 和 Cross-Attention 的区别。能做到这三点，注意力就算过关了。</p>
-      </div>
     </div>
   </div>
 
@@ -668,8 +863,39 @@ h 个头，每个头的维度 d_k = d_model / h
       <span class="day-arrow">▶</span>
     </div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 ViT：把图像切成 patch 当「单词」</div>
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ViT 流程：图像切 patch，线性投影成 token，加 CLS 与位置编码，经 Transformer Encoder，取 CLS 分类">
+          <defs>
+            <marker id="p4ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <!-- 图像切 patch -->
+          <rect x="14" y="52" width="64" height="64" rx="3" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.2"/>
+          <line x1="35" y1="52" x2="35" y2="116" stroke="#2f6f63" stroke-width=".6"/><line x1="56" y1="52" x2="56" y2="116" stroke="#2f6f63" stroke-width=".6"/>
+          <line x1="14" y1="73" x2="78" y2="73" stroke="#2f6f63" stroke-width=".6"/><line x1="14" y1="95" x2="78" y2="95" stroke="#2f6f63" stroke-width=".6"/>
+          <text x="46" y="132" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">切 16×16 patch</text>
+          <line x1="78" y1="84" x2="104" y2="84" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p4ar)"/>
+          <!-- 线性投影 -->
+          <rect x="106" y="62" width="96" height="44" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.4"/><text x="154" y="82" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">展平+Linear</text><text x="154" y="96" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">196 个 token</text>
+          <line x1="202" y1="84" x2="228" y2="84" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p4ar)"/>
+          <!-- CLS + pos -->
+          <rect x="230" y="62" width="110" height="44" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/><text x="285" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">+[CLS] +位置编码</text><text x="285" y="96" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">长度 197</text>
+          <line x1="340" y1="84" x2="366" y2="84" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p4ar)"/>
+          <!-- Transformer -->
+          <rect x="368" y="58" width="150" height="52" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/><text x="443" y="78" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">Transformer ×L</text><text x="443" y="95" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">双向 Self-Attn（P03）</text>
+          <line x1="518" y1="84" x2="544" y2="84" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p4ar)"/>
+          <!-- CLS 输出 -->
+          <rect x="546" y="62" width="84" height="44" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.4"/><text x="588" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">取 [CLS]</text><text x="588" y="96" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">→ MLP Head</text>
+          <line x1="630" y1="84" x2="656" y2="84" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p4ar)"/>
+          <rect x="658" y="62" width="88" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/><text x="702" y="88" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">类别概率</text>
+          <text x="14" y="170" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">关键：图像被变成 token 序列 → 和文本统一了表示形式，这就是 D13/D14 多模态的地基</text>
+          <text x="14" y="188" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">ViT 无 CNN 的归纳偏置：小数据不如 CNN，大数据远超 CNN</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>ViT 的核心思想极其简单——把图像切成小块（patch），当作「单词」，然后用标准 Transformer 处理。这个思想直接奠定了后面所有多模态模型的基础。</p>
+      <p>ViT 的核心思想极其简单——把图像切成小块（patch），当作「单词」，再用标准 Transformer 处理。<strong>这个「图像 → token 序列」的转换，直接奠定了后面所有多模态模型(D13/D14)的基础</strong>。</p>
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> ViT 完整流程（从图像到分类结果）</div>
@@ -717,6 +943,35 @@ h 个头，每个头的维度 d_k = d_model / h
         <p><strong>为什么 ViT 对多模态如此重要</strong>：ViT 让图像和文本统一成了相同的表示形式——token 序列。这为后面把图像 token 和文本 token 拼在一起送入 LLM 铺平了道路。</p>
       </div>
 
+      <h4>动手：加载预训练 ViT，看清它的 token</h4>
+      <div class="code-block">import timm, torch
+
+model = timm.create_model('vit_base_patch16_224', pretrained=True).eval()
+x = torch.randn(1, 3, 224, 224)
+
+# patch embedding 本质就是一个 Conv2d(kernel=stride=16)，把图切成 196 个 token
+feats = model.forward_features(x)        # (1, 197, 768)  ← 196 patch + 1 个 [CLS]
+print(feats.shape)
+print(f"{sum(p.numel() for p in model.parameters())/1e6:.0f}M 参数")   # ~86M
+
+# 取 [CLS] 做分类（和推导第 4 步一致）
+cls = feats[:, 0]                         # (1, 768)
+# CLIP 的视觉塔（D11）就是这种 ViT；LLaVA（D14）用它产出视觉 token</div>
+
+      <h4>自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 224 图、patch 16 切出多少 token？加 [CLS] 后序列多长？② [CLS] token 的作用？③ ViT 为什么在小数据集上不如 CNN？④ ViT 用的是双向还是因果注意力？和 GPT（D01）有何不同？⑤ ViT 和多模态（D13/D14）的关系？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 patch embedding 很复杂</strong>——本质就是一个步长=核大小的卷积。② <strong>忘了位置编码</strong>——没有它，打乱 patch 顺序模型分不出来。③ <strong>以为 ViT 自带平移不变性</strong>——它没有 CNN 的归纳偏置，全靠数据学。④ <strong>把 [CLS] 当成必须</strong>——也可用平均池化代替。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 完整描述 ViT 从图像到分类的四步。② ViT vs CNN 的归纳偏置与数据量取舍。③ patch embedding 怎么实现？④ 为什么说 ViT 是多模态大模型的地基（统一表示）？</p>
+      </div>
+
       <h4>阅读材料</h4>
       <ul>
         <li><a href="https://arxiv.org/abs/2010.11929" target="_blank">ViT 原论文</a>（Google，2020，An Image is Worth 16×16 Words）</li>
@@ -734,8 +989,34 @@ h 个头，每个头的维度 d_k = d_model / h
       <span class="day-arrow">▶</span>
     </div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 PyTorch 训练循环（后面所有实验的骨架）</div>
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PyTorch 训练循环：取批数据、前向算 logits、算 loss、反向求梯度、优化器更新，循环往复，并周期性验证">
+          <defs>
+            <marker id="p5ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <rect x="14" y="58" width="96" height="42" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="62" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">DataLoader</text><text x="62" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">取一批数据</text>
+          <line x1="110" y1="79" x2="136" y2="79" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p5ar)"/>
+          <rect x="138" y="58" width="96" height="42" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.4"/><text x="186" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">前向 forward</text><text x="186" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">→ logits</text>
+          <line x1="234" y1="79" x2="260" y2="79" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p5ar)"/>
+          <rect x="262" y="58" width="96" height="42" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/><text x="310" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">criterion</text><text x="310" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">算 loss</text>
+          <line x1="358" y1="79" x2="384" y2="79" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p5ar)"/>
+          <rect x="386" y="58" width="110" height="42" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.6"/><text x="441" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">loss.backward()</text><text x="441" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">自动求梯度(P01)</text>
+          <line x1="496" y1="79" x2="522" y2="79" stroke="#5a5043" stroke-width="1.5" marker-end="url(#p5ar)"/>
+          <rect x="524" y="58" width="120" height="42" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.4"/><text x="584" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">optimizer.step()</text><text x="584" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">更新参数</text>
+          <!-- 循环 -->
+          <path d="M584,100 C584,150 62,150 62,102" fill="none" stroke="#5a5043" stroke-width="1.4" stroke-dasharray="5 3" marker-end="url(#p5ar)"/>
+          <text x="330" y="142" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">每个 batch 循环一次；别忘 optimizer.zero_grad() 清梯度</text>
+          <!-- eval -->
+          <rect x="660" y="58" width="86" height="42" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3" stroke-dasharray="3 2"/><text x="703" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">eval()</text><text x="703" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#8a7d6a">no_grad 验证</text>
+          <line x1="644" y1="69" x2="658" y2="69" stroke="#5a5043" stroke-width="1.2" marker-end="url(#p5ar)"/>
+          <text x="14" y="184" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">这五步是 D20 训大模型、D39 跑实验的同一套骨架，只是换了模型和数据</text>
+        </svg>
+      </div>
+
       <h4>今日目标</h4>
-      <p>纯实践日。确保你能用 PyTorch 搭建网络、加载数据、训练和评估。后面所有实验都要靠这些基本功。</p>
+      <p>纯实践日。确保你能用 PyTorch 搭建网络、加载数据、训练和评估。后面所有实验（D20 训 MLLM、D39 跑你的方法）都靠这套基本功。</p>
 
       <div class="code-block">import torch
 import torch.nn as nn
@@ -799,6 +1080,16 @@ for epoch in range(10):
         <li>尝试用 <code>timm</code> 库加载预训练 ViT：<code>timm.create_model('vit_base_patch16_224', pretrained=True)</code></li>
         <li>用 <code>torchsummary</code> 打印模型结构，数一下参数量是否和 86M 对得上</li>
       </ul>
+
+      <h4>自测 / 误区</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① <code>model.train()</code> 和 <code>model.eval()</code> 切换了什么（Dropout/BatchNorm）？② 为什么验证要包在 <code>torch.no_grad()</code> 里？③ 训练循环里少了 <code>optimizer.zero_grad()</code> 会怎样？④ <code>loss.backward()</code> 做了什么（连 P01）？⑤ Conv2d(kernel=stride=16) 为什么等价于切 patch（连 P04）？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>忘记 zero_grad</strong>——梯度会跨 batch 累加，训练崩。② <strong>验证时没 eval()/no_grad()</strong>——BN/Dropout 行为错、还浪费显存。③ <strong>数据没 .to(device)</strong>——模型在 GPU、数据在 CPU 直接报错。④ <strong>学习率瞎设</strong>——太大发散、太小不动，先从 1e-4 试。</p>
+      </div>
 
       <div class="box-tip">
         <span class="label">💡 前置周回顾</span>
