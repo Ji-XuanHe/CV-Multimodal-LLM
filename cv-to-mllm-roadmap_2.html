@@ -3597,32 +3597,474 @@ def visual_agent(mllm, image, instruction, max_steps=6):
   <div class="week-head"><span class="week-num">07</span><h2 class="week-title">前沿主题与研究方向探索</h2></div>
   <p class="week-lead">开始关注最新研究趋势，寻找自己的研究切入点。</p>
 
-  <div class="day" data-day="31"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D31</span><span class="day-title">Chain-of-Thought 与多模态推理</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>思维链（CoT）在多模态场景中的应用——让模型「先看再想再答」。</p><div class="box-important"><span class="label">🔥 多模态 CoT 的特殊性</span><p>文本 CoT：step by step 推理。<br>多模态 CoT：需要先「描述看到了什么」→ 再「基于视觉信息推理」→ 最后「给出答案」。<br>当前挑战：模型容易在第一步就产生幻觉，导致后续推理全部错误（错误传播）。</p></div><h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2302.00923" target="_blank">Multimodal CoT 论文</a></li></ul></div></div>
+  <div class="day" data-day="31"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D31</span><span class="day-title">Chain-of-Thought 与多模态推理</span><span class="day-arrow">▶</span></div><div class="day-body">
 
-  <div class="day" data-day="32"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D32</span><span class="day-title">视觉 Token 压缩：效率研究前沿</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>减少视觉 token 数量而不损失性能——这是你 CV 背景最直接能做的研究方向之一。</p><div class="box-important"><span class="label">🔥 当前主流方法</span><p><strong>Token Merging</strong>：基于相似度合并冗余 token · <strong>Token Pruning</strong>：根据 attention 分数丢弃不重要的 token · <strong>Learnable Resampler</strong>：用可学习的 query 从大量 token 中提取信息 · <strong>Early Exit</strong>：简单图像用少量 token，复杂图像用更多。</p></div><div class="box-tip"><span class="label">💡 你的角度</span><p>低光/退化图像中哪些 token 是信息性的？退化是否改变了 token 的重要性分布？</p></div><h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2403.15388" target="_blank">LLaVA-PruMerge</a></li><li><a href="https://arxiv.org/abs/2210.09461" target="_blank">Token Merging (ToMe)</a></li></ul></div></div>
+      <div class="arch-fig">
+        <div class="af-cap">📊 多模态 CoT：先看 → 再想 → 答</div>
+        <svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="多模态思维链：先描述看到什么，再基于视觉信息推理，最后给答案；第一步幻觉会传播到后续">
+          <defs>
+            <marker id="d31ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 输入 -->
+          <rect x="14" y="72" width="92" height="56" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="60" y="96" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">图像 + 问题</text>
+          <text x="60" y="112" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">「能放几本书?」</text>
+          <line x1="106" y1="100" x2="134" y2="100" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d31ar)"/>
+          <!-- 步骤1 看 -->
+          <rect x="136" y="74" width="150" height="52" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="211" y="95" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">① 先看（描述）</text>
+          <text x="211" y="112" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">「图里有一个三层书架」</text>
+          <line x1="286" y1="100" x2="314" y2="100" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d31ar)"/>
+          <!-- 步骤2 想 -->
+          <rect x="316" y="74" width="150" height="52" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="391" y="95" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#2f6f63">② 再想（推理）</text>
+          <text x="391" y="112" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">基于①一步步推</text>
+          <line x1="466" y1="100" x2="494" y2="100" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d31ar)"/>
+          <!-- 步骤3 答 -->
+          <rect x="496" y="74" width="120" height="52" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="556" y="98" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#26211a">③ 答案</text>
+          <text x="556" y="114" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">给出结论</text>
+          <!-- 错误传播警示 -->
+          <path d="M211,126 C211,160 480,160 556,128" fill="none" stroke="#c25a44" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#d31ar)"/>
+          <text x="380" y="178" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">⚠ 第①步看错(幻觉) → 后续推理全错（错误传播）</text>
+          <text x="14" y="206" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">文本 CoT 只「想」；多模态 CoT 必须先把视觉「看准」，再在其上推理 —— 视觉地基不稳，楼就塌</text>
+        </svg>
+      </div>
 
-  <div class="day" data-day="33"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D33</span><span class="day-title">Embodied AI 与 VLA 概览</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>虽然你组里可能不做 VLA，但了解这个方向的思路很有帮助。</p><div class="box-important"><span class="label">🔥 VLA 模型结构</span><p>Vision → Language → Action。代表模型：RT-2（Google）、OpenVLA（开源）。<br>即使不做机器人，VLA 的思路也适用于：GUI 操作、游戏 AI、自动驾驶决策。</p></div><h4>阅读材料</h4><ul><li><a href="https://arxiv.org/abs/2307.15818" target="_blank">RT-2 论文</a></li><li><a href="https://arxiv.org/abs/2406.09246" target="_blank">OpenVLA 论文</a></li></ul></div></div>
+      <h4>学习目标</h4>
+      <p>思维链(CoT)让模型「<strong>先想再答</strong>」;多模态版还要先「<strong>看准</strong>」。学完今天你应能:<strong>(1)</strong> 说清文本 CoT 与多模态 CoT 的差别;<strong>(2)</strong> 解释「错误传播」为什么是多模态推理的命门(回扣 D25 幻觉);<strong>(3)</strong> 写一个让模型「先描述再推理」的 prompt;<strong>(4)</strong> 知道前沿的视觉推理思路。</p>
 
-  <div class="day" data-day="34"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D34</span><span class="day-title">多模态模型的训练效率优化</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>学习目标</h4><p>了解如何用有限算力高效训练多模态模型。</p><div class="box-important"><span class="label">🔥 关键技术</span><p><strong>DeepSpeed / FSDP</strong>：分布式训练框架 · <strong>混合精度训练</strong>：BF16 + FP32 master weights · <strong>梯度检查点</strong>：用计算换内存 · <strong>Flash Attention 2/3</strong>：IO-aware attention 实现</p></div>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> Flash Attention 核心思想</div><div class="deriv-body"><pre>
-标准 Attention 的内存瓶颈：
-  S = QKᵀ ∈ ℝ^{N×N}     ← N=4096 就要 64MB
-  P = softmax(S)
-  O = PV
+      <h4>一、为什么多模态推理更难</h4>
+      <p>文本 CoT 就是 <em class="term">step by step</em> 地想。但多模态多了一层:模型得<strong>先把图像「看准」,再在看到的内容上推理</strong>。一旦第一步「看」错了(幻觉),后面想得再有条理,结论也错——这就是 <em class="term">错误传播</em>。所以多模态推理的关键不只是「会想」,而是「视觉地基稳不稳」。</p>
 
-Flash Attention：
-  不存储完整的 S 和 P 矩阵
-  把 Q, K, V 分成 blocks，在 SRAM（高速缓存）中计算
-  利用 online softmax 技巧避免需要全局 max
+      <div class="box-important">
+        <span class="label">🔥 多模态 CoT 的结构与挑战</span>
+        <p><strong>典型三段</strong>:① <em class="term">描述</em>(我看到了什么)→ ② <em class="term">推理</em>(基于看到的一步步推)→ ③ <em class="term">答案</em>。把「感知」和「推理」显式分开,比直接出答案更准、更可解释。</p>
+        <p><strong>核心挑战</strong>:第①步若产生幻觉,错误会沿着推理链放大(D25);所以缓解幻觉 = 提升推理。前沿做法还包括<em class="term">让模型边推理边「回看」图像</em>(visual grounding 进推理链)、以及用 RL 强化长链视觉推理。</p>
+      </div>
 
-结果：内存从 O(N²) 降到 O(N)，速度提升 2-4x</pre></div></div></div></div>
+      <div class="box-tip">
+        <span class="label">💡 你的研究角度</span>
+        <p>退化图像让第①步「看」更不可靠 → 错误传播更严重。「<strong>退化条件下多模态推理的鲁棒性 / 不确定性感知推理</strong>」(看不清时让模型「存疑」而非硬答)是你背景的好切口,直接连 D25。</p>
+      </div>
 
-  <div class="day" data-day="35"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D35</span><span class="day-title">论文阅读方法论 + 确定研究方向</span><span class="day-arrow">▶</span></div><div class="day-body"><h4>今日目标</h4><p>花一天时间系统调研，确定你的第一个多模态研究方向。</p><div class="box-important"><span class="label">🔥 适合你的潜在方向</span><p>① <strong>退化图像下的多模态理解</strong>：低光/模糊/噪声图像输入时 MLLM 性能下降多少？如何改善？<br>② <strong>视觉 Token 自适应压缩</strong>：根据图像质量/复杂度动态调整 token 数量<br>③ <strong>面向低光场景的 GUI/视觉 Agent</strong>：夜间手机截图识别、暗光文档扫描<br>④ <strong>图像质量感知的 MLLM</strong>：让模型能评估和理解图像退化<br>⑤ <strong>多模态 Agent 的鲁棒性</strong>：输入图像质量差时 Agent 的容错和自纠正</p></div>
-      <h4>调研方法</h4>
+      <h4>二、动手：让模型「先看再想」</h4>
+      <div class="code-block"># 用 prompt 把「感知」和「推理」显式分开（zero-shot 多模态 CoT）
+PROMPT = """请按以下步骤回答（不要跳步）：
+1. 观察：客观描述图中与问题相关的事实（只描述看到的，不要推断）。
+2. 推理：基于第1步的事实，一步步推导。
+3. 答案：给出最终结论。
+问题：{question}"""
+
+# 关键技巧：
+#   - 强制「先客观描述」能减少「凭语言先验直接猜」(对抗 D25 幻觉)
+#   - 让模型在推理时引用第1步的具体事实，便于定位错误来源
+#   - 进阶：在描述步要求带上 bbox（grounding，D21），把视觉证据钉死
+out = mllm(image, PROMPT.format(question="桌上的书够放进那个书架吗？"))</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 文本 CoT 和多模态 CoT 差在哪?② 什么是错误传播、为什么多模态尤其严重?③ 为什么「先描述再推理」通常比直接答更准?④ 怎么把 grounding 融进推理链?⑤ 退化图像会如何影响多模态 CoT?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为加了 CoT 就一定更准</strong>——若第一步看错,CoT 反而把错误「论证」得更像真的。② <strong>把感知和推理混在一步</strong>——不利于定位错误。③ <strong>忽视视觉证据</strong>——纯文字推理容易脱离图像。④ <strong>以为 CoT 能消除幻觉</strong>——只能缓解,根因仍在 D25。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 多模态 CoT 的结构与动机?② 错误传播怎么产生、怎么缓解?③ 如何把 visual grounding 引入推理链提升可靠性?④ 怎么评测一个模型的「推理」而非「记答案」?</p>
+      </div>
+
+      <h4>阅读材料</h4>
       <ul>
-        <li>在 Semantic Scholar 搜 "multimodal LLM robustness" / "visual agent degraded"</li>
-        <li>看 CVPR 2025/2026 的 accepted paper list，筛多模态相关</li>
-        <li>浏览 arXiv cs.CV + cs.CL 最近一个月的新论文标题</li>
+        <li><a href="https://arxiv.org/abs/2302.00923" target="_blank">Multimodal-CoT</a>（把感知与推理分阶段）</li>
+        <li><a href="https://arxiv.org/abs/2310.16436" target="_blank">视觉推理综述方向</a>（多模态推理的挑战与脉络）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="32"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D32</span><span class="day-title">视觉 Token 压缩：效率研究前沿</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 视觉 Token 压缩的四条路</div>
+        <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="视觉 token 压缩四种方法：合并、剪枝、可学习重采样、早退，把大量视觉 token 压成少量">
+          <defs>
+            <marker id="d32ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 原始 token（多）-->
+          <text x="60" y="30" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">576 token（多）</text>
+          <g fill="#e2ece8" stroke="#2f6f63" stroke-width="0.8">
+            <rect x="20" y="44" width="14" height="14"/><rect x="38" y="44" width="14" height="14"/><rect x="56" y="44" width="14" height="14"/><rect x="74" y="44" width="14" height="14"/>
+            <rect x="20" y="62" width="14" height="14"/><rect x="38" y="62" width="14" height="14"/><rect x="56" y="62" width="14" height="14"/><rect x="74" y="62" width="14" height="14"/>
+            <rect x="20" y="80" width="14" height="14"/><rect x="38" y="80" width="14" height="14"/><rect x="56" y="80" width="14" height="14"/><rect x="74" y="80" width="14" height="14"/>
+            <rect x="20" y="98" width="14" height="14"/><rect x="38" y="98" width="14" height="14"/><rect x="56" y="98" width="14" height="14"/><rect x="74" y="98" width="14" height="14"/>
+          </g>
+          <line x1="96" y1="78" x2="140" y2="78" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d32ar)"/>
+          <!-- 四个方法 -->
+          <rect x="146" y="40" width="186" height="30" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+          <text x="158" y="60" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">① Token Merging（合并相似）</text>
+          <rect x="146" y="76" width="186" height="30" rx="5" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.5"/>
+          <text x="158" y="96" font-family="'Noto Serif SC',serif" font-size="11" fill="#a8341f">② Token Pruning（剪掉不重要）</text>
+          <rect x="146" y="112" width="186" height="30" rx="5" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.3"/>
+          <text x="158" y="132" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">③ Resampler（query 提取）</text>
+          <rect x="146" y="148" width="186" height="30" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+          <text x="158" y="168" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">④ Early Exit（按难度给量）</text>
+          <line x1="332" y1="100" x2="376" y2="100" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d32ar)"/>
+          <!-- 压缩后 token（少）-->
+          <text x="420" y="78" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">~144 token</text>
+          <g fill="#f0e6cf" stroke="#b5832f" stroke-width="0.8">
+            <rect x="390" y="86" width="16" height="16"/><rect x="412" y="86" width="16" height="16"/>
+            <rect x="390" y="108" width="16" height="16"/><rect x="412" y="108" width="16" height="16"/>
+          </g>
+          <line x1="440" y1="100" x2="478" y2="100" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d32ar)"/>
+          <rect x="480" y="80" width="80" height="40" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="520" y="104" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">LLM</text>
+          <text x="650" y="96" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#2f6f63">token↓ → 更快</text>
+          <text x="650" y="110" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">attention O(L²)</text>
+          <!-- 图例 -->
+          <text x="20" y="208" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">视觉 token 高度冗余(相邻 patch 相似)；少而精 → 推理更快、context 更省（直接回扣 D13）</text>
+          <text x="20" y="226" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">你的切口：退化/低光图像里，哪些 token 才是「信息性」的？退化会不会改变重要性分布？</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p><strong>在不掉点的前提下减少视觉 token 数量</strong>——这是你 CV 背景最容易切入的研究方向之一。学完今天你应能:<strong>(1)</strong> 说清视觉 token 为什么冗余、压缩为什么省算力(回扣 D13);<strong>(2)</strong> 区分四类压缩方法及取舍;<strong>(3)</strong> 实现一个最简单的相似度合并;<strong>(4)</strong> 想清你「退化感知压缩」的研究切口。</p>
+
+      <h4>一、为什么能压、压了为什么快</h4>
+      <p>相邻 patch 画面相似 → 视觉 token <em class="term">高度冗余</em>;而 LLM 的 attention 是 <em class="term">O(L²)</em>,序列减半计算约降 4 倍(回扣 D13/D24)。所以「少而精」既省 context 又提速——只要别把关键信息(小目标、文字)压没。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 四类主流方法</span>
+        <p><strong>① Token Merging(ToMe)</strong>:按相似度把冗余 token 两两合并(无需训练即可用)。<strong>② Token Pruning(FastV)</strong>:按 attention 分数丢弃「没人看」的 token,且发现 LLM 浅层后视觉 token 重要性骤降。<strong>③ Learnable Resampler(Q-Former/Perceiver)</strong>:用固定数量可学习 query 把任意多 token 压到定额(回扣 D13)。<strong>④ Early Exit / 自适应</strong>:简单图给少量 token、复杂图给更多,按需分配。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 你的研究切口（强相关）</span>
+        <p>现有压缩几乎都在<strong>清晰图</strong>上设计。问题来了:<em class="term">低光/退化图像里,哪些 token 才是信息性的?退化是否改变了 token 的重要性分布?</em> 「<strong>退化/质量感知的视觉 token 压缩</strong>」= 你的图像质量背景 × 效率前沿,是一个干净、可发论文的切口(连 D13/D34)。</p>
+      </div>
+
+      <h4>二、动手：最简单的相似度合并（ToMe 思想）</h4>
+      <div class="code-block">import torch
+import torch.nn.functional as F
+
+def token_merge(tokens, keep_ratio=0.5):
+    """tokens: (N, D) 视觉 token；按相似度合并冗余，保留 keep_ratio"""
+    x = F.normalize(tokens, dim=-1)
+    sim = x @ x.T                                  # 两两余弦相似度
+    sim.fill_diagonal_(-1)
+    N = tokens.size(0); keep = int(N * keep_ratio)
+    # 每个 token 与最相似邻居的相似度 → 越相似越「可被合并」
+    nn_sim, nn_idx = sim.max(dim=-1)
+    drop = nn_sim.topk(N - keep).indices           # 最冗余的那批
+    drop_set = set(drop.tolist())
+    merged = tokens.clone()
+    for i in drop.tolist():                        # 把冗余 token 并入其最近邻
+        merged[nn_idx[i]] = (merged[nn_idx[i]] + tokens[i]) / 2
+    keep_idx = [i for i in range(N) if i not in drop_set]
+    return merged[keep_idx]                         # (keep, D)
+
+print(token_merge(torch.randn(576, 1024)).shape)   # → (288, 1024)，省一半</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 为什么视觉 token 可压缩?压了为什么快(和 O(L²) 的关系)?② Merging 和 Pruning 的区别?③ FastV 发现了什么关于「深层视觉 token 重要性」的现象?④ Resampler 压缩和前两者本质不同在哪?⑤ 压缩对 OCR/小目标的风险?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为压缩一定掉点</strong>——冗余很多,适度压缩几乎无损。② <strong>无脑均匀压</strong>——会压没关键小目标/文字,要按重要性。③ <strong>只在清晰图上验证</strong>——退化场景重要性分布可能变(你的机会)。④ <strong>混淆「减 token」和「降分辨率」</strong>——前者保留关键信息,后者直接丢像素。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 视觉 token 压缩的几类方法与取舍?② 为什么减 token 能显著提速?③ 怎么判断哪些 token 该保留?④ 设计一个「质量自适应」的压缩方案,你会怎么做?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2403.15388" target="_blank">LLaVA-PruMerge</a>（剪枝 + 合并结合）</li>
+        <li><a href="https://arxiv.org/abs/2210.09461" target="_blank">Token Merging (ToMe)</a>（无需训练的合并）</li>
+        <li><a href="https://arxiv.org/abs/2403.06764" target="_blank">FastV</a>（按 attention 剪视觉 token，揭示深层冗余）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="33"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D33</span><span class="day-title">Embodied AI 与 VLA 概览</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 VLA：Vision → Language → Action</div>
+        <svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="VLA 模型：图像加指令经视觉语言主干，输出离散化的动作 token，驱动机器人或界面动作">
+          <defs>
+            <marker id="d33ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 输入 -->
+          <rect x="14" y="64" width="100" height="40" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="64" y="88" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">图像（看）</text>
+          <rect x="14" y="112" width="100" height="40" rx="5" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.3"/>
+          <text x="64" y="132" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">指令</text>
+          <text x="64" y="146" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#8a7d6a">「把杯子拿起来」</text>
+          <line x1="114" y1="84" x2="158" y2="100" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d33ar)"/>
+          <line x1="114" y1="132" x2="158" y2="116" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d33ar)"/>
+          <!-- VLM backbone -->
+          <rect x="160" y="78" width="170" height="60" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.8"/>
+          <text x="245" y="102" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#26211a">视觉语言主干</text>
+          <text x="245" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">就是个 MLLM（VLM）</text>
+          <line x1="330" y1="108" x2="360" y2="108" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d33ar)"/>
+          <!-- action token -->
+          <rect x="362" y="80" width="160" height="56" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="2"/>
+          <text x="442" y="100" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">Action token</text>
+          <text x="442" y="116" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#a8341f">动作离散成「词」</text>
+          <text x="442" y="128" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#8a7d6a">Δx Δy Δz 夹爪…</text>
+          <line x1="522" y1="108" x2="552" y2="108" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d33ar)"/>
+          <!-- 执行 -->
+          <rect x="554" y="80" width="120" height="56" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="614" y="104" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#26211a">机器人/界面</text>
+          <text x="614" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">执行动作</text>
+          <!-- 图例 -->
+          <text x="14" y="184" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">关键洞察：把「动作」也当成 token 来预测 —— MLLM 不止能说话，还能直接「输出行为」</text>
+          <text x="14" y="202" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">同样思路可迁移到：GUI 操作(D27)、自动驾驶决策、游戏 AI（不一定要机器人）</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>VLA(Vision-Language-Action)把 MLLM 从「会说」推进到「<strong>会做</strong>」。即使你组里不做机器人,这个思路也很值钱。学完今天你应能:<strong>(1)</strong> 说清 VLA 的结构、它和 MLLM 的关系;<strong>(2)</strong> 解释「动作当 token 预测」的核心洞察;<strong>(3)</strong> 把它迁移到 GUI/驾驶等非机器人场景;<strong>(4)</strong> 知道 RT-2 / OpenVLA 的代表性。</p>
+
+      <h4>一、把「动作」也当成 token</h4>
+      <p>MLLM 的输出是文字 token。VLA 的关键一招:<strong>把机器人动作(位移 Δx,Δy,Δz、旋转、夹爪开合)<em class="term">离散化成 token</em>,接到同一个词表里</strong>。于是「预测下一步动作」就和「预测下一个词」是同一件事——直接复用了 LLM 强大的序列建模和世界知识。这就是 RT-2 的核心思想。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 VLA 结构与代表模型</span>
+        <p><strong>结构</strong>:Vision(看) → Language(理解指令) → Action(输出动作 token)。主干就是一个 VLM,只是输出空间从「文字」扩到「动作」。</p>
+        <p><strong>代表</strong>:<strong>RT-2</strong>(Google,把 VLM 微调成机器人策略,动作即 token) · <strong>OpenVLA</strong>(开源 7B VLA,可复现) · <strong>RT-1</strong>(更早的机器人 Transformer,纯模仿学习)。</p>
+        <p><strong>迁移</strong>:这套「感知→决策→动作」对 GUI Agent(D27,动作=click/type)、自动驾驶(动作=方向/油门)、游戏 AI 同样成立——<em class="term">不一定要真机器人</em>。</p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 给你的视角</span>
+        <p>你不做机器人也别跳过:VLA 证明了「<strong>MLLM 可以直接输出结构化决策</strong>」,这正是你 CV+Agent(D27/D30)的理论靠山。一个轻量切口:<em class="term">退化视觉输入下 VLA/GUI 策略的鲁棒性</em>——看不清时动作会不会失准。</p>
+      </div>
+
+      <h4>二、概念代码：动作即 token</h4>
+      <div class="code-block"># VLA 的核心：把连续动作离散成 token，复用 LLM 的下一 token 预测
+# 动作向量（7 维：3 平移 + 3 旋转 + 1 夹爪）→ 每维分 256 桶 → 离散 token
+def discretize_action(action, bins=256, low=-1.0, high=1.0):
+    idx = ((action - low) / (high - low) * (bins - 1)).round().clamp(0, bins-1)
+    return idx.int()            # 例: [128,140,...] 当作词表里的特殊 token id
+
+# 推理：VLM 看图+指令 → 自回归生成「动作 token」→ 反离散化成真实动作
+#   action_tokens = vlm.generate(image, "把红色方块放进盒子")
+#   action = undiscretize(action_tokens)   # 送给机器人/仿真执行
+# 训练：和语言建模完全一样——拿 (图像, 指令, 动作序列) 做下一 token 预测</div>
+
+      <h4>三、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① VLA 和普通 MLLM 的本质区别?② 「动作离散成 token」为什么是关键?③ 为什么这能复用 LLM 的能力?④ VLA 思路怎么迁到 GUI/驾驶?⑤ RT-2 和 RT-1 的差别?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 VLA 是全新架构</strong>——主干就是 VLM,改的是输出空间。② <strong>以为只能用于机器人</strong>——GUI/驾驶/游戏同理。③ <strong>忽略离散化精度</strong>——分桶太粗动作不精细。④ <strong>以为有视觉就够</strong>——真机器人还需本体感知/闭环控制。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 描述 VLA 如何把动作纳入 token 预测框架。② 为什么基于 VLM 做机器人策略有优势(泛化/常识)?③ VLA 和 GUI Agent 的共性与差异?④ 动作离散化的精度-表达力权衡?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2307.15818" target="_blank">RT-2</a>（把 VLM 变成机器人策略，动作即 token）</li>
+        <li><a href="https://arxiv.org/abs/2406.09246" target="_blank">OpenVLA</a>（开源可复现的 7B VLA）</li>
+        <li><a href="https://arxiv.org/abs/2212.06817" target="_blank">RT-1</a>（机器人 Transformer 的奠基工作）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="34"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D34</span><span class="day-title">多模态模型的训练效率优化</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 有限算力训大模型：四大省显存技术</div>
+        <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="训练效率四技术：ZeRO 切分状态、混合精度、梯度检查点、FlashAttention，把放不下的训练塞进有限显存">
+          <defs>
+            <marker id="d34ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 标准 OOM -->
+          <rect x="14" y="80" width="96" height="56" rx="6" fill="#f7e9e4" stroke="#c25a44" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text x="62" y="104" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" fill="#a8341f">标准训练</text>
+          <text x="62" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">显存 OOM ✗</text>
+          <line x1="110" y1="108" x2="140" y2="108" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d34ar)"/>
+          <!-- 四技术 -->
+          <g font-family="'Noto Serif SC',serif">
+            <rect x="144" y="40" width="290" height="30" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+            <text x="156" y="60" font-size="11" fill="#26211a">① DeepSpeed ZeRO / FSDP　<tspan font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">切分优化器/梯度/参数到多卡</tspan></text>
+            <rect x="144" y="76" width="290" height="30" rx="5" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.3"/>
+            <text x="156" y="96" font-size="11" fill="#26211a">② 混合精度 BF16　<tspan font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">半精度算，省显存提速</tspan></text>
+            <rect x="144" y="112" width="290" height="30" rx="5" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+            <text x="156" y="132" font-size="11" fill="#26211a">③ 梯度检查点　<tspan font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">用「重算」换「不存激活」</tspan></text>
+            <rect x="144" y="148" width="290" height="30" rx="5" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.5"/>
+            <text x="156" y="168" font-size="11" fill="#a8341f">④ FlashAttention　<tspan font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">attention 显存 O(N²)→O(N)</tspan></text>
+          </g>
+          <line x1="434" y1="108" x2="464" y2="108" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d34ar)"/>
+          <!-- 可训 -->
+          <rect x="466" y="80" width="110" height="56" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.8"/>
+          <text x="521" y="104" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#2f6f63">塞进显存 ✓</text>
+          <text x="521" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">+ LoRA(D8/D20)</text>
+          <text x="660" y="100" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">显存换算力/通信</text>
+          <text x="660" y="116" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">几乎不丢精度</text>
+          <!-- 图例 -->
+          <text x="14" y="208" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">这些和 D20 的实操命令一一对应：ZeRO=deepspeed 配置、BF16=--bf16、FlashAttn=底层算子</text>
+        </svg>
+      </div>
+
+      <h4>学习目标</h4>
+      <p>用有限算力(比如你的 4×4090)高效训练大模型。学完今天你应能:<strong>(1)</strong> 说清四大省显存技术各省在哪;<strong>(2)</strong> 默写 FlashAttention 的核心思想(为什么 O(N²)→O(N));<strong>(3)</strong> 把这些技术对应到 D20 的训练命令;<strong>(4)</strong> 遇到 OOM 知道按什么顺序上手段。</p>
+
+      <h4>一、显存不够，怎么办</h4>
+      <p>训大模型的主要瓶颈是<em class="term">显存</em>:模型参数 + 优化器状态 + 梯度 + 激活,动辄上百 GB。核心思路只有一个——<strong>用「算力/通信」换「显存」,且尽量不丢精度</strong>。四大手段层层叠加,就能把「放不下」的训练塞进有限的卡。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 四大技术（对应 D20 命令）</span>
+        <p><strong>① DeepSpeed ZeRO / FSDP</strong>:把优化器状态(ZeRO-1)、梯度(ZeRO-2)、参数(ZeRO-3)切分到多卡,单卡只存一份(对应 <code>--deepspeed zeroN.json</code>)。<strong>② 混合精度 BF16</strong>:用半精度算、关键处保 FP32,省显存又提速(对应 <code>--bf16</code>)。<strong>③ 梯度检查点</strong>:前向不存所有激活,反向时重算——用计算换显存。<strong>④ FlashAttention</strong>:把 attention 的显存从 O(N²) 降到 O(N)(底层算子,长序列尤其关键)。再叠加 <strong>LoRA</strong>(D8/D20)只训低秩增量。</p>
+      </div>
+
+      <h4>二、FlashAttention 核心思想</h4>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> FlashAttention：为什么显存从 O(N²) 降到 O(N)</div><div class="deriv-body"><pre>
+标准 Attention 的内存瓶颈：
+  S = Q·Kᵀ ∈ ℝ^{N×N}     ← N=4096 时这张表就要 ~64MB（还要存梯度）
+  P = softmax(S)          ← 又一张 N×N
+  O = P·V
+  问题：把完整的 N×N 中间矩阵搬进/搬出 HBM（显存），IO 成了瓶颈
+
+FlashAttention 的两招：
+  ① 分块（tiling）：把 Q,K,V 切成小块，只在 SRAM（片上高速缓存）里算
+     → 永远不在 HBM 里物化完整的 N×N 矩阵
+  ② online softmax：边读块边维护「running max / running sum」，
+     增量地更新输出，无需先看到一整行才能归一化
+
+结果：
+  - 显存：O(N²) → O(N)（不存中间大矩阵）
+  - 速度：减少 HBM 读写，实测快 2–4×（IO-aware）
+  - 数值精确：是精确 attention，不是近似！
+FlashAttention-2/3 进一步优化并行度与新硬件（H100）利用率。</pre></div></div>
+
+      <h4>三、动手：一键开启这些优化</h4>
+      <div class="code-block"># HF Trainer / TrainingArguments 里基本都是开关
+from transformers import TrainingArguments
+args = TrainingArguments(
+    bf16=True,                          # ② 混合精度
+    gradient_checkpointing=True,        # ③ 梯度检查点
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=8,      # 等效大 batch（显存不够就这样补）
+    deepspeed="zero3.json",             # ① ZeRO-3 切分
+)
+# ④ FlashAttention：加载模型时指定
+#   model = AutoModelForCausalLM.from_pretrained(
+#       name, attn_implementation="flash_attention_2", torch_dtype=torch.bfloat16)
+# OOM 排查顺序：bf16 → grad_checkpointing → ZeRO-3 → LoRA → 减 batch+grad_accum 补回</div>
+
+      <h4>四、自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① ZeRO-1/2/3 分别切分什么?② 梯度检查点用什么换什么?③ FlashAttention 为什么能把显存降到 O(N)?它是近似还是精确?④ 混合精度为什么还要保 FP32 主权重?⑤ OOM 时你的处理顺序?</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 FlashAttention 是近似</strong>——是精确 attention,只是 IO 优化。② <strong>以为梯度检查点免费提速</strong>——它省显存但增加约 30% 计算。③ <strong>ZeRO-3 总是最优</strong>——通信开销大,卡少/带宽低时未必划算。④ <strong>BF16 当 FP16 用</strong>——动态范围不同,BF16 更稳,别混。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 训练显存由哪几部分组成?各怎么省?② 详述 FlashAttention 的 tiling + online softmax。③ ZeRO 三级的取舍与通信代价?④ 给定显存预算,你的优化决策树是什么?</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2407.08608" target="_blank">FlashAttention-3</a>（面向 H100 的最新版）</li>
+        <li><a href="https://arxiv.org/abs/1710.03740" target="_blank">混合精度训练</a>（BF16/FP16 + FP32 主权重）</li>
+        <li><a href="https://arxiv.org/abs/2304.11277" target="_blank">PyTorch FSDP</a>（与 ZeRO 等价的官方实现）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="day" data-day="35"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D35</span><span class="day-title">论文阅读方法论 + 确定研究方向</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 你的背景 × 多模态前沿 = 研究切口</div>
+        <svg viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="以低光/退化/图像质量背景为中心，辐射出五个多模态研究方向，并标注关联的学习天">
+          <!-- 中心 -->
+          <ellipse cx="380" cy="140" rx="92" ry="46" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="380" y="134" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#a8341f">你的背景</text>
+          <text x="380" y="152" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">低光 · 退化 · 图像质量</text>
+          <!-- 5 方向 -->
+          <g font-family="'Noto Serif SC',serif">
+            <rect x="20" y="22" width="200" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+            <text x="32" y="42" font-size="11" fill="#26211a">① 退化图像下的多模态理解</text>
+            <text x="32" y="58" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">性能掉多少?怎么救? · 连 D25</text>
+            <rect x="540" y="22" width="200" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/>
+            <text x="552" y="42" font-size="11" fill="#26211a">② 视觉 token 自适应压缩</text>
+            <text x="552" y="58" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">按质量给量 · 连 D13/D32</text>
+            <rect x="20" y="214" width="200" height="44" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.3"/>
+            <text x="32" y="234" font-size="11" fill="#26211a">③ 低光 GUI / 视觉 Agent</text>
+            <text x="32" y="250" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">夜间截图/暗光文档 · 连 D27/D30</text>
+            <rect x="540" y="214" width="200" height="44" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.3"/>
+            <text x="552" y="234" font-size="11" fill="#26211a">④ 图像质量感知 MLLM</text>
+            <text x="552" y="250" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">让模型「懂」退化 · 连 D18</text>
+            <rect x="290" y="234" width="200" height="36" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.3"/>
+            <text x="302" y="251" font-size="11" fill="#26211a">⑤ 多模态 Agent 鲁棒性</text>
+            <text x="302" y="264" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">质量差时容错/自纠 · 连 D26/D30</text>
+          </g>
+          <!-- 连线 -->
+          <g stroke="#5a5043" stroke-width="1.1" fill="none">
+            <line x1="300" y1="120" x2="200" y2="66"/>
+            <line x1="460" y1="120" x2="560" y2="66"/>
+            <line x1="305" y1="158" x2="210" y2="214"/>
+            <line x1="455" y1="158" x2="555" y2="214"/>
+            <line x1="380" y1="186" x2="385" y2="234"/>
+          </g>
+        </svg>
+      </div>
+
+      <h4>今日目标</h4>
+      <p>这是 Week 07 的收束日:把前 6 周学的<strong>串成你自己的研究切口</strong>,并掌握高效读论文/选题的方法。学完今天你应能:<strong>(1)</strong> 从 5 个候选方向里锁定 1 个;<strong>(2)</strong> 用「三遍法」高效读论文;<strong>(3)</strong> 用新颖/可行/影响三把尺子判断一个 idea;<strong>(4)</strong> 跑通一轮系统调研。</p>
+
+      <div class="box-important">
+        <span class="label">🔥 适合你的 5 个潜在方向（都连着前面的天）</span>
+        <p>① <strong>退化图像下的多模态理解</strong>:低光/模糊/噪声输入时 MLLM 掉多少分、怎么救(连 <em class="term">D25 幻觉</em>)。<br>② <strong>视觉 token 自适应压缩</strong>:按图像质量/复杂度动态给 token 数(连 <em class="term">D13/D32</em>)。<br>③ <strong>面向低光的 GUI / 视觉 Agent</strong>:夜间手机截图、暗光文档(连 <em class="term">D27/D30</em>)。<br>④ <strong>图像质量感知的 MLLM</strong>:让模型能评估并理解退化(连 <em class="term">D18 数据</em>)。<br>⑤ <strong>多模态 Agent 的鲁棒性</strong>:输入质量差时的容错与自纠正(连 <em class="term">D26/D30</em>)。<br>共同点:都站在你「图像质量/低光」的护城河上,且现有工作普遍默认输入清晰——<strong>这就是空白。</strong></p>
+      </div>
+
+      <div class="box-tip">
+        <span class="label">💡 论文「三遍法」（Keshav 经典法）</span>
+        <p><strong>第一遍(5 分钟)</strong>:只读标题/摘要/引言/小标题/结论 + 扫图表,判断「要不要细读」。<strong>第二遍(1 小时)</strong>:读正文抓主线、看图表懂方法,不抠公式细节,记下不懂处。<strong>第三遍(数小时,只给关键论文)</strong>:在脑中「重新实现」一遍,质疑每个假设,这样才能真正吃透并发现可改进点。</p>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🔥 一个 idea 值不值得做：三把尺子</span>
+        <p><strong>① 新颖性</strong>:和最相关的 3-5 篇比,你的 delta 是什么?能一句话说清。<strong>② 可行性</strong>:你的算力(4×4090)、数据、时间够不够?最小可验证实验是什么?<strong>③ 影响力</strong>:解决的是真痛点还是自造问题?谁会用?<br>三者缺一别硬上——尤其先确认「最小实验能不能在两周内跑出正向信号」(连 D39 的经验)。</p>
+      </div>
+
+      <h4>调研流程（动手）</h4>
+      <ul>
+        <li>用 Semantic Scholar / Google Scholar 搜 "multimodal LLM robustness"、"visual token compression"、"low-light VQA" 等关键词,顺藤摸引用网络</li>
+        <li>翻 CVPR / ICCV / NeurIPS 近一年的 accepted list,筛多模态 + 效率 / 鲁棒性相关</li>
+        <li>用 Connected Papers(侧窗里就能开)对一篇核心论文画关系图谱,快速建立领域地图</li>
+        <li>每读一篇,记三行:它解决什么、怎么做、我能改什么——攒够 10 篇,切口自然浮现</li>
+      </ul>
+
+      <div class="box-tip">
+        <span class="label">💡 本周（Week 07）回顾</span>
+        <p>你已掌握前沿四块:多模态推理(D31)、视觉 token 压缩(D32)、VLA(D33)、训练效率(D34),并把它们和自己的背景交叉出 5 个研究方向。下一周(Week 08)是<strong>实战</strong>——把选定方向落成一个可作为论文基础或求职作品的完整项目:定问题、备数据、跑基线、出第一版结果。</p>
+      </div>
+
+      <h4>阅读材料</h4>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2306.13549" target="_blank">多模态大模型综述</a>（建立领域全景，回顾全程）</li>
+        <li><a href="https://www.semanticscholar.org/" target="_blank">Semantic Scholar</a> + <a href="https://www.connectedpapers.com/" target="_blank">Connected Papers</a>（搜索 + 关系图谱）</li>
       </ul>
     </div>
   </div>
