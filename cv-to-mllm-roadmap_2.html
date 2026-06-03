@@ -230,6 +230,17 @@ em.term{font-style:normal;color:var(--red);font-weight:600;}
   white-space:pre;color:var(--ink-soft);
 }
 
+/* ========== 架构图 ========== */
+.arch-fig{
+  margin:4px 0 24px;padding:18px 16px 14px;border:1px solid var(--rule);border-radius:4px;
+  background:linear-gradient(180deg,var(--paper-2),transparent);overflow-x:auto;
+}
+.arch-fig .af-cap{
+  font-family:"JetBrains Mono",monospace;font-size:.64rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:12px;text-align:center;
+}
+.arch-fig svg{display:block;width:100%;height:auto;max-width:740px;margin:0 auto;}
+
 /* ========== footer ========== */
 footer{padding:50px 0 70px;text-align:center;color:var(--ink-faint);font-family:"JetBrains Mono",monospace;font-size:.76rem;letter-spacing:.08em;}
 footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
@@ -1302,6 +1313,54 @@ L = -∑ᵢ∑ⱼ [ y_ij·log σ(S_ij) + (1-y_ij)·log(1-σ(S_ij)) ]
   </div>
 
   <div class="day" data-day="14"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D14</span><span class="day-title">LLaVA 架构精读：整体设计与两阶段训练</span><span class="day-arrow">▶</span></div><div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 LLaVA 架构总览</div>
+        <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LLaVA 架构图：图像经 CLIP ViT 编码、Projector 投影后与文本拼接送入 LLM 生成回答">
+          <defs>
+            <marker id="d14ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/>
+            </marker>
+          </defs>
+          <!-- 图像 -->
+          <rect x="14" y="46" width="92" height="52" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="60" y="72" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="15" fill="#26211a">图像</text>
+          <text x="60" y="88" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">336×336×3</text>
+          <line x1="106" y1="72" x2="139" y2="72" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d14ar)"/>
+          <!-- CLIP ViT -->
+          <rect x="141" y="46" width="120" height="52" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="201" y="68" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13.5" fill="#26211a">CLIP ViT-L/14</text>
+          <text x="201" y="86" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#2f6f63">❄️ 冻结</text>
+          <text x="201" y="116" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">576 × 1024</text>
+          <line x1="261" y1="72" x2="294" y2="72" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d14ar)"/>
+          <!-- Projector -->
+          <rect x="296" y="46" width="120" height="52" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/>
+          <text x="356" y="68" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13.5" font-weight="700" fill="#a8341f">Projector</text>
+          <text x="356" y="86" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">🔥 训练 · MLP</text>
+          <text x="356" y="116" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">576 × 4096</text>
+          <line x1="416" y1="72" x2="449" y2="72" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d14ar)"/>
+          <!-- 拼接 -->
+          <text x="470" y="40" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">拼接</text>
+          <circle cx="470" cy="72" r="15" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.5"/>
+          <text x="470" y="78" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="16" fill="#b5832f">⊕</text>
+          <line x1="485" y1="72" x2="513" y2="72" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d14ar)"/>
+          <!-- LLM -->
+          <rect x="515" y="42" width="120" height="60" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/>
+          <text x="575" y="66" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13.5" fill="#26211a">LLM · Vicuna</text>
+          <text x="575" y="84" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">🔥 Stage 2</text>
+          <line x1="635" y1="72" x2="668" y2="72" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d14ar)"/>
+          <!-- 回答 -->
+          <rect x="670" y="46" width="78" height="52" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/>
+          <text x="709" y="76" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="14" fill="#26211a">回答</text>
+          <!-- 文本输入路径 -->
+          <rect x="300" y="198" width="232" height="48" rx="6" fill="#efe8d8" stroke="#5a5043" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <text x="416" y="219" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12.5" fill="#26211a">文本指令 + &lt;image&gt; 占位符</text>
+          <text x="416" y="236" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">token embedding · L × 4096</text>
+          <path d="M470,198 L470,89" fill="none" stroke="#5a5043" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#d14ar)"/>
+          <!-- 图例 -->
+          <text x="14" y="285" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">❄️ 冻结不更新　🔥 参与训练　⊕ 视觉 token 替换 &lt;image&gt; 占位符后送入 LLM</text>
+        </svg>
+      </div>
 
       <h4>学习目标</h4>
       <p>LLaVA 是把视觉接入 LLM 最经典、最干净的范式。学完今天，你应当能：<strong>(1)</strong> 讲清 LLaVA 的「三件套」各自做什么；<strong>(2)</strong> 把一张图到一段回答的<em class="term">维度变换</em>全程画出来；<strong>(3)</strong> 说清视觉 token 是<em class="term">怎么塞进文本序列</em>的（面试必考）；<strong>(4)</strong> 解释两阶段训练各冻结什么、loss 算在哪；<strong>(5)</strong> 用 Hugging Face 跑通一次 LLaVA 推理。</p>
