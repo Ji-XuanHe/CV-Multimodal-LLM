@@ -1670,8 +1670,36 @@ curl http://localhost:11434/api/generate -d '{
 
   <div class="day" data-day="6"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D06</span><span class="day-title">预训练 → SFT → RLHF：三阶段训练流水线</span><span class="day-arrow">▶</span></div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 LLM 三阶段：续写 → 听指令 → 对齐偏好</div>
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LLM 训练三阶段：预训练学语言知识，SFT 学按指令回答，RLHF/DPO 对齐人类偏好">
+          <defs>
+            <marker id="d6ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <rect x="14" y="50" width="216" height="80" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.6"/>
+          <text x="122" y="72" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#2f6f63">① 预训练</text>
+          <text x="122" y="91" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">万亿 token 无标注文本</text>
+          <text x="122" y="105" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">next token prediction(D05)</text>
+          <text x="122" y="122" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#a8341f">学会「续写」· 数千 GPU</text>
+          <line x1="230" y1="90" x2="256" y2="90" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d6ar)"/>
+          <rect x="258" y="50" width="216" height="80" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.6"/>
+          <text x="366" y="72" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#b5832f">② SFT</text>
+          <text x="366" y="91" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">高质量 指令-回答 对</text>
+          <text x="366" y="105" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">loss 只算 response 部分</text>
+          <text x="366" y="122" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#a8341f">学会「听指令」</text>
+          <line x1="474" y1="90" x2="500" y2="90" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d6ar)"/>
+          <rect x="502" y="50" width="244" height="80" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/>
+          <text x="624" y="72" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="#a8341f">③ RLHF / DPO</text>
+          <text x="624" y="91" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">人类偏好排序数据</text>
+          <text x="624" y="105" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#5a5043">reward model+PPO / DPO(D07)</text>
+          <text x="624" y="122" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#a8341f">学会「对齐人类」· 更安全有用</text>
+          <text x="14" y="166" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">你不会从零做①（太贵）；从②③切入，配合 LoRA(D08) 就能在本地动手。LLaVA 训练(D14/D20)正是②③的多模态版</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>理解为什么不能只做预训练——预训练只学会「续写」，需要 SFT 学会「听指令」，需要 RLHF 学会「对齐人类偏好」。</p>
+      <p>理解为什么不能只做预训练——预训练只学会「续写」，需要 SFT 学会「听指令」，需要 RLHF 学会「对齐人类偏好」。<strong>这三阶段是后面 LLaVA 多模态训练(D14/D20)的母版</strong>。</p>
       <div class="box-important"><span class="label">🔥 三阶段对比</span>
         <p><strong>① 预训练（Pre-training）</strong>：海量无标注文本（万亿 token），next token prediction，学到语言知识和世界知识。需要数千张 GPU。你不会从零做这一步。</p>
         <p><strong>② 监督微调（SFT）</strong>：高质量 instruction-response 对（数万到数十万条），让模型学会按指令格式回答。loss 通常只算 response 部分。</p>
@@ -1690,18 +1718,76 @@ SFT loss：只对 response 部分算 loss
 loss mask: [0,0,0,...,0, 1,1,1,...,1]
             ← system+user →  ← assistant →</pre></div>
       </div>
+      <h4>动手：SFT 的 loss mask（只学回答）</h4>
+      <div class="code-block">import torch, torch.nn.functional as F
+
+# SFT：system/user 部分不算 loss，只让模型学 assistant 的回答
+labels = input_ids.clone()
+labels[~assistant_mask] = -100          # -100 被 CrossEntropy 忽略
+loss = F.cross_entropy(
+    logits.view(-1, logits.size(-1)),
+    labels.view(-1),
+    ignore_index=-100)                  # ← 和 D14/D15 里视觉 token 的 -100 同一招
+
+# 对比预训练：labels = input_ids（整条序列都算 loss，不 mask）
+# 一句话：预训练「全文都学」，SFT「只学怎么答」</div>
+
+      <h4>自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 三阶段各学到什么、各用什么数据？② SFT 的 loss 为什么只算 response？③ 预训练和 SFT 的 loss 公式差别？④ RLHF 解决了 SFT 解决不了的什么问题？⑤ 这三阶段和 LLaVA 两阶段(D14)怎么对应？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 SFT 就够了</strong>——SFT 学格式，RLHF/DPO 才对齐偏好与安全。② <strong>SFT 对 prompt 也算 loss</strong>——应 mask 掉，只学回答。③ <strong>以为预训练能自己做</strong>——需要数千 GPU，从 SFT 切入。④ <strong>把对齐当成加准确率</strong>——它更多是「有用/无害/诚实」。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 完整描述 LLM 三阶段流水线。② SFT loss mask 怎么做、为什么。③ RLHF 的动机与组成（reward model + PPO）。④ 为什么说「预训练给知识，对齐给行为」？</p>
+      </div>
+
       <h4>阅读材料</h4>
       <ul>
-        <li><a href="https://arxiv.org/abs/2203.02155" target="_blank">InstructGPT 论文</a>（OpenAI，RLHF 的经典工作，读 Section 1-3）</li>
-        <li>Chip Huyen 的博客: <a href="https://huyenchip.com/2023/05/02/rlhf.html" target="_blank">RLHF: Reinforcement Learning from Human Feedback</a></li>
+        <li>Chip Huyen 博客: <a href="https://huyenchip.com/2023/05/02/rlhf.html" target="_blank">RLHF 详解</a>（流程图清晰）</li>
+        <li><a href="https://arxiv.org/abs/2009.01325" target="_blank">Learning to Summarize from Human Feedback</a>（RLHF 的奠基工作）</li>
       </ul>
     </div>
   </div>
 
   <div class="day" data-day="7"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D07</span><span class="day-title">DPO：不需要 Reward Model 的对齐方法</span><span class="day-arrow">▶</span></div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 RLHF vs DPO：DPO 消掉了 Reward Model</div>
+        <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RLHF 需要先训 reward model 再用 PPO 优化；DPO 用偏好数据直接优化策略，省掉 reward model 和强化学习">
+          <defs>
+            <marker id="d7ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <!-- RLHF -->
+          <text x="20" y="30" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#8a7d6a">RLHF（复杂，三步）</text>
+          <rect x="14" y="44" width="100" height="40" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.3"/><text x="64" y="62" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">偏好数据</text><text x="64" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">y_w ≻ y_l</text>
+          <line x1="114" y1="64" x2="138" y2="64" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d7ar)"/>
+          <rect x="140" y="44" width="110" height="40" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.3"/><text x="195" y="62" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">训 Reward Model</text><text x="195" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">额外一个模型</text>
+          <line x1="250" y1="64" x2="274" y2="64" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d7ar)"/>
+          <rect x="276" y="44" width="110" height="40" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.3"/><text x="331" y="62" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">PPO 强化学习</text><text x="331" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">不稳·难调</text>
+          <line x1="386" y1="64" x2="410" y2="64" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d7ar)"/>
+          <rect x="412" y="44" width="80" height="40" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/><text x="452" y="68" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="10" fill="#26211a">对齐模型</text>
+          <!-- DPO -->
+          <text x="20" y="128" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#2f6f63">DPO（简洁，一步）</text>
+          <rect x="14" y="142" width="100" height="44" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.3"/><text x="64" y="162" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">偏好数据</text><text x="64" y="176" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">y_w ≻ y_l</text>
+          <line x1="114" y1="164" x2="200" y2="164" stroke="#2f6f63" stroke-width="1.8" marker-end="url(#d7ar)"/>
+          <rect x="202" y="142" width="200" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="2"/><text x="302" y="162" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" font-weight="700" fill="#2f6f63">直接优化策略</text><text x="302" y="178" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">一个分类式 loss，无 RM、无 PPO</text>
+          <line x1="402" y1="164" x2="426" y2="164" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d7ar)"/>
+          <rect x="428" y="142" width="80" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.3"/><text x="468" y="168" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="10" fill="#26211a">对齐模型</text>
+          <text x="540" y="120" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">关键：最优策略与 reward</text>
+          <text x="540" y="136" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">有解析关系 → RM 被消掉</text>
+          <text x="540" y="158" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">更稳、更省、好调，</text>
+          <text x="540" y="174" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">开源模型主流选择</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>RLHF 太复杂（需要训练 reward model + PPO），DPO 把它简化成了一个简单的分类问题。现在大多数开源模型都用 DPO 或其变体。</p>
+      <p>RLHF 太复杂（需要训练 reward model + PPO），DPO 把它简化成了一个<strong>简单的分类式损失</strong>。现在大多数开源模型都用 DPO 或其变体。</p>
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> DPO 损失函数完整推导</div>
         <div class="deriv-body"><pre>
 RLHF 的目标（Bradley-Terry 模型）：
@@ -1723,15 +1809,77 @@ DPO 的关键洞察：
   直觉：让模型增加好回答的概率、降低差回答的概率，
   同时不偏离参考模型太远（通过 β 控制）。</pre></div>
       </div>
+      <h4>动手：DPO loss 就这几行</h4>
+      <div class="code-block">import torch.nn.functional as F
+
+def dpo_loss(logp_w, logp_l, ref_w, ref_l, beta=0.1):
+    # logp_*: 当前策略 π_θ 对 chosen(w)/rejected(l) 的序列 log 概率
+    # ref_* : 参考模型 π_ref（通常是 SFT 后冻结的模型）的对应 log 概率
+    pi_logratio  = logp_w - logp_l          # 策略：更偏好 w 多少
+    ref_logratio = ref_w  - ref_l           # 参考：原本偏好 w 多少
+    logits = beta * (pi_logratio - ref_logratio)
+    return -F.logsigmoid(logits).mean()     # 让"比参考更偏好 w"，但 β 控制别跑太远
+
+# 直觉：抬高好回答概率、压低差回答概率，同时用 β 约束不偏离 SFT 模型太多
+# 对比 RLHF：这里没有 reward model、没有 PPO，只有一个交叉熵式的 loss</div>
+
+      <h4>自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① RLHF 的三步是什么？DPO 省掉了哪两步？② DPO 的关键洞察（最优策略与 reward 的关系）是什么？③ β 控制什么？④ π_ref 是什么、为什么要它？⑤ 为什么说 DPO 把对齐变成了「分类问题」？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 DPO 还需要 reward model</strong>——它被解析地消掉了。② <strong>忘了参考模型</strong>——没有 π_ref 约束会跑飞/退化。③ <strong>β 设太大/太小</strong>——太大太保守、太小易过拟合偏好。④ <strong>以为 DPO 一定优于 RLHF</strong>——数据质量仍是决定因素，PPO 在某些场景上限更高。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 推导 DPO 如何从 Bradley-Terry + 最优策略关系消掉 reward model。② DPO loss 的每一项含义。③ β 和 π_ref 的作用。④ DPO vs PPO 的优劣权衡（稳定性/上限/成本）。</p>
+      </div>
+
       <h4>阅读材料</h4>
-      <ul><li><a href="https://arxiv.org/abs/2305.18290" target="_blank">DPO 原论文</a>（数学推导优美，值得仔细看 Section 3-4）</li></ul>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2305.18290" target="_blank">DPO 原论文</a>（数学推导优美，重点 Sec.3-4）</li>
+        <li><a href="https://arxiv.org/abs/2405.14734" target="_blank">SimPO</a>（去掉参考模型的简化变体，了解 DPO 家族）</li>
+      </ul>
     </div>
   </div>
 
   <div class="day" data-day="8"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D08</span><span class="day-title">LoRA：低秩适配的原理与实现</span><span class="day-arrow">▶</span></div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 LoRA：冻结大矩阵，只训低秩旁路</div>
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LoRA：原权重 W 冻结，旁路加一个低秩 B·A 增量，只训练 A、B，参数量大幅减少">
+          <defs>
+            <marker id="d8ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <rect x="14" y="80" width="50" height="40" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="39" y="105" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#26211a">x</text>
+          <line x1="64" y1="100" x2="92" y2="100" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d8ar)"/>
+          <!-- W 冻结 -->
+          <rect x="94" y="40" width="120" height="50" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1.5"/><text x="154" y="62" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#26211a">W（d×d）</text><text x="154" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#2f6f63">❄️ 冻结，不训</text>
+          <!-- B A 低秩 -->
+          <rect x="94" y="110" width="56" height="44" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/><text x="122" y="130" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#a8341f">A</text><text x="122" y="146" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#5a5043">r×d</text>
+          <line x1="150" y1="132" x2="158" y2="132" stroke="#5a5043" stroke-width="1.2" marker-end="url(#d8ar)"/>
+          <rect x="160" y="110" width="56" height="44" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.8"/><text x="188" y="130" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#a8341f">B</text><text x="188" y="146" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#5a5043">d×r</text>
+          <text x="155" y="172" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#a8341f">🔥 只训 A、B（r≪d）</text>
+          <!-- 合并 -->
+          <line x1="214" y1="65" x2="250" y2="92" stroke="#5a5043" stroke-width="1.4" marker-end="url(#d8ar)"/>
+          <line x1="216" y1="132" x2="250" y2="108" stroke="#a8341f" stroke-width="1.4" marker-end="url(#d8ar)"/>
+          <circle cx="266" cy="100" r="15" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.6"/><text x="266" y="106" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="15" fill="#b5832f">+</text>
+          <line x1="281" y1="100" x2="309" y2="100" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d8ar)"/>
+          <rect x="311" y="80" width="130" height="40" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.5"/><text x="376" y="104" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#26211a">h = Wx + BAx</text>
+          <!-- 参数对比 -->
+          <rect x="470" y="60" width="276" height="80" rx="6" fill="#efe8d8" stroke="#26211a" stroke-width="1" stroke-dasharray="3 2"/>
+          <text x="608" y="82" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" font-weight="700" fill="#26211a">参数量（d=4096, r=16）</text>
+          <text x="486" y="104" font-family="'JetBrains Mono',monospace" font-size="9" fill="#5a5043">全量 ΔW：4096² ≈ 16.7M / 层</text>
+          <text x="486" y="122" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">LoRA A+B：≈ 131K / 层 → 省 128×</text>
+          <text x="14" y="192" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">B 零初始化 → 起步 ΔW=0（不破坏原模型）；这就是 D20 训 MLLM、D09 本地微调省显存的关键</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>LoRA 是你后面做任何微调实验的基础工具，必须吃透。</p>
+      <p>LoRA 是你后面做任何微调实验（D09 本地微调、D20 训 MLLM）的基础工具，必须吃透——<strong>它是你在有限显存上能动手的前提</strong>。</p>
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> LoRA 核心数学（务必理解）</div>
         <div class="deriv-body"><pre>
 全量微调：W' = W + ΔW    ΔW ∈ ℝ^{d×d}（参数量巨大）
@@ -1755,18 +1903,75 @@ LoRA 的假设：ΔW 是低秩的，可以分解为：
       <div class="box-important"><span class="label">🔥 QLoRA</span>
         <p><strong>QLoRA = 量化基础模型 + LoRA</strong>。基础模型以 4-bit NF4 格式加载（省内存），只训练 LoRA 的 A/B 矩阵（FP16/BF16）。这就是你在 32GB MacBook 上能微调 7B 模型的原因。</p>
       </div>
+      <h4>动手：30 行实现一个 LoRA 层</h4>
+      <div class="code-block">import torch, torch.nn as nn
+
+class LoRALinear(nn.Module):
+    def __init__(self, base: nn.Linear, r=16, alpha=32):
+        super().__init__()
+        self.base = base                         # 原权重 W
+        for p in self.base.parameters():
+            p.requires_grad = False              # ❄️ 冻结 W
+        d_in, d_out = base.in_features, base.out_features
+        self.A = nn.Parameter(torch.randn(r, d_in) * 0.01)   # 随机初始化
+        self.B = nn.Parameter(torch.zeros(d_out, r))          # 零初始化 → 起步 ΔW=0
+        self.scale = alpha / r                   # 缩放因子
+    def forward(self, x):
+        return self.base(x) + self.scale * (x @ self.A.T) @ self.B.T   # Wx + BAx
+
+lin = nn.Linear(4096, 4096)
+lora = LoRALinear(lin, r=16)
+trainable = sum(p.numel() for p in lora.parameters() if p.requires_grad)
+print(f"可训练参数: {trainable/1e3:.0f}K（全量是 {4096*4096/1e6:.1f}M）")
+# 实战直接用 peft: get_peft_model(model, LoraConfig(r=16, ...))</div>
+
+      <h4>自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① LoRA 的低秩假设是什么？ΔW 怎么分解？② B 为什么零初始化？③ d=4096、r=16 时参数省多少倍？④ QLoRA 在 LoRA 上加了什么？⑤ 推理时 LoRA 能否合并回 W（零额外延迟）？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>A、B 都随机初始化</strong>——B 必须为 0，否则一上来就扰乱原模型。② <strong>r 越大越好</strong>——太大失去省参意义、易过拟合。③ <strong>以为 LoRA 改了原权重</strong>——W 冻结，只学旁路增量。④ <strong>忘了 α/r 缩放</strong>——影响有效学习率。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① 推导 LoRA 参数量与压缩比。② 为什么 B 零初始化、A 随机？③ QLoRA 的 NF4 + 双重量化如何进一步省显存？④ LoRA 推理可合并回主权重的意义？</p>
+      </div>
+
       <h4>阅读材料</h4>
       <ul>
         <li><a href="https://arxiv.org/abs/2106.09685" target="_blank">LoRA 原论文</a>（Microsoft，2021，很短，必读）</li>
-        <li><a href="https://arxiv.org/abs/2305.14314" target="_blank">QLoRA 论文</a>（理解 NF4 量化 + 双重量化）</li>
+        <li><a href="https://arxiv.org/abs/2402.09353" target="_blank">DoRA</a>（权重分解式 LoRA 变体，了解发展）</li>
       </ul>
     </div>
   </div>
 
   <div class="day" data-day="9"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D09</span><span class="day-title">动手：在 MacBook 上用 MLX 微调 Qwen</span><span class="day-arrow">▶</span></div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 本地 LoRA 微调流程（MacBook 也能跑）</div>
+        <svg viewBox="0 0 760 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="本地微调流程：装 mlx-lm、备 JSONL 数据、mlx_lm.lora 训练出适配器、加载适配器推理">
+          <defs>
+            <marker id="d9ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5043"/></marker>
+          </defs>
+          <rect x="12" y="56" width="110" height="46" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="67" y="76" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">① 环境</text><text x="67" y="92" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">pip mlx-lm</text>
+          <line x1="122" y1="79" x2="148" y2="79" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d9ar)"/>
+          <rect x="150" y="56" width="120" height="46" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/><text x="210" y="76" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">② 数据 JSONL</text><text x="210" y="92" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">20–50 条问答（D07格式）</text>
+          <line x1="270" y1="79" x2="296" y2="79" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d9ar)"/>
+          <rect x="298" y="50" width="150" height="58" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="2"/><text x="373" y="72" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">③ mlx_lm.lora</text><text x="373" y="89" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">LoRA 训练（D08）</text><text x="373" y="101" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">4-bit 基座 + 旁路</text>
+          <line x1="448" y1="79" x2="474" y2="79" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d9ar)"/>
+          <rect x="476" y="56" width="120" height="46" rx="6" fill="#f0e6cf" stroke="#b5832f" stroke-width="1.4"/><text x="536" y="76" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">④ adapters</text><text x="536" y="92" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">只存 A/B（很小）</text>
+          <line x1="596" y1="79" x2="622" y2="79" stroke="#5a5043" stroke-width="1.5" marker-end="url(#d9ar)"/>
+          <rect x="624" y="56" width="122" height="46" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="685" y="76" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="11" fill="#26211a">⑤ generate</text><text x="685" y="92" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">加载适配器推理</text>
+          <text x="12" y="142" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">盯训练 loss 曲线 + 生成质量；适配器只有几十 MB，可随时切换/合并（D08）</text>
+          <text x="12" y="160" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">这就是 D20 训 MLLM 的「单机迷你版」：同一套 LoRA + 数据 + 训练 + 评测心智模型</text>
+        </svg>
+      </div>
+
       <h4>今日目标</h4>
-      <p>纯实践日。在你的 M5 MacBook 上完成一次完整的 LoRA 微调流程。</p>
+      <p>纯实践日。在你的 MacBook 上完成一次完整的 LoRA 微调流程（D08 的代码落地版），建立「数据→训练→适配器→推理」的肌肉记忆，为 D20 训 MLLM 打底。</p>
       <div class="code-block"># 1. 安装环境
 pip install mlx-lm
 
@@ -1789,13 +1994,60 @@ mlx_lm.generate \
   --adapter-path adapters \
   --prompt "解释低光图像中的噪声特性"</div>
       <div class="box-tip"><span class="label">💡 经验</span><p>关注训练 loss 曲线和生成质量变化。如果 loss 快速下降但生成变差，说明过拟合了——减少 iters 或增加数据。</p></div>
+
+      <h4>自测 / 误区</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① 这条流程对应 D08 的哪些概念（冻结基座/只训 A·B）？② 为什么适配器文件那么小？③ loss 降但生成变差说明什么？④ <code>--lora-layers</code> 调大调小影响什么？⑤ 推理时为什么要带 <code>--adapter-path</code>？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>数据太少还训太多 iters</strong>——必过拟合，生成开始胡说。② <strong>学习率照搬全量微调</strong>——LoRA 通常用更小 lr（1e-5~1e-4）。③ <strong>忘了用对话/指令格式</strong>——数据格式不对，学不到「听指令」。④ <strong>只看 loss 不看生成</strong>——loss 低不等于好用，要实际试。</p>
+      </div>
     </div>
   </div>
 
   <div class="day" data-day="10"><div class="day-head"><div class="day-check">✓</div><span class="day-num">D10</span><span class="day-title">MoE 架构与 KV Cache 推理优化</span><span class="day-arrow">▶</span></div>
     <div class="day-body">
+
+      <div class="arch-fig">
+        <div class="af-cap">📊 MoE（稀疏激活）+ KV Cache（加速生成）</div>
+        <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="左：MoE 用 gate 路由每个 token 到 top-2 专家；右：KV Cache 缓存历史 K V，自回归每步只算新 token">
+          <defs>
+            <marker id="d10ar" markerWidth="8" markerHeight="8" refX="6" refY="2.6" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,2.6 L0,5.2 Z" fill="#5a5043"/></marker>
+          </defs>
+          <!-- MoE -->
+          <text x="180" y="28" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#a8341f">MoE：每个 token 只用 top-2 专家</text>
+          <rect x="20" y="80" width="50" height="34" rx="5" fill="#e2ece8" stroke="#2f6f63"/><text x="45" y="102" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">token</text>
+          <line x1="70" y1="97" x2="92" y2="97" stroke="#5a5043" stroke-width="1.3" marker-end="url(#d10ar)"/>
+          <rect x="94" y="80" width="46" height="34" rx="5" fill="#f0e6cf" stroke="#b5832f"/><text x="117" y="100" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">gate</text>
+          <g font-family="'JetBrains Mono',monospace" font-size="8.5">
+            <rect x="170" y="44" width="40" height="22" rx="3" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.6"/><text x="190" y="59" text-anchor="middle" fill="#a8341f">E1 ✓</text>
+            <rect x="170" y="70" width="40" height="22" rx="3" fill="#efe8d8" stroke="#d8cdb6"/><text x="190" y="85" text-anchor="middle" fill="#8a7d6a">E2</text>
+            <rect x="170" y="96" width="40" height="22" rx="3" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.6"/><text x="190" y="111" text-anchor="middle" fill="#a8341f">E3 ✓</text>
+            <rect x="170" y="122" width="40" height="22" rx="3" fill="#efe8d8" stroke="#d8cdb6"/><text x="190" y="137" text-anchor="middle" fill="#8a7d6a">E4…</text>
+          </g>
+          <line x1="140" y1="97" x2="166" y2="60" stroke="#a8341f" stroke-width="1.3" marker-end="url(#d10ar)"/>
+          <line x1="140" y1="97" x2="166" y2="107" stroke="#a8341f" stroke-width="1.3" marker-end="url(#d10ar)"/>
+          <line x1="140" y1="100" x2="166" y2="80" stroke="#d8cdb6" stroke-width="1"/><line x1="140" y1="100" x2="166" y2="130" stroke="#d8cdb6" stroke-width="1"/>
+          <text x="180" y="166" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">Mixtral 8×7B：46.7B 总参，每 token 只用 ~13B</text>
+          <!-- 分隔 -->
+          <line x1="400" y1="40" x2="400" y2="180" stroke="#d8cdb6"/>
+          <!-- KV Cache -->
+          <text x="580" y="28" text-anchor="middle" font-family="'Noto Serif SC',serif" font-size="12" font-weight="700" fill="#2f6f63">KV Cache：复用历史 K、V</text>
+          <rect x="430" y="56" width="180" height="44" rx="6" fill="#e2ece8" stroke="#2f6f63" stroke-width="1.4"/><text x="520" y="74" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#26211a">缓存 k₁…k₍ₜ₋₁₎, v₁…v₍ₜ₋₁₎</text><text x="520" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">之前算过，不重算</text>
+          <rect x="430" y="112" width="180" height="42" rx="6" fill="#f7e9e4" stroke="#a8341f" stroke-width="1.6"/><text x="520" y="130" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#a8341f">第 t 步：只算新 qₜ,kₜ,vₜ</text><text x="520" y="146" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#5a5043">追加缓存 → qₜ attend 全部</text>
+          <line x1="610" y1="100" x2="628" y2="112" stroke="#5a5043" stroke-width="1.3" marker-end="url(#d10ar)"/>
+          <text x="690" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#8a7d6a">不缓存：每步 O(t²)</text>
+          <text x="690" y="96" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#2f6f63">缓存后：每步 O(t)</text>
+          <text x="690" y="138" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">代价：占显存</text>
+          <text x="690" y="152" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="#8a7d6a">(GQA/MQA 来省)</text>
+          <text x="14" y="196" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8a7d6a">MoE 用「稀疏」换大容量低算力；KV Cache 用「显存」换生成速度 —— 两个现代 LLM 无处不在的工程招</text>
+        </svg>
+      </div>
+
       <h4>学习目标</h4>
-      <p>理解两个在现代 LLM 中无处不在的工程概念：Mixture of Experts（稀疏激活）和 KV Cache（加速推理）。</p>
+      <p>理解两个在现代 LLM 中无处不在的工程概念：Mixture of Experts（稀疏激活，连 D16 InternVL/DeepSeek-V3）和 KV Cache（加速推理，连 D15 视觉 token 只编码一次）。</p>
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> MoE 与 KV Cache 原理</div>
         <div class="deriv-body"><pre>
 ═══ Mixture of Experts (MoE) ═══
@@ -1818,10 +2070,42 @@ KV Cache：缓存所有已计算的 K 和 V，每步只需要：
 内存占用：2 × n_layers × d_model × seq_len × dtype_size
   7B 模型 4096 context: ≈ 1GB</pre></div>
       </div>
+      <h4>动手：KV Cache 的本质（伪代码）</h4>
+      <div class="code-block"># 自回归生成时，历史的 K、V 不会变 → 缓存起来，每步只算新 token
+cache_k, cache_v = [], []
+
+def step(q_t, k_t, v_t):
+    cache_k.append(k_t); cache_v.append(v_t)        # 追加新 token 的 K、V
+    K = torch.cat(cache_k, dim=1)                   # 复用全部历史
+    V = torch.cat(cache_v, dim=1)
+    return attention(q_t, K, V)                     # 只对新 q_t 算注意力
+
+# 不缓存：每步重算 1..t 的 K、V → O(t²)
+# 缓存后：每步只算第 t 个 → O(t)，长文本生成提速巨大
+# 代价：显存 ≈ 2·layers·d·seq·dtype（7B/4K ≈ 1GB）→ 用 GQA/MQA 省
+# 注：HF 里 model.generate(use_cache=True) 默认就开了</div>
+
+      <h4>自测 / 误区 / 面试</h4>
+      <div class="box-tip">
+        <span class="label">✅ 检查点自测</span>
+        <p>① MoE 的 gate 做什么？为什么「总参大、激活小」？② Mixtral 8×7B 总参/激活各多少？③ KV Cache 缓存什么、省了什么？④ KV Cache 的显存代价？GQA/MQA 怎么缓解？⑤ KV Cache 和 D15「图像只编码一次」的联系？</p>
+      </div>
+      <div class="box-important">
+        <span class="label">⚠️ 常见误区</span>
+        <p>① <strong>以为 MoE 推理用全部参数</strong>——每 token 只激活 top-k 专家。② <strong>以为 MoE 一定更省显存</strong>——参数都要常驻显存，省的是算力。③ <strong>以为 KV Cache 缓存 Q</strong>——只缓存 K、V（Q 每步是新的）。④ <strong>忽略 KV Cache 占显存</strong>——长上下文时它是显存大头。</p>
+      </div>
+      <div class="box-tip">
+        <span class="label">🎯 面试高频</span>
+        <p>① MoE 的路由与 top-k 机制，「稀疏激活」的收益与挑战（负载均衡）。② KV Cache 为什么能加速、复杂度从 O(t²)→O(t)。③ GQA/MQA 如何压缩 KV Cache？④ 长上下文推理的显存瓶颈与对策？</p>
+      </div>
+
       <h4>阅读材料</h4>
-      <ul><li><a href="https://arxiv.org/abs/2401.04088" target="_blank">Mixtral 论文</a>（MoE 最经典的开源实现）</li>
-      <li>理解 GQA（Grouped Query Attention）：Llama 2 的 KV Cache 优化</li></ul>
-      <div class="box-tip"><span class="label">💡 本周回顾</span><p>你能解释 LoRA 的数学原理吗？能说出 SFT/RLHF/DPO 各自解决什么问题吗？能独立完成一次微调吗？</p></div>
+      <ul>
+        <li>理解 <strong>GQA（Grouped Query Attention）</strong>：Llama 2/3 压缩 KV Cache 的关键</li>
+        <li><a href="https://arxiv.org/abs/2401.06066" target="_blank">DeepSeekMoE</a>（细粒度专家 + 共享专家的 MoE 设计）</li>
+      </ul>
+
+      <div class="box-tip"><span class="label">💡 本周（Week 02）回顾</span><p>你能解释 LoRA 的数学原理吗？能说出 SFT/RLHF/DPO 各自解决什么问题吗？能独立完成一次微调吗？理解 MoE 与 KV Cache 吗？这些直接支撑下一周 Week 03 的多模态对齐与 D14/D20 的 LLaVA 训练。<strong>至此，整条 9 周路线全部走完，你已具备进入多模态研究的完整基础。</strong></p></div>
     </div>
   </div>
 </div><!-- week 2 -->
