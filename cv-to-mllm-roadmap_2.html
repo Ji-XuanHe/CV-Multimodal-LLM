@@ -1651,17 +1651,18 @@ curl http://localhost:11434/api/generate -d '{
         <p><strong>③ RLHF / DPO</strong>：人类对同一问题的多个回答做偏好排序，训练 reward model 或直接用 DPO 优化。让输出更安全、更有帮助。</p>
       </div>
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> SFT 的 loss 与预训练的区别</div>
-        <div class="deriv-body"><pre>
-预训练 loss：对整个序列 [x₁, x₂, ..., xₜ] 都算 loss
-SFT loss：只对 response 部分算 loss
-
-格式示例（ChatML format，Qwen 使用的）：
-<|im_start|>system\n你是一个助手<|im_end|>
-<|im_start|>user\n什么是超分辨率？<|im_end|>
-<|im_start|>assistant\n超分辨率是...<|im_end|>
-
-loss mask: [0,0,0,...,0, 1,1,1,...,1]
-            ← system+user →  ← assistant →</pre></div>
+        <div class="deriv-body">
+          <p class="math-note"><strong>预训练 loss</strong>：对整个序列 $[x_1,x_2,\dots,x_T]$ 都算 loss。<br>
+          <strong>SFT loss</strong>：只对 response（assistant）部分算 loss。</p>
+          <div class="math-cap">ChatML 格式（Qwen 使用）</div>
+          <div class="code-block">&lt;|im_start|&gt;system
+你是一个助手&lt;|im_end|&gt;
+&lt;|im_start|&gt;user
+什么是超分辨率？&lt;|im_end|&gt;
+&lt;|im_start|&gt;assistant
+超分辨率是…&lt;|im_end|&gt;</div>
+          <p class="math-note">loss mask <code>[0,0,…,0, 1,1,…,1]</code>：前段 <code>system+user</code> 为 0（不算），后段 <code>assistant</code> 为 1（算）。</p>
+        </div>
       </div>
       <h4>动手：SFT 的 loss mask（只学回答）</h4>
       <div class="code-block">import torch, torch.nn.functional as F
@@ -1734,25 +1735,19 @@ loss = F.cross_entropy(
       <h4>学习目标</h4>
       <p>RLHF 太复杂（需要训练 reward model + PPO），DPO 把它简化成了一个<strong>简单的分类式损失</strong>。现在大多数开源模型都用 DPO 或其变体。</p>
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> DPO 损失函数完整推导</div>
-        <div class="deriv-body"><pre>
-RLHF 的目标（Bradley-Terry 模型）：
-  P(y_w ≻ y_l | x) = σ(r(x, y_w) - r(x, y_l))
-  其中 y_w 是人类偏好的回答，y_l 是被拒绝的
-
-RLHF 需要先训练 reward model r(x,y)，再用 PPO 优化策略。
-
-DPO 的关键洞察：
-  最优策略 π* 和 reward 之间有解析关系：
-  r(x,y) = β log(π*(y|x) / π_ref(y|x)) + const
-
-  代入 Bradley-Terry 模型，reward model 被消掉了！
-
-  得到 DPO loss：
-  L_DPO = -E[log σ(β log(π_θ(y_w|x)/π_ref(y_w|x))
-                   - β log(π_θ(y_l|x)/π_ref(y_l|x)))]
-
-  直觉：让模型增加好回答的概率、降低差回答的概率，
-  同时不偏离参考模型太远（通过 β 控制）。</pre></div>
+        <div class="deriv-body">
+          <div class="math-cap">RLHF 目标（Bradley-Terry 模型）</div>
+          $$P(y_w \succ y_l \mid x) = \sigma\big(r(x,y_w) - r(x,y_l)\big)$$
+          <p class="math-note">$y_w$ 是人类偏好的回答、$y_l$ 是被拒绝的。RLHF 需先训 reward model $r(x,y)$，再用 PPO 优化策略。</p>
+          <div class="math-cap">DPO 的关键洞察</div>
+          <p class="math-note">最优策略 $\pi^{*}$ 与 reward 有解析关系：</p>
+          $$r(x,y) = \beta \log\frac{\pi^{*}(y\mid x)}{\pi_{\text{ref}}(y\mid x)} + \text{const}$$
+          <p class="math-note">代入 Bradley-Terry，reward model 被<strong>消掉</strong>，直接得到 DPO loss：</p>
+          $$L_{\text{DPO}} = -\,\mathbb{E}\left[\log\sigma\!\left(
+          \beta\log\frac{\pi_\theta(y_w\mid x)}{\pi_{\text{ref}}(y_w\mid x)}
+          - \beta\log\frac{\pi_\theta(y_l\mid x)}{\pi_{\text{ref}}(y_l\mid x)}\right)\right]$$
+          <p class="math-note">直觉：抬高好回答概率、压低差回答概率，同时由 $\beta$ 控制不偏离参考模型 $\pi_{\text{ref}}$ 太远。</p>
+        </div>
       </div>
       <h4>动手：DPO loss 就这几行</h4>
       <div class="code-block">import torch.nn.functional as F
@@ -1826,24 +1821,18 @@ def dpo_loss(logp_w, logp_l, ref_w, ref_l, beta=0.1):
       <h4>学习目标</h4>
       <p>LoRA 是你后面做任何微调实验（D09 本地微调、D20 训 MLLM）的基础工具，必须吃透——<strong>它是你在有限显存上能动手的前提</strong>。</p>
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> LoRA 核心数学（务必理解）</div>
-        <div class="deriv-body"><pre>
-全量微调：W' = W + ΔW    ΔW ∈ ℝ^{d×d}（参数量巨大）
-
-LoRA 的假设：ΔW 是低秩的，可以分解为：
-  ΔW = B · A    其中 A ∈ ℝ^{r×d}, B ∈ ℝ^{d×r}
-  r ≪ d（rank，通常 8-64）
-
-前向传播：h = (W + ΔW)x = Wx + BAx
-
-参数量对比（以 d=4096, r=16 为例）：
-  全量微调 ΔW：4096 × 4096 = 16.7M 参数/层
-  LoRA (A+B)：4096×16 + 16×4096 = 131K 参数/层
-  压缩比：128x！
-
-初始化：
-  A ~ N(0, σ²)   （随机初始化）
-  B = 0           （零初始化，保证训练开始时 ΔW=0）
-  缩放因子：α / r（α 通常设为 r 的 1-2 倍）</pre></div>
+        <div class="deriv-body">
+          <p class="math-note">全量微调 $W' = W + \Delta W$，其中 $\Delta W\in\mathbb{R}^{d\times d}$（参数量巨大）。LoRA 假设 $\Delta W$ 低秩，分解为：</p>
+          $$\Delta W = B A,\qquad A\in\mathbb{R}^{r\times d},\ B\in\mathbb{R}^{d\times r},\ r\ll d\ (\text{rank, 常 8–64})$$
+          <p class="math-note">前向：$h = (W+\Delta W)x = Wx + BAx$。</p>
+          <div class="math-cap">参数量对比（$d=4096,\ r=16$）</div>
+          $$\underbrace{4096\times4096 = 16.7\mathrm{M}}_{\text{全量 }\Delta W}
+          \quad\gg\quad
+          \underbrace{4096{\times}16 + 16{\times}4096 = 131\mathrm{K}}_{\text{LoRA }A+B}
+          \quad(\text{压缩 }128\times)$$
+          <div class="math-cap">初始化</div>
+          <p class="math-note">$A\sim\mathcal{N}(0,\sigma^2)$（随机），$B=0$（零初始化，保证起步 $\Delta W=0$）；缩放因子 $\alpha/r$（$\alpha$ 常取 $r$ 的 1–2 倍）。</p>
+        </div>
       </div>
       <div class="box-important"><span class="label">🔥 QLoRA</span>
         <p><strong>QLoRA = 量化基础模型 + LoRA</strong>。基础模型以 4-bit NF4 格式加载（省内存），只训练 LoRA 的 A/B 矩阵（FP16/BF16）。这就是你在 32GB MacBook 上能微调 7B 模型的原因。</p>
@@ -1994,26 +1983,18 @@ mlx_lm.generate \
       <h4>学习目标</h4>
       <p>理解两个在现代 LLM 中无处不在的工程概念：Mixture of Experts（稀疏激活，连 D16 InternVL/DeepSeek-V3）和 KV Cache（加速推理，连 D15 视觉 token 只编码一次）。</p>
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> MoE 与 KV Cache 原理</div>
-        <div class="deriv-body"><pre>
-═══ Mixture of Experts (MoE) ═══
-标准 FFN：y = FFN(x)（每个 token 都经过同一个 FFN）
-MoE FFN：
-  gate(x) = softmax(W_g · x)  → 路由概率（K 个专家）
-  选择 top-k 个专家（通常 k=2）
-  y = ∑ᵢ gate_i(x) · FFNᵢ(x)（只计算被选中的专家）
-例：Mixtral 8×7B → 8 个专家，每次激活 2 个
-  总参数 46.7B，但每个 token 只用 ~13B → 推理快，效果好
+        <div class="deriv-body">
+          <div class="math-cap">Mixture of Experts（MoE）</div>
+          <p class="math-note">标准 FFN：每个 token 都过同一个 $y=\mathrm{FFN}(x)$。MoE 则路由到少数专家：</p>
+          $$\mathrm{gate}(x) = \mathrm{softmax}(W_g x),\qquad
+          y = \sum_{i\in\text{top-}k} \mathrm{gate}_i(x)\cdot \mathrm{FFN}_i(x)$$
+          <p class="math-note">只计算被选中的 top-$k$ 个专家（通常 $k=2$）。例：Mixtral 8×7B 共 8 专家、每次激活 2 个 —— 总参 $46.7\mathrm{B}$，但每 token 只用 $\sim13\mathrm{B}$，推理快、效果好。</p>
 
-═══ KV Cache ═══
-自回归生成时，第 t 步需要：
-  Attention(q_t, [k₁,...,k_t], [v₁,...,v_t])
-观察：k₁...k_{t-1} 和 v₁...v_{t-1} 之前已经算过了！
-KV Cache：缓存所有已计算的 K 和 V，每步只需要：
-  1. 计算新 token 的 q_t, k_t, v_t
-  2. 把 k_t, v_t 追加到缓存
-  3. q_t attend 到整个缓存
-内存占用：2 × n_layers × d_model × seq_len × dtype_size
-  7B 模型 4096 context: ≈ 1GB</pre></div>
+          <div class="math-cap">KV Cache</div>
+          <p class="math-note">自回归生成第 $t$ 步需 $\mathrm{Attention}\big(q_t,\,[k_1,\dots,k_t],\,[v_1,\dots,v_t]\big)$。注意 $k_1\dots k_{t-1},\,v_1\dots v_{t-1}$ 之前已算过 → 缓存复用，每步只需：</p>
+          <p class="math-note">① 算新 token 的 $q_t,k_t,v_t$ → ② 把 $k_t,v_t$ 追加缓存 → ③ $q_t$ attend 整个缓存。</p>
+          $$\text{显存} \approx 2\times n_{\text{layers}}\times d_{\text{model}}\times \text{seq\_len}\times \text{dtype}\quad(\text{7B / 4K ctx}\approx 1\mathrm{GB})$$
+        </div>
       </div>
       <h4>动手：KV Cache 的本质（伪代码）</h4>
       <div class="code-block"># 自回归生成时，历史的 K、V 不会变 → 缓存起来，每步只算新 token
