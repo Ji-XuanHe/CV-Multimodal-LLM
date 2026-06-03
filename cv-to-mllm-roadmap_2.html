@@ -1135,16 +1135,13 @@ for epoch in range(10):
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> Causal Attention 与标准 Self-Attention 的区别</div>
-        <div class="deriv-body"><pre>
-标准 Self-Attention（你在 ViT 里熟悉的）：
-  Attention(Q, K, V) = softmax(QKᵀ / √d_k) · V
-
-Causal Self-Attention（GPT 使用的）：
-  Attention(Q, K, V) = softmax(QKᵀ / √d_k + M) · V
-  其中 M 是上三角 mask 矩阵，M_ij = 0 if i≥j, else -∞
-
-效果：位置 i 的 token 只能 attend 到 [0, 1, ..., i]，
-看不到未来的 [i+1, i+2, ...] 位置。</pre>
+        <div class="deriv-body">
+          <p class="math-note">标准 Self-Attention（你在 ViT 里熟悉的）：</p>
+          $$\mathrm{Attention}(Q,K,V) = \mathrm{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V$$
+          <p class="math-note">Causal Self-Attention（GPT 使用）：在分数上加一个上三角 mask $M$：</p>
+          $$\mathrm{Attention}(Q,K,V) = \mathrm{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}} + M\right)V,
+          \qquad M_{ij} = \begin{cases}0 & i\ge j\\[2pt] -\infty & i<j\end{cases}$$
+          <p class="math-note">效果：位置 $i$ 的 token 只能 attend 到 $[0,1,\dots,i]$，看不到未来的 $[i{+}1,i{+}2,\dots]$ 位置。</p>
         </div>
       </div>
 
@@ -1231,21 +1228,15 @@ print(causal_attention(q, k, v).shape)     # [1, 5, 64]，每个位置只看自�
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> BPE 算法完整步骤（需要手动走一遍）</div>
-        <div class="deriv-body"><pre>
-初始词表：所有单个字符 {'l','o','w','e','r','n','s','t','i','d',...}
-语料频率统计：l o w = 5次, l o w e r = 2次, n e w e s t = 6次 ...
-
-迭代过程：
-  Step 1: 统计所有相邻 pair 的频率
-    ('e','s') 出现 9 次 → 最高 → 合并为 'es'
-  Step 2: 更新语料，重新统计
-    ('es','t') 出现 9 次 → 合并为 'est'
-  Step 3: 继续...
-  直到词表大小 = 目标值（如 32000）
-
-现代变体：
-  - Byte-level BPE（GPT-2/3/4）：以 byte 而非 unicode 字符为起点
-  - SentencePiece（Llama/Qwen）：直接在原始文本上训练，不需要预分词</pre>
+        <div class="deriv-body">
+          <p class="math-note"><strong>初始词表</strong>：所有单个字符 <code>{'l','o','w','e','r','n','s','t',…}</code>。<strong>语料统计</strong>：<code>low</code>×5、<code>lower</code>×2、<code>newest</code>×6 …</p>
+          <div class="math-cap">迭代过程</div>
+          <p class="math-note">① 统计所有相邻 pair 频率 → <code>('e','s')</code> 出现 9 次（最高）→ 合并为 <code>'es'</code><br>
+          ② 更新语料、重新统计 → <code>('es','t')</code> 9 次 → 合并为 <code>'est'</code><br>
+          ③ 继续，直到词表大小 = 目标值（如 $32000$）</p>
+          <div class="math-cap">现代变体</div>
+          <p class="math-note"><strong>Byte-level BPE</strong>（GPT-2/3/4）：以 byte 而非 unicode 字符为起点。<br>
+          <strong>SentencePiece</strong>（Llama/Qwen）：直接在原始文本上训练，无需预分词。</p>
         </div>
       </div>
 
@@ -1329,29 +1320,22 @@ for t in texts:
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 完整前向过程与参数量估算（面试常考）</div>
-        <div class="deriv-body"><pre>
-完整前向过程（对照 nanoGPT 代码理解）：
-
-1. Token Embedding: E ∈ ℝ^{V × d}，将 token ID 映射为向量
-   h₀ = E[x] + PE    (PE: 位置编码)
-
-2. Transformer Layers (×N):
-   h'ₗ = hₗ + CausalMHA(LayerNorm(hₗ))
-   hₗ₊₁ = h'ₗ + FFN(LayerNorm(h'ₗ))
-
-   其中 FFN(x) = W₂ · GELU(W₁ · x)
-   （现代模型如 Llama 用 SwiGLU: FFN(x) = W₂ · (SiLU(W₁x) ⊙ W₃x)）
-
-3. 输出层:
-   logits = LayerNorm(h_N) · Eᵀ   (权重共享)
-   P(next_token) = softmax(logits)
-
-参数量估算（重要！面试常考）：
-  Embedding: V × d
-  每层 Attention: 4 × d²（Q/K/V/O 四个投影矩阵）
-  每层 FFN: 约 8d²（标准）或 ~8d²（SwiGLU）
-  总参数 ≈ 12 × N × d²（N 是层数，d 是隐藏维度）
-  7B 模型：N=32, d=4096 → 12 × 32 × 4096² ≈ 6.4B ✓</pre>
+        <div class="deriv-body">
+          <p class="math-note">完整前向过程（对照 nanoGPT 代码理解）：</p>
+          <div class="math-cap">① Token Embedding</div>
+          $$E \in \mathbb{R}^{V\times d},\qquad h_0 = E[x] + \mathrm{PE}\ \ (\text{PE 为位置编码})$$
+          <div class="math-cap">② Transformer Layers（×N，Pre-Norm）</div>
+          $$\begin{aligned}
+          h'_l &= h_l + \mathrm{CausalMHA}\big(\mathrm{LN}(h_l)\big)\\
+          h_{l+1} &= h'_l + \mathrm{FFN}\big(\mathrm{LN}(h'_l)\big)
+          \end{aligned}$$
+          <p class="math-note">其中 $\mathrm{FFN}(x)=W_2\,\mathrm{GELU}(W_1 x)$；现代模型（Llama）用 SwiGLU：$\mathrm{FFN}(x)=W_2\big(\mathrm{SiLU}(W_1 x)\odot W_3 x\big)$。</p>
+          <div class="math-cap">③ 输出层（权重共享）</div>
+          $$\text{logits} = \mathrm{LN}(h_N)\,E^\top,\qquad P(\text{next}) = \mathrm{softmax}(\text{logits})$$
+          <div class="math-cap">参数量估算（面试常考）</div>
+          <p class="math-note">Embedding $V\times d$；每层 Attention $4d^2$（Q/K/V/O）、FFN $\approx 8d^2$，故</p>
+          $$\text{总参数} \approx 12\,N d^2.\qquad
+          \text{7B: } N{=}32,\ d{=}4096 \Rightarrow 12\times32\times4096^2 \approx 6.4\mathrm{B}$$
         </div>
       </div>
 
@@ -1449,28 +1433,23 @@ print(blk(torch.randn(1, n, d), mask).shape)  # [1, 16, 768]
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 三代位置编码对比（RoPE 重点理解）</div>
-        <div class="deriv-body"><pre>
-═══ 第一代：Sinusoidal（原始 Transformer / ViT）═══
-  PE(pos, 2i) = sin(pos / 10000^{2i/d})
-  PE(pos, 2i+1) = cos(pos / 10000^{2i/d})
-  加到 embedding 上：h₀ = E[x] + PE
-  问题：绝对位置，无法外推到训练长度之外
+        <div class="deriv-body">
+          <div class="math-cap">第一代 · Sinusoidal（原始 Transformer / ViT）</div>
+          $$\mathrm{PE}(pos,2i) = \sin\!\Big(\frac{pos}{10000^{2i/d}}\Big),\qquad
+          \mathrm{PE}(pos,2i{+}1) = \cos\!\Big(\frac{pos}{10000^{2i/d}}\Big)$$
+          <p class="math-note">加到 embedding 上 $h_0 = E[x]+\mathrm{PE}$。问题：绝对位置，难外推到训练长度之外。</p>
 
-═══ 第二代：ALiBi（BLOOM）═══
-  不加到 embedding，而是加到 attention score 上：
-  Attention_ij += -m × |i - j|
-  m 是每个 head 不同的斜率
-  简单但有效，天然支持外推
+          <div class="math-cap">第二代 · ALiBi（BLOOM）</div>
+          <p class="math-note">不加到 embedding，而是加到注意力分数上（$m$ 为每个 head 不同的斜率）：</p>
+          $$\mathrm{Attention}_{ij} \mathrel{+}= -\,m\,|i-j|$$
+          <p class="math-note">简单但有效，天然支持外推。</p>
 
-═══ 第三代：RoPE（Llama/Qwen/大多数现代模型）═══
-  核心思想：用旋转矩阵编码相对位置
-  对 q, k 向量在每对维度上做旋转：
-  [q_{2i}]     [cos(mθᵢ)  -sin(mθᵢ)] [q_{2i}]
-  [q_{2i+1}] = [sin(mθᵢ)   cos(mθᵢ)] [q_{2i+1}]
-  其中 m 是位置，θᵢ = 10000^{-2i/d}
-
-  qᵐ · kⁿ 的内积只依赖于 m-n（相对距离）！
-  这就是「旋转位置编码」名字的由来。</pre>
+          <div class="math-cap">第三代 · RoPE（Llama / Qwen / 多数现代模型）</div>
+          <p class="math-note">核心：用旋转矩阵编码相对位置，对 $q,k$ 的每对维度做旋转：</p>
+          $$\begin{pmatrix} q'_{2i}\\ q'_{2i+1}\end{pmatrix}
+          = \begin{pmatrix}\cos m\theta_i & -\sin m\theta_i\\ \sin m\theta_i & \cos m\theta_i\end{pmatrix}
+          \begin{pmatrix} q_{2i}\\ q_{2i+1}\end{pmatrix},\qquad \theta_i = 10000^{-2i/d}$$
+          <p class="math-note">于是 $q_m\cdot k_n$ 的内积只依赖 $m-n$（相对距离）—— 这就是「旋转位置编码」名字的由来。</p>
         </div>
       </div>
 
@@ -1576,18 +1555,14 @@ print(rope(q).shape)        # [1, 8, 64]
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 预训练损失与 Perplexity</div>
-        <div class="deriv-body"><pre>
-预训练损失函数：
-
-给定序列 x = (x₁, x₂, ..., xₜ)
-L = -∑ᵢ log P(xᵢ | x₁, ..., xᵢ₋₁; θ)
-
-即标准的交叉熵损失。和你做分类任务的 CE loss 一模一样，
-只不过这里「分类」的类别数 = 词表大小 V（通常 32K-150K）。
-
-Perplexity（困惑度，评估指标）：
-PPL = exp(L / T)    T 是序列长度
-PPL 越低越好，直觉上代表「平均每个位置模型犹豫的选项数」。</pre>
+        <div class="deriv-body">
+          <div class="math-cap">预训练损失（自回归交叉熵）</div>
+          <p class="math-note">给定序列 $x=(x_1,x_2,\dots,x_T)$：</p>
+          $$L = -\sum_{i} \log P(x_i \mid x_1,\dots,x_{i-1};\,\theta)$$
+          <p class="math-note">就是标准交叉熵 —— 和你做分类的 CE loss 一模一样，只是「类别数」= 词表大小 $V$（通常 32K–150K）。</p>
+          <div class="math-cap">Perplexity（困惑度）</div>
+          $$\mathrm{PPL} = \exp\!\big(L/T\big)\quad(T\text{ 为序列长度})$$
+          <p class="math-note">PPL 越低越好，直觉上代表「平均每个位置模型犹豫的选项数」。</p>
         </div>
       </div>
 
