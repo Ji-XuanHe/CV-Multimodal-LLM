@@ -2,34 +2,33 @@
 
 一份精细到每天的交互式学习计划 —— 从深度学习基础开始，经由 LLM、CLIP 到多模态大模型（MLLM）与视觉 Agent。
 
+<p align="center">
+  <a href="https://ji-xuanhe.github.io/CV-Multimodal-LLM/">
+    <img src="https://img.shields.io/badge/%E2%96%B6_%E5%9C%A8%E7%BA%BF%E9%98%85%E8%AF%BB-Live_Demo-a8341f?style=for-the-badge" alt="在线阅读">
+  </a>
+  &nbsp;
+  <a href="https://ji-xuanhe.github.io/CV-Multimodal-LLM/">
+    <img src="https://img.shields.io/badge/GitHub_Pages-online-2f6f63?style=for-the-badge&logo=github" alt="GitHub Pages">
+  </a>
+</p>
+
 > 前置 + 8 周系统学习路线，从零基础到 MLLM + Agent。
 
-## 🌐 在线查看（渲染版）
+## 🌐 在线访问
 
-> ⚠️ 在 GitHub 上直接点 `.html` 文件，只会看到**源码** —— 出于安全，GitHub 不会把仓库里的 HTML 当网页渲染。请用下面任一方式看到真正的页面。
+**👉 https://ji-xuanhe.github.io/CV-Multimodal-LLM/** （已部署在 GitHub Pages，点开即用）
 
-### 方式一：GitHub Pages（推荐，体验最佳）
+> ⚠️ 注意：在 GitHub 上直接点仓库里的 `.html` 文件，只会看到**源码** —— 出于安全，GitHub 不会把仓库里的 HTML 当网页渲染。请用上面的 Pages 链接访问渲染后的页面。
 
-开启后访问 👉 **https://ji-xuanhe.github.io/CV-Multimodal-LLM/cv-to-mllm-roadmap_2.html**
+### 自动部署
 
-开启步骤（一次性，约 1 分钟）：
+本仓库通过 `.github/workflows/pages.yml`（GitHub Actions）自动部署：**每次往 `main` push，页面会自动重新发布**，无需任何手动操作。
 
-1. 仓库页面 → **Settings** → 左侧 **Pages**
-2. **Source** 选 `Deploy from a branch`
-3. **Branch** 选 `main` / `(root)` → **Save**
-4. 等 1–2 分钟构建完成，即可访问上面的链接（之后每次 push 自动更新）
+> Pages 是 https 环境，本地 `file://` 下 YouTube 无法内嵌播放（error 153）的问题在线上不存在。
 
-> Pages 是 https 环境，还能顺带解决本地 `file://` 下 YouTube 无法内嵌播放（error 153）的问题。
+### 本地打开（可选）
 
-### 方式二：htmlpreview（零配置，即点即看）
-
-[▶ 立即在线预览](https://htmlpreview.github.io/?https://github.com/Ji-XuanHe/CV-Multimodal-LLM/blob/main/cv-to-mllm-roadmap_2.html)
-
-通过第三方代理实时渲染，无需任何设置；偶有兼容性差异，长期使用建议用 Pages。
-
-### 方式三：本地打开
-
-下载后用浏览器直接打开，或克隆后在目录里起一个本地服务（推荐，能让侧窗/视频正常工作）：
+克隆或下载后，用浏览器直接打开，或在目录里起一个本地服务（推荐，能让侧窗/视频正常工作）：
 
 ```bash
 # 直接打开（macOS / Linux / Windows）
