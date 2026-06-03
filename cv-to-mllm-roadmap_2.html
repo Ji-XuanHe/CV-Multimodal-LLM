@@ -342,6 +342,76 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
   .side-nav.open{transform:translateX(0);}
   .rc-burger{display:inline-flex;}
 }
+
+/* ========================================================== */
+/* ==========      资源链接 + 并排侧窗（REFS）       ========== */
+/* ========================================================== */
+
+/* ---- 正文外链的 venue 角标 ---- */
+.day-body a[data-ref]{text-decoration:none;}
+.ref-badge{
+  display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.56rem;
+  letter-spacing:.04em;vertical-align:super;margin-left:3px;padding:0 4px;border-radius:3px;
+  border:1px solid currentColor;opacity:.65;font-weight:500;line-height:1.6;
+}
+
+/* ---- 注入的「延伸资源」块 ---- */
+.ext-refs{margin:20px 0 4px;border-top:1px dashed var(--rule);padding-top:14px;}
+.ext-refs .er-h{
+  font-family:"JetBrains Mono",monospace;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:10px;
+}
+.er-list{display:flex;flex-direction:column;gap:7px;}
+.er-link{
+  display:flex;align-items:center;gap:11px;text-decoration:none;border:1px solid var(--rule);
+  border-radius:4px;padding:8px 13px;background:var(--paper-2);transition:.15s;cursor:pointer;
+}
+.er-link:hover{border-color:var(--teal);background:var(--teal-soft);transform:translateX(2px);}
+.er-tag,.rp-tag{
+  font-family:"JetBrains Mono",monospace;font-size:.6rem;font-weight:600;letter-spacing:.03em;
+  padding:2px 7px;border-radius:3px;white-space:nowrap;flex-shrink:0;background:var(--ink);color:var(--paper);
+}
+.er-tag.arxiv,.rp-tag.arxiv{background:#b31b1b;}
+.er-tag.report,.rp-tag.report{background:var(--amber);}
+.er-tag.conf,.rp-tag.conf{background:var(--teal);}
+.er-tag.code,.rp-tag.code{background:#2b3137;}
+.er-tag.video,.rp-tag.video{background:#c4302b;}
+.er-title{font-size:.85rem;color:var(--ink);font-family:"Noto Serif SC",serif;line-height:1.32;flex:1;}
+.er-open{font-family:"JetBrains Mono",monospace;font-size:.68rem;color:var(--teal);flex-shrink:0;}
+
+/* ---- 并排侧窗 ---- */
+:root{--rp-w:46vw;}
+.ref-panel{
+  position:fixed;top:0;right:0;height:100vh;width:var(--rp-w);z-index:280;
+  background:var(--paper);border-left:2px solid var(--ink);display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .3s ease;box-shadow:-4px 0 28px var(--shadow);
+}
+.ref-panel.open{transform:translateX(0);}
+.rp-head{display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--rule);background:var(--paper-2);flex-shrink:0;}
+.rp-title{flex:1;font-size:.82rem;color:var(--ink);font-family:"Noto Serif SC",serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rp-btn{border:1px solid var(--rule);background:var(--paper);color:var(--ink-soft);border-radius:3px;cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:.7rem;padding:4px 9px;transition:.15s;white-space:nowrap;}
+.rp-btn:hover{border-color:var(--red-soft);color:var(--red);}
+.rp-body{flex:1;position:relative;overflow:hidden;background:#fff;}
+.rp-body iframe{width:100%;height:100%;border:0;background:#fff;}
+.rp-resize{position:absolute;left:-4px;top:0;width:9px;height:100%;cursor:col-resize;z-index:3;}
+.rp-resize:hover{background:rgba(47,111,99,.25);}
+.rp-card{padding:36px 28px;display:flex;flex-direction:column;gap:15px;height:100%;overflow-y:auto;background:var(--paper);box-sizing:border-box;}
+.rp-card .c-title{font-family:"Fraunces",serif;font-weight:700;font-size:1.3rem;color:var(--ink);line-height:1.25;}
+.rp-card .c-url{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--ink-faint);word-break:break-all;}
+.rp-card .c-note{font-size:.9rem;color:var(--ink-soft);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;}
+.rp-card .c-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
+.rp-card .c-btn{text-decoration:none;border:1px solid var(--red-soft);color:var(--red);border-radius:4px;padding:9px 16px;font-family:"JetBrains Mono",monospace;font-size:.78rem;cursor:pointer;transition:.15s;background:var(--paper);}
+.rp-card .c-btn.primary{background:var(--red);color:var(--paper);border-color:var(--red);}
+.rp-card .c-btn:hover{transform:translateY(-1px);}
+.rp-hint{padding:8px 13px;font-family:"JetBrains Mono",monospace;font-size:.64rem;color:var(--ink-faint);border-top:1px solid var(--rule-soft);background:var(--paper-2);flex-shrink:0;line-height:1.5;}
+
+@media(min-width:1080px){
+  body.split{padding-right:var(--rp-w);}
+}
+@media(max-width:1079px){
+  .ref-panel{width:100%;}
+  .rp-resize{display:none;}
+}
 </style>
 </head>
 <body>
@@ -1516,6 +1586,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateBar();
   initReader();
+  initRefs();
 });
 
 /* ================= 阅读器：侧边栏 + 周聚焦 + 快捷键 ================= */
@@ -1714,6 +1785,182 @@ function initReader(){
     }
   }
   activate(Math.min(weeks.length-1, Math.max(0, start)), {scroll:false});
+}
+
+/* ================= 资源链接接管 + 并排侧窗 ================= */
+function initRefs(){
+  // —— 根据 URL 推断 venue 标签与配色 ——
+  function venue(url){
+    var h; try{ h = new URL(url).hostname.replace(/^www\./,''); }catch(e){ return {tag:'链接', cls:''}; }
+    if(/arxiv\.org|ar5iv/.test(h))        return {tag:'arXiv',      cls:'arxiv'};
+    if(/openreview\.net/.test(h))         return {tag:'OpenReview', cls:'conf'};
+    if(/youtube\.com|youtu\.be/.test(h))  return {tag:'视频',        cls:'video'};
+    if(/github\.com/.test(h))             return {tag:'代码',        cls:'code'};
+    if(/openai\.com/.test(h))             return {tag:'OpenAI',     cls:'report'};
+    if(/anthropic\.com/.test(h))          return {tag:'Anthropic',  cls:'report'};
+    if(/deepmind|googleblog|research\.google|ai\.google/.test(h)) return {tag:'Google', cls:'report'};
+    if(/meta\.com|llama\.com/.test(h))    return {tag:'Meta',       cls:'report'};
+    if(/qwenlm|qwen/.test(h))             return {tag:'Qwen',       cls:'report'};
+    if(/deepseek/.test(h))                return {tag:'DeepSeek',   cls:'report'};
+    if(/opencompass/.test(h))             return {tag:'榜单',        cls:'conf'};
+    if(/github\.io/.test(h))              return {tag:'教程',        cls:''};
+    if(/cs231n|stanford/.test(h))         return {tag:'课程',        cls:''};
+    return {tag: h.split('.')[0], cls:''};
+  }
+  // —— arXiv → ar5iv（可嵌入的 HTML 版）；youtube → embed；github.io 直接嵌 ——
+  function embedInfo(url){
+    var m = url.match(/arxiv\.org\/(?:abs|pdf)\/([0-9]+\.[0-9]+)/);
+    if(m) return {embed:true, src:'https://ar5iv.labs.arxiv.org/html/'+m[1], kind:'ar5iv'};
+    var y = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+    if(y) return {embed:true, src:'https://www.youtube.com/embed/'+y[1], kind:'yt'};
+    var h; try{ h = new URL(url).hostname; }catch(e){ return {embed:false}; }
+    if(/github\.io/.test(h) && !/github\.com/.test(h)) return {embed:true, src:url, kind:'page'};
+    return {embed:false};
+  }
+
+  // —— 侧窗 DOM ——
+  var panel = document.createElement('aside');
+  panel.className = 'ref-panel';
+  panel.innerHTML =
+    '<div class="rp-head">'+
+      '<span class="rp-tag" id="rpTag"></span>'+
+      '<span class="rp-title" id="rpTitle"></span>'+
+      '<button class="rp-btn" id="rpOpen">↗ 新标签</button>'+
+      '<button class="rp-btn" id="rpClose">✕</button>'+
+    '</div>'+
+    '<div class="rp-body" id="rpBody"><div class="rp-resize" id="rpResize"></div></div>'+
+    '<div class="rp-hint" id="rpHint"></div>';
+  document.body.appendChild(panel);
+  var rpBody = panel.querySelector('#rpBody'),
+      rpTag  = panel.querySelector('#rpTag'),
+      rpTitle= panel.querySelector('#rpTitle'),
+      rpHint = panel.querySelector('#rpHint'),
+      curUrl = '';
+  panel.querySelector('#rpClose').addEventListener('click', closePanel);
+  panel.querySelector('#rpOpen').addEventListener('click', function(){ if(curUrl) window.open(curUrl,'_blank','noopener'); });
+
+  function openPanel(url, title){
+    curUrl = url;
+    var v = venue(url), e = embedInfo(url);
+    rpTag.textContent = v.tag; rpTag.className = 'rp-tag ' + (v.cls||'');
+    rpTitle.textContent = title || url; rpTitle.title = title || url;
+    [].forEach.call(rpBody.querySelectorAll('iframe,.rp-card'), function(n){ n.remove(); });
+    if(e.embed){
+      var f = document.createElement('iframe');
+      f.src = e.src; f.loading = 'lazy'; f.setAttribute('referrerpolicy','no-referrer');
+      rpBody.appendChild(f);
+      rpHint.textContent = e.kind==='ar5iv'
+        ? 'ar5iv HTML 版（arXiv 官方）· 公式偶有渲染差异，原版可点「↗ 新标签」'
+        : '若右侧长时间空白，说明站点禁止嵌入，请点「↗ 新标签」打开';
+    } else {
+      var card = document.createElement('div');
+      card.className = 'rp-card';
+      card.innerHTML =
+        '<span class="rp-tag '+(v.cls||'')+'" style="align-self:flex-start">'+v.tag+'</span>'+
+        '<div class="c-title">'+(title || (v.tag+' 资源'))+'</div>'+
+        '<div class="c-url">'+url+'</div>'+
+        '<div class="c-note">该站点禁止被嵌入网页（X-Frame-Options），无法在侧窗内直接预览。在新标签打开后，可与本页左右并排对照阅读。</div>'+
+        '<div class="c-actions">'+
+          '<a class="c-btn primary" href="'+url+'" target="_blank" rel="noopener">↗ 在新标签打开</a>'+
+          '<button class="c-btn" id="rpForce">↪ 仍在侧窗尝试</button>'+
+        '</div>';
+      rpBody.appendChild(card);
+      card.querySelector('#rpForce').addEventListener('click', function(){
+        [].forEach.call(rpBody.querySelectorAll('.rp-card'), function(n){ n.remove(); });
+        var f = document.createElement('iframe'); f.src = url; rpBody.appendChild(f);
+        rpHint.textContent = '强制加载中 · 若仍空白则该站点确实禁止嵌入';
+      });
+      rpHint.textContent = '该站点可能禁止嵌入 · 推荐新标签打开';
+    }
+    panel.classList.add('open');
+    document.body.classList.add('split');
+  }
+  function closePanel(){ panel.classList.remove('open'); document.body.classList.remove('split'); }
+
+  // —— 拖拽调节侧窗宽度 ——
+  (function(){
+    var rz = panel.querySelector('#rpResize'), dragging = false;
+    rz.addEventListener('mousedown', function(e){ dragging = true; e.preventDefault(); document.body.style.userSelect='none'; });
+    window.addEventListener('mousemove', function(e){
+      if(!dragging) return;
+      var w = Math.min(window.innerWidth*0.8, Math.max(320, window.innerWidth - e.clientX));
+      document.documentElement.style.setProperty('--rp-w', w + 'px');
+    });
+    window.addEventListener('mouseup', function(){ dragging = false; document.body.style.userSelect=''; });
+  })();
+
+  // —— 接管正文中已有的外链 ——
+  [].forEach.call(document.querySelectorAll('.day-body a[href^="http"]'), function(a){
+    var url = a.getAttribute('href'), v = venue(url), title = a.textContent.trim();
+    a.dataset.ref = '1'; a.target = '_blank'; a.rel = 'noopener';
+    var b = document.createElement('span'); b.className = 'ref-badge'; b.textContent = v.tag; a.appendChild(b);
+    a.addEventListener('click', function(e){
+      if(e.metaKey||e.ctrlKey||e.shiftKey||e.button!==0) return;  // 保留「新标签」快捷键
+      e.preventDefault(); openPanel(url, title);
+    });
+  });
+
+  // —— 注入「延伸：技术报告 / 顶会论文」（u 为 arXiv ID）——
+  var EXTRA = {
+    'p3':[{t:'RoFormer：旋转位置编码 RoPE（现代 LLM 标配）',u:'2104.09864',tag:'arXiv',c:'arxiv'}],
+    'p4':[{t:'Swin Transformer：层次化视觉 Transformer',u:'2103.14030',tag:'ICCV',c:'conf'}],
+    '1' :[{t:'GPT-3：Language Models are Few-Shot Learners',u:'2005.14165',tag:'NeurIPS',c:'conf'},
+          {t:'GPT-4 Technical Report',u:'2303.08774',tag:'OpenAI',c:'report'}],
+    '3' :[{t:'Scaling Laws for Neural Language Models',u:'2001.08361',tag:'arXiv',c:'arxiv'},
+          {t:'Chinchilla：Training Compute-Optimal LLMs',u:'2203.15556',tag:'NeurIPS',c:'conf'}],
+    '6' :[{t:'InstructGPT：用人类反馈训练对齐模型',u:'2203.02155',tag:'NeurIPS',c:'conf'},
+          {t:'The Llama 3 Herd of Models（技术报告）',u:'2407.21783',tag:'Meta',c:'report'},
+          {t:'DeepSeek-R1：用 RL 激发推理能力',u:'2501.12948',tag:'DeepSeek',c:'report'}],
+    '8' :[{t:'QLoRA：4-bit 量化下的高效微调',u:'2305.14314',tag:'NeurIPS',c:'conf'}],
+    '9' :[{t:'Qwen Technical Report',u:'2309.16609',tag:'Qwen',c:'report'}],
+    '10':[{t:'Mixtral of Experts（稀疏 MoE）',u:'2401.04088',tag:'Mistral',c:'report'},
+          {t:'DeepSeek-V3 技术报告（MoE 大模型）',u:'2412.19437',tag:'DeepSeek',c:'report'}],
+    '12':[{t:'SigLIP：Sigmoid Loss 图文预训练',u:'2303.15343',tag:'ICCV',c:'conf'}],
+    '14':[{t:'Flamingo：少样本视觉语言模型',u:'2204.14198',tag:'NeurIPS',c:'conf'},
+          {t:'BLIP-2：Q-Former 连接冻结视觉与 LLM',u:'2301.12597',tag:'ICML',c:'conf'},
+          {t:'LLaVA-1.5：更强的简洁基线',u:'2310.03744',tag:'CVPR',c:'conf'}],
+    '16':[{t:'Gemini 1.5：百万级上下文多模态',u:'2403.05530',tag:'Google',c:'report'}],
+    '17':[{t:'Qwen-VL：通用视觉语言模型',u:'2308.12966',tag:'Qwen',c:'report'},
+          {t:'Qwen2-VL：动态分辨率 + M-RoPE',u:'2409.12191',tag:'Qwen',c:'report'}],
+    '18':[{t:'ShareGPT4V：用 GPT-4V 造高质量描述',u:'2311.12793',tag:'ECCV',c:'conf'},
+          {t:'LAION-5B：开放大规模图文数据集',u:'2210.08402',tag:'NeurIPS',c:'conf'}],
+    '19':[{t:'MMBench：多维度多模态能力评测',u:'2307.06281',tag:'ECCV',c:'conf'},
+          {t:'MMMU：大学级多学科多模态基准',u:'2311.16502',tag:'CVPR',c:'conf'}],
+    '21':[{t:'Grounding DINO：开放集目标检测',u:'2303.05499',tag:'ECCV',c:'conf'}],
+    '22':[{t:'Segment Anything（SAM）',u:'2304.02643',tag:'ICCV',c:'conf'}],
+    '24':[{t:'LLaVA-OneVision：图像/多图/视频统一',u:'2408.03326',tag:'arXiv',c:'arxiv'}],
+    '25':[{t:'POPE：物体幻觉评测协议',u:'2305.10355',tag:'EMNLP',c:'conf'}],
+    '26':[{t:'Toolformer：模型自学调用工具',u:'2302.04761',tag:'NeurIPS',c:'conf'}],
+    '28':[{t:'MetaGPT：多智能体协作框架',u:'2308.00352',tag:'ICLR',c:'conf'}],
+    '29':[{t:'RAG：检索增强生成（原始论文）',u:'2005.11401',tag:'NeurIPS',c:'conf'},
+          {t:'Self-RAG：自反思检索增强',u:'2310.11511',tag:'ICLR',c:'conf'}],
+    '31':[{t:'Chain-of-Thought Prompting',u:'2201.11903',tag:'NeurIPS',c:'conf'},
+          {t:'Tree of Thoughts：深思熟虑式推理',u:'2305.10601',tag:'NeurIPS',c:'conf'}],
+    '34':[{t:'FlashAttention：IO 感知的精确注意力',u:'2205.14135',tag:'NeurIPS',c:'conf'},
+          {t:'FlashAttention-2：更快更并行',u:'2307.08691',tag:'arXiv',c:'arxiv'}],
+    '35':[{t:'多模态大模型综述（MLLM Survey）',u:'2306.13549',tag:'综述',c:''}]
+  };
+  Object.keys(EXTRA).forEach(function(day){
+    var body = document.querySelector('.day[data-day="'+day+'"] .day-body');
+    if(!body) return;
+    var box = document.createElement('div'); box.className = 'ext-refs';
+    var h = document.createElement('div'); h.className = 'er-h'; h.textContent = '📄 延伸：技术报告 / 顶会论文';
+    var ul = document.createElement('div'); ul.className = 'er-list';
+    EXTRA[day].forEach(function(r){
+      var url = 'https://arxiv.org/abs/' + r.u;
+      var el = document.createElement('a'); el.className = 'er-link'; el.href = url; el.target='_blank'; el.rel='noopener';
+      el.innerHTML = '<span class="er-tag '+(r.c||'')+'">'+r.tag+'</span>'+
+                     '<span class="er-title">'+r.t+'</span><span class="er-open">侧窗 ›</span>';
+      el.addEventListener('click', function(e){
+        if(e.metaKey||e.ctrlKey||e.shiftKey) return;
+        e.preventDefault(); openPanel(url, r.t);
+      });
+      ul.appendChild(el);
+    });
+    box.appendChild(h); box.appendChild(ul); body.appendChild(box);
+  });
+
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closePanel(); });
 }
 </script>
 </body>
