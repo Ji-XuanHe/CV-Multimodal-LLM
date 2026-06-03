@@ -2118,29 +2118,18 @@ def step(q_t, k_t, v_t):
 
       <h4>二、对比损失（InfoNCE）</h4>
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> CLIP 对比学习损失 InfoNCE（务必能默写）</div>
-        <div class="deriv-body"><pre>
-一个 batch：N 对 (image, text)
-图像编码器：v_i = f_img(x_i) / ‖·‖     （L2 归一化到单位球）
-文本编码器：u_j = f_txt(t_j) / ‖·‖
-
-相似度矩阵（余弦相似度 × 温度）：
-  S_ij = exp(τ) · (v_i · u_j)          τ 可学习，等价于 1/temperature
-
-Image→Text（每张图在 N 个文本里找正确那条）：
-  L_i2t = - (1/N) ∑_i log [ exp(S_ii) / ∑_j exp(S_ij) ]   ← softmax 取行
-Text→Image（每条文本在 N 张图里找正确那张）：
-  L_t2i = - (1/N) ∑_j log [ exp(S_jj) / ∑_i exp(S_ij) ]   ← softmax 取列
-总损失：
-  L = (L_i2t + L_t2i) / 2              对称交叉熵
-
-温度 τ 的作用：
-  τ 大 → 分布更尖锐 → 更强调最难的负样本（但易不稳）
-  CLIP 把 τ 设为可学习，并裁剪上限防止爆炸
-
-为什么 batch 越大越好？
-  分母是「该样本 vs batch 内所有负样本」，
-  N 越大 → 负样本越多 → 对比信号越强。
-  CLIP 原论文 batch size = 32768（多机多卡同步）！</pre></div>
+        <div class="deriv-body">
+          <p class="math-note">一个 batch 含 $N$ 对 (image, text)。两个编码器各自输出并 L2 归一化到单位球：$v_i = f_{\text{img}}(x_i)/\|\cdot\|,\ u_j = f_{\text{txt}}(t_j)/\|\cdot\|$。</p>
+          <div class="math-cap">相似度矩阵（余弦 × 温度）</div>
+          $$S_{ij} = \exp(\tau)\cdot(v_i\cdot u_j)\qquad(\tau\text{ 可学习，等价于 }1/\text{temperature})$$
+          <div class="math-cap">对称交叉熵损失</div>
+          $$L_{i2t} = -\frac{1}{N}\sum_i \log\frac{\exp(S_{ii})}{\sum_j \exp(S_{ij})}
+          \quad(\text{按行}),\qquad
+          L_{t2i} = -\frac{1}{N}\sum_j \log\frac{\exp(S_{jj})}{\sum_i \exp(S_{ij})}\quad(\text{按列})$$
+          $$L = \tfrac{1}{2}\big(L_{i2t} + L_{t2i}\big)$$
+          <p class="math-note"><strong>温度 $\tau$</strong>：越大分布越尖锐、越强调最难负样本（但易不稳）；CLIP 设为可学习并裁剪上限防爆炸。<br>
+          <strong>为何大 batch</strong>：分母是「该样本 vs batch 内所有负样本」，$N$ 越大负样本越多、对比信号越强 —— CLIP 原论文 batch size $=32768$！</p>
+        </div>
       </div>
 
       <h4>三、动手：用 CLIP 做 zero-shot 分类</h4>
@@ -2256,30 +2245,19 @@ for label, p in zip(labels, probs[0]):
       </div>
 
       <h4>二、SigLIP 损失</h4>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> Sigmoid 对比损失（对比 CLIP 的 softmax）</div><div class="deriv-body"><pre>
-归一化向量：x_i = 图像特征，y_j = 文本特征（都 L2 归一化）
-相似度：    s_ij = x_i · y_j
-
-标签：z_ij = +1 (i = j，匹配对)
-            −1 (i ≠ j，负样本)
-
-SigLIP loss（每个格子独立的 logistic 二分类）：
-  L = - (1/N) ∑_i ∑_j  log σ( z_ij · ( t · s_ij + b ) )
-      其中 σ 是 sigmoid，t 是温度，b 是可学习 bias
-
-为什么需要 bias b？
-  矩阵里负样本(N²−N 个)远多于正样本(N 个)，
-  初期模型会把所有对都判成「负」。
-  b 给一个初始偏置，缓解这种极端不平衡，训练更稳。
-
-对比 CLIP（softmax）：
-  CLIP:    L_i = -log[ exp(s_ii) / ∑_j exp(s_ij) ]   ← 分母含整行 → 需全 batch
-  SigLIP:  每个 (i,j) 独立 → 分母消失 → 各卡只算本地块
-
-收益：
-  ① 省掉跨卡 all-gather，通信大降
-  ② 小 batch 也能训得好（不再依赖超大 batch）
-  ③ 效果与 CLIP 持平甚至更好</pre></div></div>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> Sigmoid 对比损失（对比 CLIP 的 softmax）</div>
+        <div class="deriv-body">
+          <p class="math-note">归一化向量 $x_i$（图像）、$y_j$（文本），相似度 $s_{ij}=x_i\cdot y_j$；标签 $z_{ij}=+1$（$i=j$ 匹配对）/ $-1$（$i\ne j$ 负样本）。</p>
+          <div class="math-cap">SigLIP loss（每格独立的 logistic 二分类）</div>
+          $$L = -\frac{1}{N}\sum_i\sum_j \log\sigma\big(z_{ij}\,(t\cdot s_{ij} + b)\big)
+          \qquad(\sigma=\text{sigmoid},\ t=\text{温度},\ b=\text{可学习 bias})$$
+          <p class="math-note"><strong>为何需要 bias $b$</strong>：负样本（$N^2-N$ 个）远多于正样本（$N$ 个），初期模型会把所有对都判「负」；$b$ 给初始偏置缓解极端不平衡，训练更稳。</p>
+          <div class="math-cap">对比 CLIP（softmax）</div>
+          $$\underbrace{L_i = -\log\frac{\exp(s_{ii})}{\sum_j \exp(s_{ij})}}_{\text{CLIP: 分母含整行 → 需全 batch}}
+          \qquad vs \qquad
+          \underbrace{\text{每个 }(i,j)\text{ 独立}}_{\text{SigLIP: 分母消失 → 各卡只算本地块}}$$
+          <p class="math-note">收益：① 省跨卡 all-gather、通信大降；② 小 batch 也训得好；③ 效果与 CLIP 持平甚至更好。</p>
+        </div></div>
 
       <div class="box-important">
         <span class="label">🔥 主流 MLLM 的视觉编码器怎么选</span>
@@ -2399,33 +2377,18 @@ for t, p in zip(texts, probs[0]):
       </div>
 
       <h4>二、token 数量：算给你看</h4>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 视觉 token 数量与压缩（工程上最要命的数）</div><div class="deriv-body"><pre>
-单张图 token 数：
-  N = (img_size / patch)²
-  224 / 14 = 16  → 256
-  336 / 14 = 24  → 576
-  448 / 14 = 32  → 1024
-
-动态分辨率（高清图切 tile，如 InternVL / LLaVA-NeXT）：
-  把图按长宽比切成 k 个 448×448 tile（再加一张缩略全图）：
-  N_total = k × 1024 (+1024)
-  例：切成 4 tile → 4×1024 = 4096 个视觉 token  ⚠ 爆炸
-
-为什么是大问题？
-  视觉 token 和文本 token 抢同一个 context window，
-  4096 个视觉 token ≈ 把上下文塞满，且 attention 是 O(L²)，
-  序列翻倍 → 计算翻 4 倍 → 推理显著变慢。
-
-四种 Connector / 压缩方案：
-  ① MLP（LLaVA）       ：只对齐维度，不压数量（最简单）
-  ② Pixel Shuffle      ：相邻 2×2 token 折叠进通道，数量 ÷4、维度 ×4
-     （InternVL / LLaVA-NeXT；空间↓ 通道↑，几乎不丢信息）
-  ③ Perceiver Resampler：用固定数量 query 做 cross-attention，
-     把任意多 token 压到固定 K 个（Flamingo）
-  ④ Q-Former           ：可学习 query + 多层注意力提取信息（BLIP-2）
-
-口诀：MLP 保真不压 → 数量爆；Resampler/Q-Former 压到固定数 → 可能丢细节；
-      Pixel Shuffle 折叠 → 折中，当前最流行。</pre></div></div>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 视觉 token 数量与压缩（工程上最要命的数）</div>
+        <div class="deriv-body">
+          <div class="math-cap">单张图 token 数</div>
+          $$N = \left(\frac{\text{img\_size}}{\text{patch}}\right)^2:\quad
+          \tfrac{224}{14}{=}16\to256,\quad \tfrac{336}{14}{=}24\to576,\quad \tfrac{448}{14}{=}32\to1024$$
+          <div class="math-cap">动态分辨率（切 tile，如 InternVL / LLaVA-NeXT）</div>
+          <p class="math-note">按长宽比切成 $k$ 个 $448\times448$ tile（再加一张缩略全图）：$N_{\text{total}} = k\times1024\,(+1024)$。例：切 4 tile → $4\times1024 = 4096$ 个 token ⚠ 爆炸。</p>
+          <p class="math-note"><strong>为何是大问题</strong>：视觉与文本 token 抢同一 context；attention 是 $O(L^2)$，序列翻倍 → 计算翻 4 倍 → 推理显著变慢。</p>
+          <div class="math-cap">四种 Connector / 压缩方案</div>
+          <p class="math-note">① <strong>MLP</strong>（LLaVA）：只对齐维度、不压数量。② <strong>Pixel Shuffle</strong>：相邻 2×2 token 折叠进通道，数量 $\div4$、维度 $\times4$（几乎不丢信息）。③ <strong>Perceiver Resampler</strong>（Flamingo）：固定数量 query 做 cross-attention 压到定额。④ <strong>Q-Former</strong>（BLIP-2）：可学习 query + 多层注意力提取。</p>
+          <p class="math-note">口诀：MLP 保真不压 → 数量爆；Resampler / Q-Former 压到固定数 → 可能丢细节；Pixel Shuffle 折叠 → 折中，当前最流行。</p>
+        </div></div>
 
       <h4>三、动手：算 token 数 + 理解 Pixel Shuffle</h4>
       <div class="code-block">def n_visual_tokens(img_size=336, patch=14, tiles=1, shuffle=1):
@@ -2545,33 +2508,24 @@ print(out.shape)   # (1, 144, 4096)  数量 576→144，维度 1024→4096</div>
       </div>
 
       <h4>二、数据怎么流过模型（维度全程跟踪）</h4>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 从一张图到一段回答的完整维度变换（务必能默画）</div><div class="deriv-body"><pre>
-输入：一张 RGB 图像 X_v ∈ ℝ^(336×336×3)
-
-① 视觉编码（CLIP ViT-L/14，patch=14）
-   patch 数 = (336/14)² = 24×24 = 576
-   取倒数第二层 grid features（去掉 [CLS]）：
-   Z_v = g(X_v) ∈ ℝ^(576 × 1024)        1024 = CLIP ViT-L 隐藏维
-
-② Projector：视觉维度 → LLM 词向量维度
-   LLaVA-1（线性）:  H_v = W · Z_v ,         W ∈ ℝ^(4096 × 1024)
-   LLaVA-1.5（MLP）: H_v = W₂ · GELU(W₁ · Z_v)
-   得 H_v ∈ ℝ^(576 × 4096)               4096 = Vicuna-7B 隐藏维
-   —— 576 个「视觉词向量」，与文本词向量同维、可直接拼接
-
-③ 文本走正常 embedding
-   "USER: &lt;image&gt;\n描述这张图 ASSISTANT:"
-   → token ids → H_t ∈ ℝ^(L × 4096)
-
-④ 拼接成一个序列（关键！见下方机制）
-   把文本里的 &lt;image&gt; 占位符，替换成 ② 的 576 个视觉向量：
-   H = [ H_前 ; H_v(576) ; H_后 ] ∈ ℝ^((L-1+576) × 4096)
-
-⑤ LLM 自回归生成回答
-   p(X_a | X_v, X_q) = ∏_i p(x_i | H, x_&lt;i)
-   视觉 token 通过 self-attention 被每个文本 token「看到」
-
-一句话记忆：图像 → 576 个伪词 → 和文字排成一队 → LLM 照常说话。</pre></div></div>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 从一张图到一段回答的完整维度变换（务必能默画）</div>
+        <div class="deriv-body">
+          <p class="math-note">输入：一张 RGB 图像 $X_v \in \mathbb{R}^{336\times336\times3}$。</p>
+          <div class="math-cap">① 视觉编码（CLIP ViT-L/14, patch=14）</div>
+          <p class="math-note">patch 数 $=(336/14)^2 = 24\times24 = 576$；取倒数第二层 grid features（去 $[\mathrm{CLS}]$）：$Z_v = g(X_v)\in\mathbb{R}^{576\times1024}$（$1024$ = CLIP ViT-L 隐藏维）。</p>
+          <div class="math-cap">② Projector：视觉维 → LLM 词向量维</div>
+          $$\text{LLaVA-1: } H_v = W Z_v,\ \ W\in\mathbb{R}^{4096\times1024};\qquad
+          \text{LLaVA-1.5: } H_v = W_2\,\mathrm{GELU}(W_1 Z_v)$$
+          <p class="math-note">得 $H_v\in\mathbb{R}^{576\times4096}$（$4096$ = Vicuna-7B 隐藏维）—— 576 个「视觉词向量」，与文本词向量同维、可直接拼接。</p>
+          <div class="math-cap">③ 文本走正常 embedding</div>
+          <p class="math-note"><code>"USER: &lt;image&gt;\n描述这张图 ASSISTANT:"</code> → token ids → $H_t\in\mathbb{R}^{L\times4096}$。</p>
+          <div class="math-cap">④ 拼接成一个序列</div>
+          <p class="math-note">把文本里的 <code>&lt;image&gt;</code> 占位符替换成 ② 的 576 个视觉向量：</p>
+          $$H = [\,H_{\text{pre}};\ H_v(576);\ H_{\text{post}}\,] \in \mathbb{R}^{(L-1+576)\times4096}$$
+          <div class="math-cap">⑤ LLM 自回归生成</div>
+          $$p(X_a\mid X_v, X_q) = \prod_i p(x_i\mid H,\,x_{<i})$$
+          <p class="math-note">视觉 token 通过 self-attention 被每个文本 token「看到」。一句话：图像 → 576 个伪词 → 和文字排成一队 → LLM 照常说话。</p>
+        </div></div>
 
       <div class="box-important">
         <span class="label">🔥 视觉 token 怎么「塞进」文本序列（面试必考）</span>
@@ -2579,28 +2533,17 @@ print(out.shape)   # (1, 144, 4096)  数量 576→144，维度 1024→4096</div>
       </div>
 
       <h4>三、两阶段训练：先对齐，再教指令</h4>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 训练目标、loss 落点与两阶段冻结策略</div><div class="deriv-body"><pre>
-训练目标：标准自回归语言建模 loss，但只在「回答」上计算
-  L = - ∑_{i ∈ answer} log p(x_i | H, x_&lt;i)
-  → 图像 token、system 提示、用户问题都不计 loss（只学「怎么答」）
-
-═══ Stage 1　特征对齐 (feature alignment) ═══
-  数据：558K image–caption（LLaVA-1.5，过滤后的图文对）
-  ❄️ 冻结 CLIP ViT      ❄️ 冻结 LLM
-  🔥 只训 Projector
-  目的：把 CLIP 特征空间「翻译」到 LLM 词向量空间
-       此时模型只会「看图说标题」，还不会对话
-
-═══ Stage 2　视觉指令微调 (visual instruction tuning) ═══
-  数据：665K 指令数据（VQA + OCR + 多轮对话 + region 等）
-  ❄️ 冻结 CLIP ViT
-  🔥 训 Projector + 🔥 训 LLM（全参或 LoRA）
-  目的：学会按各种指令完成视觉任务
-
-为什么必须分两阶段？
-  若一上来就端到端：Projector 是随机初始化，
-  会向 LLM 灌「乱码」梯度 → 破坏 LLM 已有能力（灾难性遗忘）。
-  先用海量图文对把 Projector 训到「对齐」，再联合微调，稳得多。</pre></div></div>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 训练目标、loss 落点与两阶段冻结策略</div>
+        <div class="deriv-body">
+          <div class="math-cap">训练目标（loss 只算在「回答」上）</div>
+          $$L = -\sum_{i\,\in\,\text{answer}} \log p(x_i\mid H,\,x_{<i})$$
+          <p class="math-note">图像 token、system 提示、用户问题都不计 loss —— 只学「怎么答」。</p>
+          <div class="math-cap">Stage 1 · 特征对齐</div>
+          <p class="math-note">数据 558K image–caption（LLaVA-1.5）。❄️ 冻结 CLIP ViT、❄️ 冻结 LLM，🔥 只训 Projector。目的：把 CLIP 特征空间「翻译」到 LLM 词向量空间（此时只会看图说标题，还不会对话）。</p>
+          <div class="math-cap">Stage 2 · 视觉指令微调</div>
+          <p class="math-note">数据 665K 指令（VQA + OCR + 多轮对话 + region）。❄️ 冻结 CLIP ViT，🔥 训 Projector + 🔥 训 LLM（全参或 LoRA）。目的：学会按指令完成视觉任务。</p>
+          <p class="math-note"><strong>为何必须分两阶段</strong>：若一上来就端到端，Projector 随机初始化会向 LLM 灌「乱码」梯度 → 破坏已有能力（灾难性遗忘）；先用海量图文对把 Projector 训到「对齐」，再联合微调，稳得多。</p>
+        </div></div>
 
       <div class="box-tip">
         <span class="label">💡 LLaVA-1.5 相比 LLaVA-1 改了什么</span>
@@ -2863,25 +2806,16 @@ def prepare_inputs_labels_for_multimodal(self, input_ids, labels, images):
       </div>
 
       <h4>二、动态分辨率 + 压缩：token 数怎么算</h4>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 动态分辨率 + Pixel Shuffle 的 token 预算</div><div class="deriv-body"><pre>
-动态分辨率（InternVL 1.5）：
-  目标:把任意长宽比/高分辨率图,切成若干 448×448 的 tile
-  例:一张 1344×896 的图 ≈ 切成 3×2 = 6 个 tile，再 + 1 张缩略全图 = 7 块
-
-每个 448 tile（patch=14）：
-  (448/14)² = 32×32 = 1024 token
-
-不压缩的话：
-  7 块 × 1024 = 7168 token  ⚠ 太多
-
-Pixel Shuffle 压缩（÷4，呼应 D13）：
-  每块 1024 → 256
-  7 块 × 256 = 1792 token  ✓ 可控
-
-InternViT-6B vs CLIP ViT-L：
-  参数量:6B vs 0.3B（约 20 倍）
-  → 视觉特征更强,但显存/算力开销也大得多
-  → 工程上常用蒸馏 / 量化把它用起来</pre></div></div>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> 动态分辨率 + Pixel Shuffle 的 token 预算</div>
+        <div class="deriv-body">
+          <div class="math-cap">动态分辨率（InternVL 1.5）</div>
+          <p class="math-note">把任意长宽比/高分辨率图切成若干 $448\times448$ tile。例：$1344\times896$ 的图 $\approx 3\times2 = 6$ 个 tile，再 +1 张缩略全图 $= 7$ 块。每块（patch=14）：$(448/14)^2 = 32\times32 = 1024$ token。</p>
+          <div class="math-cap">不压缩 vs Pixel Shuffle（÷4，呼应 D13）</div>
+          $$\underbrace{7\times1024 = 7168}_{\text{不压缩 ⚠ 太多}}
+          \quad\xrightarrow{\ \text{Pixel Shuffle }\div4\ }\quad
+          \underbrace{7\times256 = 1792}_{\text{✓ 可控}}$$
+          <p class="math-note"><strong>InternViT-6B vs CLIP ViT-L</strong>：参数量 $6\mathrm{B}$ vs $0.3\mathrm{B}$（约 20 倍）→ 视觉特征更强，但显存/算力开销大得多，工程上常用蒸馏 / 量化用起来。</p>
+        </div></div>
 
       <h4>三、动手：跑一次 InternVL 推理</h4>
       <div class="code-block"># pip install transformers torch torchvision pillow
@@ -2979,28 +2913,17 @@ tok = AutoTokenizer.from_pretrained(path, trust_remote_code=True)
       </div>
 
       <h4>二、M-RoPE 推导</h4>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> Multimodal RoPE：把 1D 位置升级成 (t,h,w)</div><div class="deriv-body"><pre>
-标准 RoPE：每个 token 一个 1D 位置 m
-  对 query/key 的每一对维度施加角度 m·θ 的旋转
-
-M-RoPE：每个 token 一个 3D 位置 (t, h, w)
-  t = 时间维（视频帧号；图像/文本无时间则固定）
-  h = 垂直位置（patch 所在行）
-  w = 水平位置（patch 所在列）
-
-把 head 维度 d 切成三段，各编一种位置：
-  dim[0   : d/3 ] → 用 t 做旋转
-  dim[d/3 : 2d/3] → 用 h 做旋转
-  dim[2d/3: d   ] → 用 w 做旋转
-
-不同模态如何取 (t,h,w)：
-  文本 token：t = h = w = 当前序列位置  → 退化成普通 1D RoPE（向后兼容！）
-  图像 token：t = 固定，(h,w) = patch 在图像里的行列坐标
-  视频 token：t = 帧号，(h,w) = 该帧内 patch 的行列
-
-效果：
-  模型天然知道「这个 patch 在左上还是右下」「这是第几帧」，
-  对 grounding（定位）、视频时序理解尤其关键。</pre></div></div>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> Multimodal RoPE：把 1D 位置升级成 (t,h,w)</div>
+        <div class="deriv-body">
+          <p class="math-note">标准 RoPE：每个 token 一个 1D 位置 $m$，对 $q,k$ 每对维度施加角度 $m\theta$ 的旋转。M-RoPE：每个 token 一个 3D 位置 $(t,h,w)$ —— $t$ 时间（帧号）、$h$ 垂直（行）、$w$ 水平（列）。</p>
+          <div class="math-cap">把 head 维度 d 切三段，各编一种位置</div>
+          $$\underbrace{\text{dim}[0:\tfrac{d}{3}]}_{\text{用 }t}\quad
+          \underbrace{\text{dim}[\tfrac{d}{3}:\tfrac{2d}{3}]}_{\text{用 }h}\quad
+          \underbrace{\text{dim}[\tfrac{2d}{3}:d]}_{\text{用 }w}$$
+          <div class="math-cap">不同模态如何取 (t,h,w)</div>
+          <p class="math-note"><strong>文本</strong>：$t=h=w=$ 当前序列位置 → 退化成普通 1D RoPE（向后兼容！）。<strong>图像</strong>：$t$ 固定，$(h,w)=$ patch 行列坐标。<strong>视频</strong>：$t=$ 帧号，$(h,w)=$ 该帧内 patch 行列。</p>
+          <p class="math-note">效果：模型天然知道「patch 在左上还是右下」「这是第几帧」，对 grounding、视频时序理解尤其关键。</p>
+        </div></div>
 
       <h4>三、动手：跑一次 Qwen2-VL</h4>
       <div class="code-block"># pip install "transformers>=4.45" accelerate qwen-vl-utils torchvision
@@ -3094,25 +3017,14 @@ print(proc.batch_decode(trimmed, skip_special_tokens=True)[0])</div>
       </div>
 
       <h4>二、数据配比与清洗（实践要点）</h4>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 要点</span> 数据工程里真正影响效果的几件事</div><div class="deriv-body"><pre>
-1) 阶段匹配（呼应 D14 两阶段）
-   Stage 1 对齐 → 用「量大」的图文对（①②），把 projector 训到对齐
-   Stage 2 指令 → 用「质精」的指令数据（③④），教会做任务
-   用错阶段：拿脏 alt-text 做 SFT，模型学一身坏毛病
-
-2) 配比（mixture ratio）
-   VQA / OCR / 对话 / grounding / 纯文本 各占多少，
-   直接决定模型在各 benchmark 的强弱 —— 调配比是「炼丹」核心
-
-3) 清洗（质量决定上限）
-   去重（图像哈希 + 文本近重复）、过滤低质 alt-text、
-   剔除图文不匹配对、平衡长尾类别
-
-4) 合成数据的风险
-   强模型造的数据会把它的「幻觉」也教给弱模型，
-   需要回环校验 / 人工抽检，否则放大错误
-
-口诀：预训练堆量学对齐，SFT 提质教指令，配比和清洗才是分水岭。</pre></div></div>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 要点</span> 数据工程里真正影响效果的几件事</div>
+        <div class="deriv-body">
+          <p class="math-note"><strong>① 阶段匹配</strong>（呼应 D14 两阶段）：Stage 1 对齐用「量大」的图文对，把 projector 训到对齐；Stage 2 指令用「质精」的指令数据教会做任务。用错阶段（拿脏 alt-text 做 SFT）会学一身坏毛病。</p>
+          <p class="math-note"><strong>② 配比</strong>（mixture ratio）：VQA / OCR / 对话 / grounding / 纯文本 各占多少，直接决定各 benchmark 强弱 —— 调配比是「炼丹」核心。</p>
+          <p class="math-note"><strong>③ 清洗</strong>（质量决定上限）：去重（图像哈希 + 文本近重复）、过滤低质 alt-text、剔除图文不匹配对、平衡长尾类别。</p>
+          <p class="math-note"><strong>④ 合成数据的风险</strong>：强模型造的数据会把「幻觉」也教给弱模型，需回环校验 / 人工抽检，否则放大错误。</p>
+          <p class="math-note">口诀：预训练堆量学对齐，SFT 提质教指令，<strong>配比和清洗才是分水岭</strong>。</p>
+        </div></div>
 
       <h4>三、动手：造一条 LLaVA 格式指令数据</h4>
       <div class="code-block">import json
@@ -4730,24 +4642,15 @@ def discretize_action(action, bins=256, low=-1.0, high=1.0):
       </div>
 
       <h4>二、FlashAttention 核心思想</h4>
-      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> FlashAttention：为什么显存从 O(N²) 降到 O(N)</div><div class="deriv-body"><pre>
-标准 Attention 的内存瓶颈：
-  S = Q·Kᵀ ∈ ℝ^{N×N}     ← N=4096 时这张表就要 ~64MB（还要存梯度）
-  P = softmax(S)          ← 又一张 N×N
-  O = P·V
-  问题：把完整的 N×N 中间矩阵搬进/搬出 HBM（显存），IO 成了瓶颈
-
-FlashAttention 的两招：
-  ① 分块（tiling）：把 Q,K,V 切成小块，只在 SRAM（片上高速缓存）里算
-     → 永远不在 HBM 里物化完整的 N×N 矩阵
-  ② online softmax：边读块边维护「running max / running sum」，
-     增量地更新输出，无需先看到一整行才能归一化
-
-结果：
-  - 显存：O(N²) → O(N)（不存中间大矩阵）
-  - 速度：减少 HBM 读写，实测快 2–4×（IO-aware）
-  - 数值精确：是精确 attention，不是近似！
-FlashAttention-2/3 进一步优化并行度与新硬件（H100）利用率。</pre></div></div>
+      <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> FlashAttention：为什么显存从 O(N²) 降到 O(N)</div>
+        <div class="deriv-body">
+          <div class="math-cap">标准 Attention 的内存瓶颈</div>
+          $$S = QK^\top \in \mathbb{R}^{N\times N}\ \xrightarrow{\ \text{softmax}\ }\ P \in \mathbb{R}^{N\times N}\ \xrightarrow{\ \cdot V\ }\ O$$
+          <p class="math-note">$N{=}4096$ 时 $S$ 这张表就要 ~64MB（还要存梯度）；把完整的 $N\times N$ 中间矩阵反复搬进/搬出 HBM（显存），<strong>IO 成了瓶颈</strong>。</p>
+          <div class="math-cap">FlashAttention 的两招</div>
+          <p class="math-note">① <strong>分块 tiling</strong>：把 $Q,K,V$ 切小块，只在 SRAM（片上高速缓存）里算 → 永不在 HBM 物化完整 $N\times N$ 矩阵。② <strong>online softmax</strong>：边读块边维护 running max / running sum，增量更新输出，无需看到整行才归一化。</p>
+          <p class="math-note">结果：显存 $O(N^2)\to O(N)$；减少 HBM 读写，实测快 $2\text{–}4\times$；且是<strong>精确</strong> attention，不是近似。FlashAttention-2/3 进一步优化并行度与新硬件（H100）利用率。</p>
+        </div></div>
 
       <h4>三、动手：一键开启这些优化</h4>
       <div class="code-block"># HF Trainer / TrainingArguments 里基本都是开关
