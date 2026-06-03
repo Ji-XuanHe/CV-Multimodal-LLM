@@ -1807,7 +1807,7 @@ function initRefs(){
     if(/cs231n|stanford/.test(h))         return {tag:'课程',        cls:''};
     return {tag: h.split('.')[0], cls:''};
   }
-  // —— arXiv → ar5iv（可嵌入的 HTML 版）；youtube → embed；github.io 直接嵌 ——
+  // —— arXiv → 官方 PDF（无 frame 限制，可嵌入）；youtube → embed；github.io 直接嵌 ——
   function embedInfo(url){
     var m = url.match(/arxiv\.org\/(?:abs|pdf)\/([0-9]+\.[0-9]+)/);
     if(m) return {embed:true, src:'https://arxiv.org/pdf/'+m[1], kind:'pdf'};
