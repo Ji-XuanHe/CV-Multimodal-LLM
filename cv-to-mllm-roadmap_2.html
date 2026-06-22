@@ -226,6 +226,76 @@ em.term{font-style:normal;color:var(--red);font-weight:600;}
 .box-tip p:first-of-type{margin-top:4px;}
 .box-tip p:last-child{margin-bottom:0;}
 
+/* ========== 项目进度（capstone 主线，teal） ========== */
+.box-build{
+  margin:18px 0;border:1px solid var(--teal);border-left:4px solid var(--teal);border-radius:4px;
+  background:linear-gradient(180deg,var(--teal-soft),transparent 78%);
+  padding:18px 22px 16px;position:relative;
+}
+.box-build .label{
+  font-family:"JetBrains Mono",monospace;font-size:.64rem;letter-spacing:.22em;text-transform:uppercase;
+  position:absolute;top:-9px;left:18px;padding:1px 10px;background:var(--paper);
+  color:var(--teal);border:1px solid var(--teal);border-radius:3px;
+}
+.box-build p:first-of-type{margin-top:4px;}
+.box-build p:last-child{margin-bottom:0;}
+.repo-tree{
+  margin:12px 0;padding:12px 16px;border:1px dashed var(--teal);border-radius:4px;
+  background:var(--paper-2);font-family:"JetBrains Mono",monospace;font-size:.74rem;line-height:1.7;
+  color:var(--ink-soft);white-space:pre;overflow-x:auto;
+}
+.repo-tree b{color:var(--teal);font-weight:600;}
+
+/* ========== 复现实验（paper-repro 对照，neutral） ========== */
+.box-repro{
+  margin:18px 0;border:1px solid var(--ink-faint);border-radius:4px;
+  background:linear-gradient(180deg,rgba(138,125,106,.09),transparent 82%);
+  padding:18px 22px 14px;position:relative;
+}
+.box-repro .label{
+  font-family:"JetBrains Mono",monospace;font-size:.64rem;letter-spacing:.22em;text-transform:uppercase;
+  position:absolute;top:-9px;left:18px;padding:1px 10px;background:var(--paper);
+  color:var(--ink-soft);border:1px solid var(--ink-faint);border-radius:3px;
+}
+.box-repro p:first-of-type{margin-top:4px;}
+.box-repro p:last-child{margin-bottom:0;}
+.repro-table{width:100%;border-collapse:collapse;margin:12px 0 2px;font-family:"JetBrains Mono",monospace;font-size:.76rem;}
+.repro-table th,.repro-table td{border:1px solid var(--rule);padding:6px 10px;text-align:left;color:var(--ink-soft);}
+.repro-table th{background:var(--paper-2);color:var(--ink);font-weight:600;}
+.repro-table td.hit{color:var(--teal);font-weight:600;}
+.repro-table caption{caption-side:bottom;font-family:"Spectral",serif;font-size:.8rem;color:var(--ink-faint);font-style:italic;margin-top:8px;text-align:left;line-height:1.5;}
+
+/* ========== 工业实证（大厂战报，红色盖章） ========== */
+.box-report{
+  margin:18px 0;border:1px solid var(--red-soft);border-radius:4px;
+  background:linear-gradient(180deg,rgba(168,52,31,.05),transparent 85%);
+  padding:18px 22px 14px;position:relative;
+}
+.box-report .label{
+  font-family:"JetBrains Mono",monospace;font-size:.64rem;letter-spacing:.22em;text-transform:uppercase;
+  position:absolute;top:-9px;left:18px;padding:2px 11px;background:var(--red);
+  color:var(--paper);border:1px solid var(--red);border-radius:3px;
+}
+.box-report p:first-of-type{margin-top:4px;}
+.box-report p:last-child{margin-bottom:0;}
+.box-report .report-src{
+  font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--ink-faint);
+  margin-top:12px;padding-top:9px;border-top:1px dashed var(--rule);line-height:1.7;
+}
+.box-report .report-src a{color:var(--teal);}
+
+/* ========== 大白话（便利贴式旁白） ========== */
+.box-plain{
+  margin:16px 0;border:1.5px dashed var(--amber);border-radius:12px;
+  background:linear-gradient(180deg,rgba(181,131,47,.10),transparent 92%);
+  padding:13px 20px;
+}
+.box-plain .label{
+  font-family:"Noto Serif SC",serif;font-weight:700;font-size:.84rem;color:var(--amber);
+}
+.box-plain p{margin:6px 0 0;}
+.box-plain p:first-child{margin-top:0;}
+
 /* ========== 代码块 ========== */
 .code-block{
   margin:14px 0;border:1px solid var(--rule);border-radius:4px;
@@ -529,6 +599,17 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
       <h4>学习目标</h4>
       <p>理解神经网络最基础的工作方式——数据怎么流过网络（前向），怎么衡量好坏（损失），怎么更新参数（反向传播 + 梯度下降）。这是<strong>一切深度学习的引擎</strong>，后面的 Transformer、MLLM 都建立在它之上。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · nano-mllm 第 0 天</span>
+        <p>整条路线我们要从零搭一个能看图对话的小型多模态模型 <code>nano-mllm</code>。今天是地基中的地基：先把仓库骨架立起来，再写下整个项目<strong>唯一的「训练心跳」</strong> —— <code>forward → loss → backward → step</code>。后面无论 GPT、ViT 还是 MLLM，训练循环都只是这四步的放大版。</p>
+        <p><strong>今天产出：</strong><code>engine/autograd_demo.py</code>（纯 numpy 手写前向 + 反向 + 梯度检查）—— 它是你日后敢信任 PyTorch autograd 的底气。</p>
+        <div class="repo-tree">nano-mllm/                      <span style="color:var(--teal)">← 今天初始化</span>
+├── <b>engine/autograd_demo.py</b>  <span style="color:var(--teal)">← 今天新增：手写反向 + 梯度检查</span>
+├── model/                      <span style="color:var(--ink-faint)">（P03 起写 attention / transformer）</span>
+├── vision/                     <span style="color:var(--ink-faint)">（W3 起写视觉塔）</span>
+└── README.md                   <span style="color:var(--ink-faint)">（记录每天产出）</span></div>
+      </div>
+
       <div class="box-important">
         <span class="label">🔥 核心概念</span>
         <p><strong>前向传播（Forward Pass）</strong>：输入 x → 逐层计算 → 输出预测 ŷ。每一层做的事本质上就是 <code>output = activation(W · input + b)</code>。</p>
@@ -561,6 +642,8 @@ footer .rule{width:60px;height:2px;background:var(--red);margin:0 auto 22px;}
           <p class="math-note">常用优化器：SGD（最基础）· Adam（自适应学习率，最常用）· AdamW（Adam + 权重衰减，大模型标配）。</p>
         </div>
       </div>
+
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>把这套流程想成<strong>一次考试</strong>：<strong>前向</strong> = 你做完题、交出答案；<strong>损失</strong> = 老师批改，告诉你一共扣了多少分；<strong>反向传播</strong> = 老师沿着你的解题步骤倒着追责，指出「你这一步贡献了多少扣分」（这就是梯度）；<strong>梯度下降</strong> = 你照着每步该改的方向和幅度，把解法修正一点点。<strong>链式法则</strong>就是「从最终扣分往回，一层层算每层该背多少锅」—— 深度学习的全部训练，不过是把这场考试重考几百万遍。</p></div>
 
       <h4>阅读材料</h4>
       <ul>
@@ -597,6 +680,48 @@ yhat, cache = forward(x, W1, b1, W2, b2)
 dW1, dW2 = backward(y, yhat, cache, W2)
 W1 -= 0.1 * dW1;  W2 -= 0.1 * dW2       # W ← W − lr·∂L/∂W
 # 看懂这 20 行，你就懂了所有深度学习训练的本质</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 梯度检查</span>
+        <p>怎么确认你手写的反向是对的？用<strong>数值梯度</strong>当裁判：把某个参数微微加减一点 $\epsilon$，看 loss 的变化，$\frac{L(w+\epsilon)-L(w-\epsilon)}{2\epsilon}$ 就是该参数的近似梯度，它应当和你解析推导的梯度几乎相等。<strong>这是每个做深度学习的人都该会的自检</strong>，也正是 PyTorch <code>torch.autograd.gradcheck</code> 的原理。</p>
+        <div class="code-block"># 数值梯度 vs 解析梯度（接上一段的 W1,b1,W2,b2,x,y,dW1）：两者应一致到 ~1e-7
+def loss_of(W1, b1, W2, b2, x, y):
+    z1 = W1 @ x + b1; h = np.maximum(0, z1)
+    z2 = W2 @ h + b2; p = np.exp(z2 - z2.max()); p = p / p.sum()
+    return -np.log(p[y.argmax()] + 1e-12)
+
+eps = 1e-5; num_grad = np.zeros_like(W1)
+for i in range(W1.shape[0]):
+    for j in range(W1.shape[1]):
+        up = W1.copy(); up[i, j] += eps
+        dn = W1.copy(); dn[i, j] -= eps
+        num_grad[i, j] = (loss_of(up,b1,W2,b2,x,y) - loss_of(dn,b1,W2,b2,x,y)) / (2*eps)
+rel = np.abs(num_grad - dW1).max() / (np.abs(num_grad).max() + 1e-12)
+print(f"max relative error = {rel:.2e}")   # 预期 &lt; 1e-6 → 你的反向是对的</div>
+        <table class="repro-table">
+          <caption>梯度检查是「你真的懂反向传播」的硬指标；过不了，下面调试实录第 ①② 条对号入座。</caption>
+          <thead><tr><th>检查项</th><th>通过标准</th><th>不过的典型原因</th></tr></thead>
+          <tbody>
+            <tr><td>max 相对误差</td><td class="hit">&lt; 1e-6</td><td>转置写反 / 漏乘激活导数</td></tr>
+            <tr><td>误差量级</td><td class="hit">≈ 1e-7</td><td>eps 取太大或太小（数值误差）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>你这 20 行不会炸，但放大到千亿参数，「梯度 → 更新」这一步会出大事。</strong>GLM-130B、PaLM、OPT-175B 在预训练时都反复遭遇 <strong>loss spike（损失毫无征兆地突然飙升甚至发散）</strong>。</p>
+        <p><strong>怎么救：</strong>PaLM / OPT 的土办法是<strong>回滚到尖峰前的 checkpoint、跳过那几个 batch</strong> 再继续；GLM-130B 团队进一步定位到<strong>是 embedding 层的异常梯度在作怪</strong>，提出「embedding gradient shrink（缩小词嵌入梯度）」显著稳住了训练。一句话：今天你理解的「梯度 → 更新」，正是大模型训练里最脆弱、最烧钱的环节。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2210.02414" target="_blank">GLM-130B（arXiv:2210.02414）</a> · <a href="https://arxiv.org/abs/2204.02311" target="_blank">PaLM（arXiv:2204.02311）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>梯度检查过不了</strong>：八成是<strong>转置写反</strong>（<code>W2.T @ dz2</code> 还是 <code>dz2 @ W2</code>）或<strong>漏乘激活导数</strong>（ReLU 的 <code>(z1&gt;0)</code>）→ 逐层对维度、对推导。</p>
+        <p>② <strong>loss 变 NaN</strong>：softmax 没减最大值导致 <code>exp</code> 溢出 → 用 <code>exp(z - z.max())</code>；或 <code>log(0)</code> → 加 <code>1e-12</code>。</p>
+        <p>③ <strong>loss 不降反而乱跳</strong>：学习率太大 → 调小 lr，或换 Adam / AdamW。</p>
+        <p>④ <strong>用 PyTorch 后 loss 越跑越怪</strong>：忘了 <code>optimizer.zero_grad()</code>，梯度跨 step 累加 —— 新手头号 bug。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -659,12 +784,25 @@ W1 -= 0.1 * dW1;  W2 -= 0.1 * dW2       # W ← W − lr·∂L/∂W
       <h4>学习目标</h4>
       <p>理解 CNN 的基本操作（卷积、池化、特征图），以及 ResNet 的残差连接——<strong>这个「F(x)+x」的思想在 Transformer 的每一层都在用</strong>，是承上启下的关键。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · nano-mllm</span>
+        <p>今天给项目立一个<strong>视觉基线</strong>：<code>vision/cnn_baseline.py</code> —— 一个小 ResNet，在 CIFAR-10 上训出一个准确率。它的用处在 P04/P05：等你换成 ViT，就能<strong>亲眼对照</strong>「小数据上 CNN 赢、大数据上 ViT 赢」这条铁律，而不是只听我说。</p>
+        <p>更重要的是今天的 <code>F(x)+x</code> 残差思想 —— 它不是 CNN 专利，<strong>后面 <code>model/transformer.py</code> 的每一层都靠它</strong>才训得动。今天写的残差块，等于先把 Transformer 的「梯度高速路」预演一遍。</p>
+        <div class="repo-tree">nano-mllm/
+├── engine/autograd_demo.py     <span style="color:var(--ink-faint)">← P01</span>
+├── vision/
+│   └── <b>cnn_baseline.py</b>        <span style="color:var(--teal)">← 今天新增：CIFAR-10 上的小 ResNet 基线</span>
+└── model/                       <span style="color:var(--ink-faint)">（残差思想 P03 起复用）</span></div>
+      </div>
+
       <div class="box-important">
         <span class="label">🔥 CNN 三个关键概念</span>
         <p><strong>卷积核（Kernel/Filter）</strong>：一个小的可学习矩阵（如 3×3），在输入图像上滑动做局部特征提取。参数共享 + 局部连接 = 大幅减少参数量。</p>
         <p><strong>特征图（Feature Map）</strong>：一个卷积核滑过整张图后生成一张特征图。多个卷积核 = 多个特征图 = 多通道输出。</p>
         <p><strong>残差连接（ResNet）</strong>：<code>output = F(x) + x</code>。让网络学习残差而非完整映射，解决深层网络训练困难的问题。这个思想在 Transformer 的每一层都在用！</p>
       </div>
+
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span><strong>卷积核</strong>像一枚小印章：拿同一枚印章在整张图上到处盖，找同一种花纹（这就是「参数共享」—— 不必每个位置都学一套）。<strong>特征图</strong>就是盖完一种印章后得到的「哪里有这种花纹」的地图；换 N 枚印章就得 N 张地图。<strong>残差连接</strong>则是给网络修一条<strong>抄近路的高速路</strong>：万一这几层没学到有用东西，就先把原样 <code>x</code> 原封不动传过去，保证「越深至少不越差」—— 这正是能把网络堆到上百层的关键。</p></div>
 
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 卷积操作的数学定义与输出尺寸计算</div>
@@ -703,6 +841,54 @@ print(ResidualBlock(64)(x).shape)         # torch.Size([1, 64, 56, 56])，尺寸
 # 验证尺寸公式 H_out=(H−k+2p)/s+1
 conv = nn.Conv2d(3, 16, kernel_size=7, stride=2, padding=3)
 print(conv(torch.randn(1,3,224,224)).shape)   # [1,16,112,112]，尺寸减半</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · ResNet 退化现象</span>
+        <p>ResNet 最经典的一张图，你可以亲手复现：在 CIFAR-10 上训一个 <strong>56 层的「plain 网络」（无残差）</strong>和一个 <strong>20 层 plain 网络</strong>，会看到反直觉的一幕 —— <strong>更深的反而训练误差更高</strong>（注意是训练误差，不是过拟合！）。再给它们加上残差连接，结论立刻翻转：56 层反超 20 层。</p>
+        <div class="code-block"># nano-mllm/vision/degradation_demo.py —— 复现 ResNet 的「退化现象」
+import torch, torch.nn as nn
+# 关键开关：use_res=False 是 plain 网络，True 是 ResNet
+class Block(nn.Module):
+    def __init__(self, c, use_res):
+        super().__init__()
+        self.f = nn.Sequential(nn.Conv2d(c,c,3,padding=1), nn.BatchNorm2d(c),
+                               nn.ReLU(), nn.Conv2d(c,c,3,padding=1), nn.BatchNorm2d(c))
+        self.use_res, self.relu = use_res, nn.ReLU()
+    def forward(self, x):
+        out = self.f(x)
+        if self.use_res: out = out + x            # 唯一区别就这一行
+        return self.relu(out)
+
+def make_net(depth, use_res):                     # depth≈层数，堆若干 Block
+    body = [Block(16, use_res) for _ in range(depth // 2)]
+    return nn.Sequential(nn.Conv2d(3,16,3,padding=1), nn.BatchNorm2d(16), nn.ReLU(),
+                         *body, nn.AdaptiveAvgPool2d(1), nn.Flatten(), nn.Linear(16,10))
+# 分别训练 make_net(20,False) / make_net(56,False) / make_net(56,True)，比它们的「训练误差」</div>
+        <table class="repro-table">
+          <caption>同样深度，差别只在那一行 <code>out + x</code>。盯「训练误差」而非测试误差，才能确认这不是过拟合。</caption>
+          <thead><tr><th>网络</th><th>训练误差（趋势）</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>plain-20</td><td>较低</td><td>浅，反而好优化</td></tr>
+            <tr><td>plain-56</td><td class="hit">更高（退化！）</td><td>深了却更难训 —— 反直觉</td></tr>
+            <tr><td>resnet-56</td><td class="hit">最低</td><td>加一行残差，深度红利就回来了</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>「加层反而变差」不是 bug，是 2015 年震动整个领域的发现。</strong>He 等人在 ResNet 论文里指出：56 层 plain 网络在 CIFAR-10 上的<strong>训练</strong>误差高于 20 层 —— 既不是过拟合、也不全是梯度消失，而是<strong>深层堆叠本身难以优化</strong>。一行 <code>F(x)+x</code> 把它解决了，从此网络能堆到 100+ 层，残差也成了所有现代架构（含 Transformer）的标配。</p>
+        <p><strong>反转彩蛋：</strong>很多人以为 ViT 之后「CNN 已死」。2022 年 ConvNeXt 证明：把 ViT 时代的训练配方搬回纯 CNN，它能<strong>打平甚至超过同级 Swin Transformer</strong> —— 决定胜负的往往是训练方法，不只是架构。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/1512.03385" target="_blank">ResNet（arXiv:1512.03385）</a> · <a href="https://arxiv.org/abs/2201.03545" target="_blank">ConvNeXt（arXiv:2201.03545）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong><code>out + x</code> 形状不匹配报错</strong>：当通道数变了、或 stride&gt;1 下采样了，<code>x</code> 与 <code>F(x)</code> 尺寸对不上 → 给跳连加一个 <code>1×1</code> 卷积（带相同 stride）做投影。</p>
+        <p>② <strong>很深的网络 loss 不降</strong>：多半漏了 <strong>BatchNorm</strong>；ResNet 里 conv 后几乎必跟 BN。</p>
+        <p>③ <strong>输出尺寸算错</strong>：padding / stride 没代进 $H_{\text{out}}=(H-k+2p)/s+1$ → 逐层打印 <code>.shape</code> 核对。</p>
+        <p>④ <strong>显存爆 / 速度慢</strong>：浅层特征图分辨率高最吃显存 → 早点用 stride 或池化下采样。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -775,6 +961,16 @@ print(conv(torch.randn(1,3,224,224)).shape)   # [1,16,112,112]，尺寸减半</d
       <h4>学习目标</h4>
       <p>注意力机制是 Transformer 的灵魂,也是后面 ViT、GPT、MLLM 的共同基石。彻底理解 Q/K/V 的含义、注意力分数的计算、为什么要缩放、以及为什么要多头。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · nano-mllm 核心</span>
+        <p>今天写下整个项目<strong>复用最多的一个文件</strong>：<code>model/attention.py</code>。往后你会一次次回来用它 —— ViT 的编码器、GPT 的解码器、CLIP 的文本塔、LLaVA 的图文交叉注意力，全部建立在这一个 <code>scaled_dot_product_attention</code> 之上。</p>
+        <p><strong>今天产出：</strong><code>model/attention.py</code> = 单头注意力 + 多头封装 + causal mask，并用 PyTorch 官方实现做数值对拍（确认你写的是对的）。这是从「读懂公式」到「拥有一块可信积木」的关键一步。</p>
+        <div class="repo-tree">nano-mllm/model/
+├── <b>attention.py</b>     <span style="color:var(--teal)">← 今天新增：SDPA + MultiHead + causal mask（全项目复用）</span>
+├── transformer.py     <span style="color:var(--ink-faint)">（P04 / W1 用 attention 拼出来）</span>
+└── ...</div>
+      </div>
+
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 注意力机制完整推导（最重要的推导之一）</div>
         <div class="deriv-body">
@@ -799,6 +995,8 @@ print(conv(torch.randn(1,3,224,224)).shape)   # [1,16,112,112]，尺寸减半</d
         </div>
       </div>
 
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>注意力就是<strong>「带着问题去查资料」</strong>：每个词拿自己的问题 <code>Q</code>，去和所有词的标签 <code>K</code> 比谁相关，再按相关度把对应内容 <code>V</code> 加权抄过来。<strong>除以 √d_k</strong> 是怕分数差距被拉得太悬殊、变成「赢家通吃」只盯一个词，缩放一下让它别太极端。<strong>多头</strong>像同一句话请 8 个不同专业的人各读一遍 —— 一个盯语法、一个盯指代、一个盯时间关系 —— 最后把各自理解拼起来。代价是 <strong>O(N²)</strong>：每个词都要和其他所有词「握一次手」，词一多，握手次数平方级暴涨（这正是后面 token 压缩、FlashAttention 要解决的痛点）。</p></div>
+
       <div class="box-important">
         <span class="label">🔥 Self-Attention vs Cross-Attention</span>
         <p><strong>Self-Attention</strong>：Q、K、V 都来自同一个序列。每个 token 看序列中所有其他 token。ViT 和 GPT 的核心。</p>
@@ -820,6 +1018,50 @@ print(attention(Q, K, V).shape)               # [1, 8, 64]
 # 生产中直接用内置（底层走 FlashAttention，见 D34）：
 #   F.scaled_dot_product_attention(Q, K, V)
 # Causal（GPT 用，见 D01）：加 is_causal=True 的上三角 mask</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 和官方实现对拍 + √d_k 消融</span>
+        <p>两件事坐实你的理解：① 你这几行注意力，数值上必须和 PyTorch 官方 <code>F.scaled_dot_product_attention</code> <strong>几乎完全一致</strong>；② 亲手看到「不缩放」会怎样 —— 随 $d_k$ 增大，softmax 迅速塌成 one-hot（最大权重 → 1），梯度随之消失。</p>
+        <div class="code-block">import torch, torch.nn.functional as F
+def my_attention(Q, K, V):
+    S = Q @ K.transpose(-2,-1) / Q.size(-1)**0.5
+    return F.softmax(S, dim=-1) @ V
+
+Q, K, V = (torch.randn(2,8,16,64) for _ in range(3))      # (B, heads, seq, d_k)
+ref = F.scaled_dot_product_attention(Q, K, V)
+print("max diff vs 官方 =", (my_attention(Q,K,V) - ref).abs().max().item())   # 预期 ~1e-6
+
+# √d_k 消融：不缩放时，softmax 随 d_k 增大而饱和
+for d in [8, 64, 512]:
+    q = torch.randn(1000, d); k = torch.randn(1000, d)
+    raw = q @ k.transpose(-2,-1)                           # 不缩放
+    print(f"d_k={d:4d}  不缩放峰值={raw.softmax(-1).max(-1).values.mean():.3f}"
+          f"  缩放后={(raw/d**0.5).softmax(-1).max(-1).values.mean():.3f}")</div>
+        <table class="repro-table">
+          <caption>不缩放时 d_k 越大、softmax 越「赢家通吃」（峰值趋近 1、梯度消失）；缩放把它稳住。第一行的对拍误差则证明你的实现没写错。</caption>
+          <thead><tr><th>检查</th><th>预期</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr><td>vs 官方 SDPA</td><td class="hit">max diff ~1e-6</td><td>你的注意力实现正确</td></tr>
+            <tr><td>不缩放 d_k=512</td><td>softmax 峰值 → 接近 1</td><td>饱和、梯度消失</td></tr>
+            <tr><td>缩放 d_k=512</td><td class="hit">softmax 峰值平缓</td><td>这就是 ÷√d_k 的意义</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>一个直接源于今天「softmax 必须和为 1」的诡异现象：attention sink。</strong>人们发现，训练好的 LLM 会把<strong>大量注意力莫名其妙地倒给第一个 token</strong>（哪怕它只是个无意义的起始符）。原因正是 softmax —— 当某个 query「其实谁都不太想看」时，那一份权重也总得花掉，于是模型学会一个「停车位」：把用不掉的注意力全停到开头几个 token 上。</p>
+        <p><strong>这不是 bug，反而能利用：</strong>StreamingLLM 发现，只要在滑动窗口里<strong>永久保留最前面 4 个 token 的 KV</strong>，模型就能稳定处理 <strong>400 万+ token</strong> 的超长流式输入而不崩。理解了今天的 softmax，你就理解了这个支撑长上下文推理的工程技巧。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2309.17453" target="_blank">StreamingLLM / Attention Sinks（arXiv:2309.17453）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>softmax 维度搞错</strong>：必须对「每个 query 的所有 key」那一维归一（<code>dim=-1</code>）；错成对 query 维归一，结果全乱却不报错 —— 最隐蔽的 bug。</p>
+        <p>② <strong>GPT 训练「作弊」、loss 低得离谱</strong>：忘了 <strong>causal mask</strong>，模型偷看了未来 token → 把未来位置分数设成 <code>-inf</code> 再 softmax。</p>
+        <p>③ <strong>mask 用 0 而不是 -inf</strong>：要在 softmax <em>之前</em> 加 <code>-inf</code>（或 <code>-1e9</code>）才能让该位置权重归零；softmax 之后乘 0 是错的。</p>
+        <p>④ <strong>忘了缩放 → NaN / 不收敛</strong>：<code>d_k</code> 大时点积过大、softmax 饱和；fp16 下还可能直接溢出。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -886,6 +1128,14 @@ print(attention(Q, K, V).shape)               # [1, 8, 64]
       <h4>学习目标</h4>
       <p>ViT 的核心思想极其简单——把图像切成小块（patch），当作「单词」，再用标准 Transformer 处理。<strong>这个「图像 → token 序列」的转换，直接奠定了后面所有多模态模型(D13/D14)的基础</strong>。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · nano-mllm 的「眼睛」</span>
+        <p>今天造的就是 <code>nano-mllm</code> 的<strong>眼睛</strong>：<code>vision/vit.py</code> —— 把图像变成 token 序列的视觉编码器。它为什么是地基？因为 <strong>D11 的 CLIP 视觉塔本质就是一个 ViT，D14 的 LLaVA 也靠它把图片切成视觉 token</strong> 喂给 LLM。今天图像和文本第一次有了「同一种长相」—— 都是 token 序列，这正是多模态能拼起来的前提。</p>
+        <div class="repo-tree">nano-mllm/vision/
+├── cnn_baseline.py    <span style="color:var(--ink-faint)">← P02（待会儿和 ViT 对照）</span>
+└── <b>vit.py</b>             <span style="color:var(--teal)">← 今天新增：图像 → token，nano-mllm 的视觉编码器</span></div>
+      </div>
+
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> ViT 完整流程（从图像到分类结果）</div>
         <div class="deriv-body">
@@ -913,6 +1163,8 @@ print(attention(Q, K, V).shape)               # [1, 8, 64]
         <p><strong>为什么 ViT 对多模态如此重要</strong>：ViT 让图像和文本统一成了相同的表示形式——token 序列。这为后面把图像 token 和文本 token 拼在一起送入 LLM 铺平了道路。</p>
       </div>
 
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>ViT 干的事，就是<strong>把一张图剪成拼图小块，每块当一个「单词」，再像读句子一样读图</strong>。<strong>[CLS] token</strong> 像个班长：开会时它静静听完所有同学（patch）发言，最后由它代表全班给出结论（分类）。而「<strong>没有归纳偏置</strong>」的意思是：ViT 是张白纸，不像 CNN 自带「相邻像素相关、平移不变」这些看图常识 —— 所以图给少了它还不如自带常识的 CNN，可一旦图管够，它反而能学到更通透、更全局的关系。</p></div>
+
       <h4>动手：加载预训练 ViT，看清它的 token</h4>
       <div class="code-block">import timm, torch
 
@@ -927,6 +1179,49 @@ print(f"{sum(p.numel() for p in model.parameters())/1e6:.0f}M 参数")   # ~86M
 # 取 [CLS] 做分类（和推导第 4 步一致）
 cls = feats[:, 0]                         # (1, 768)
 # CLIP 的视觉塔（D11）就是这种 ViT；LLaVA（D14）用它产出视觉 token</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · patch embedding 其实就是一个卷积</span>
+        <p>ViT 第一步看着玄乎，其实<strong>「切 patch + 展平 + 线性投影」严格等价于一个 kernel=stride=P 的卷积</strong>。亲手验证两种写法逐元素相等（差 ~1e-6），你就真懂了 patch embedding，不再被唬住。</p>
+        <div class="code-block">import torch, torch.nn as nn, torch.nn.functional as F
+B, C, H, P, D = 1, 3, 224, 16, 768
+x = torch.randn(B, C, H, H)
+
+# 写法 A：一个卷积（timm / 官方就是这么实现的）
+conv = nn.Conv2d(C, D, kernel_size=P, stride=P)
+tok_a = conv(x).flatten(2).transpose(1, 2)               # (B, 196, 768)
+
+# 写法 B：手动切 patch + 展平 + 线性（复用 conv 的同一套权重）
+patches = F.unfold(x, kernel_size=P, stride=P)           # (B, C*P*P, 196)
+W = conv.weight.reshape(D, -1)                           # (768, C*P*P)
+tok_b = patches.transpose(1, 2) @ W.t() + conv.bias      # (B, 196, 768)
+
+print("max diff =", (tok_a - tok_b).abs().max().item())  # 预期 ~1e-6 → 两者等价
+print("token 序列形状 =", tuple(tok_a.shape))            # (1, 196, 768)</div>
+        <table class="repro-table">
+          <caption>切 patch 不是什么新操作，就是一次卷积。看懂这点，ViT 的「图像 → 序列」就没有黑箱了。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>卷积写法 vs 手动切块</td><td class="hit">max diff ~1e-6（等价）</td></tr>
+            <tr><td>token 数</td><td class="hit">(224/16)² = 196</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>ViT 不是天生就强 —— 它「数据饥渴」。</strong>原论文实测：只在 ImageNet-1k（约 130 万张）上训，ViT <strong>打不过同级 ResNet</strong>；放大到 ImageNet-21k（约 1400 万）才追平；只有喂到 Google 内部的 JFT-300M（3 亿张），ViT-L/16 才真正爆发 —— ImageNet top-1 达 <strong>88.5%</strong>，超过当时最强 CNN，且训练算力还少约 4×。原因正是今天讲的「没有归纳偏置」：先验少，就得用海量数据把先验「喂」出来。</p>
+        <p><strong>另一条出路是 DeiT：</strong>不靠外部大数据，改用<strong>强数据增广 + 正则 + 蒸馏</strong>，让 ViT 只在 ImageNet-1k 上也能训出有竞争力的精度。这条「配方换数据」的思路，正是明天 P05 的主题。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2010.11929" target="_blank">ViT（arXiv:2010.11929）</a> · <a href="https://arxiv.org/abs/2012.12877" target="_blank">DeiT（arXiv:2012.12877）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>忘了位置编码</strong>：ViT 对 patch 顺序无感，没位置编码就等于把拼图打乱还让它认图 → 精度暴跌。</p>
+        <p>② <strong>从零训 ViT 在小数据上严重过拟合</strong>：归纳偏置少 → 必须上强增广（RandAug、Mixup）和正则，或干脆用预训练权重。</p>
+        <p>③ <strong>换了输入分辨率就报错 / 掉点</strong>：位置编码长度对不上 → 需对 pos-embed 做插值（<code>interpolate_pos_encoding</code>）。</p>
+        <p>④ <strong>预训练 ViT 精度异常低</strong>：预处理没对齐 —— 必须用该权重配套的 resize / 均值方差（和 D11 的 <code>preprocess</code> 同理）。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -988,6 +1283,16 @@ cls = feats[:, 0]                         # (1, 768)
       <h4>今日目标</h4>
       <p>纯实践日。确保你能用 PyTorch 搭建网络、加载数据、训练和评估。后面所有实验（D20 训 MLLM、D39 跑你的方法）都靠这套基本功。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 前置周里程碑</span>
+        <p>今天是前置周的<strong>收官与合龙</strong>：把前四天的零件 —— 训练心跳（P01）、残差（P02）、注意力（P03）、ViT（P04）—— 拼成第一个<strong>能端到端训练起来的东西</strong> <code>train_vit.py</code>，在 CIFAR-10 上真刀真枪训出一个准确率。</p>
+        <p><strong>今天产出 + 里程碑：</strong><code>train_vit.py</code> 跑通 → 你手上第一次有了「会自己学习」的完整系统。这套训练循环会原封不动用到 W1 训 nano-GPT、W3 训 CLIP、W8 训你自己的 MLLM —— 只换模型和数据。</p>
+        <div class="repo-tree">nano-mllm/
+├── engine/autograd_demo.py   <span style="color:var(--ink-faint)">← P01 训练心跳</span>
+├── vision/vit.py             <span style="color:var(--ink-faint)">← P04 视觉编码器</span>
+└── <b>train_vit.py</b>             <span style="color:var(--teal)">← 今天新增：CIFAR-10 端到端训练（前置周毕业作品）</span></div>
+      </div>
+
       <div class="code-block">import torch
 import torch.nn as nn
 from torchvision import datasets, transforms
@@ -1033,6 +1338,8 @@ for epoch in range(10):
                        for img, lbl in val_loader)
         print(f"Epoch {epoch}, Acc: {correct/len(val_dataset):.3f}")</div>
 
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>训练循环就是<strong>健身</strong>：<strong>前向</strong> = 做一组动作；<strong>loss</strong> = 教练打分（差多少）；<strong>backward</strong> = 教练指出哪块肌肉没发上力；<strong>optimizer.step</strong> = 你照着调整姿势。<strong><code>zero_grad</code></strong> 是每组之间把上一组的「疲劳」清零，不然梯度会累加、越练越乱（新手第一坑）。<strong><code>train()</code> / <code>eval()</code></strong> 则是训练时全力（还带点随机扰动 dropout 防死记硬背）、考试时稳定发挥（关掉扰动）。</p></div>
+
       <div class="box-important">
         <span class="label">🔥 PyTorch 核心 API 清单</span>
         <p><code>nn.Module</code>：所有网络的基类，定义 <code>__init__</code> 和 <code>forward</code><br>
@@ -1050,6 +1357,60 @@ for epoch in range(10):
         <li>尝试用 <code>timm</code> 库加载预训练 ViT：<code>timm.create_model('vit_base_patch16_224', pretrained=True)</code></li>
         <li>用 <code>torchsummary</code> 打印模型结构，数一下参数量是否和 86M 对得上</li>
       </ul>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 在 CIFAR-10 上把 ViT 训出来</span>
+        <p>把模板填成一个完整可跑的脚本，亲眼看 loss 下降、准确率上升。两条路线对照感受「P04 的数据饥渴」：从零训的小 ViT 没那么高，而微调预训练 ViT 轻松 97%+。</p>
+        <div class="code-block"># nano-mllm/train_vit.py —— 微调预训练 ViT 跑通 CIFAR-10
+import timm, torch, torch.nn as nn
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+
+dev = "cuda" if torch.cuda.is_available() else "cpu"
+tf = transforms.Compose([transforms.Resize(224), transforms.ToTensor(),
+                         transforms.Normalize([0.5]*3, [0.5]*3)])
+train = DataLoader(datasets.CIFAR10("./data", True,  download=True, transform=tf),
+                   batch_size=64, shuffle=True)
+val   = DataLoader(datasets.CIFAR10("./data", False, download=True, transform=tf),
+                   batch_size=128)
+
+model = timm.create_model("vit_base_patch16_224", pretrained=True, num_classes=10).to(dev)
+opt, crit = torch.optim.AdamW(model.parameters(), lr=1e-4), nn.CrossEntropyLoss()
+
+for epoch in range(3):
+    model.train()
+    for x, y in train:
+        x, y = x.to(dev), y.to(dev)
+        opt.zero_grad(); crit(model(x), y).backward(); opt.step()
+    model.eval(); hit = tot = 0
+    with torch.no_grad():
+        for x, y in val:
+            hit += (model(x.to(dev)).argmax(1).cpu() == y).sum().item(); tot += y.size(0)
+    print(f"epoch {epoch}  val acc = {100*hit/tot:.2f}%")   # 预期 1~3 个 epoch 即可 ~97-98%</div>
+        <table class="repro-table">
+          <caption>同一套循环，换模型 / 数据就能复用 —— 这正是 D20 训 MLLM、D39 跑实验的同一骨架。</caption>
+          <thead><tr><th>路线</th><th>CIFAR-10 验证精度</th><th>体会</th></tr></thead>
+          <tbody>
+            <tr><td>微调预训练 ViT-B/16</td><td class="hit">~97–98%（几个 epoch）</td><td>站在巨人肩上</td></tr>
+            <tr><td>从零训小 ViT（需强增广）</td><td>~80–85%</td><td>亲历 P04 的「数据饥渴」</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>同一个 ViT 架构，训练配方不同，精度能差十几个点 —— 配方有时比架构更重要。</strong>「How to train your ViT」（AugReg）的系统实验发现：<strong>数据增广 + 正则化用对，效果约等于把训练数据放大一个数量级</strong>；DeiT 也靠强增广 + 蒸馏，让 ViT 不借外部大数据就在 ImageNet-1k 上打到有竞争力的水平。</p>
+        <p><strong>给你的提醒：</strong>当你从零训模型却训不动时，先别急着改网络结构 —— 多半是<strong>增广、学习率 warmup、正则没配好</strong>。这条经验后面训 MLLM 同样适用。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2106.10270" target="_blank">How to train your ViT / AugReg（arXiv:2106.10270）</a> · <a href="https://arxiv.org/abs/2012.12877" target="_blank">DeiT（arXiv:2012.12877）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>数据没按数据集统计量归一化</strong>：忘了 <code>Normalize(mean, std)</code>，或用预训练模型却没用它配套的均值方差 → 精度莫名偏低。</p>
+        <p>② <strong>从零训 ViT loss 卡住</strong>：缺<strong>学习率 warmup</strong> 和增广 → 加 warmup（前几百步线性升 lr）、上 RandAug / Mixup。</p>
+        <p>③ <strong>第一个 epoch 训练精度就接近 100%</strong>：过拟合信号 → 加正则、减小模型，或用预训练权重。</p>
+        <p>④ <strong>GPU 利用率低、训得慢</strong>：<code>num_workers</code> 太小或 batch 太小 → 调大；必要时上混合精度 <code>autocast</code>。</p>
+      </div>
 
       <h4>自测 / 误区</h4>
       <div class="box-tip">
@@ -1650,6 +2011,19 @@ curl http://localhost:11434/api/generate -d '{
         <p><strong>② 监督微调（SFT）</strong>：高质量 instruction-response 对（数万到数十万条），让模型学会按指令格式回答。loss 通常只算 response 部分。</p>
         <p><strong>③ RLHF / DPO</strong>：人类对同一问题的多个回答做偏好排序，训练 reward model 或直接用 DPO 优化。让输出更安全、更有帮助。</p>
       </div>
+
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>把训练 LLM 想成<strong>培养一个新员工</strong>：① <strong>预训练</strong> = 让他把全世界的书报读一遍 —— 博学，但不一定会干你这行的活；② <strong>SFT</strong> = 老师傅手把手教「遇到这类问题就该这么答」，学会按规矩做事；③ <strong>RLHF / DPO</strong> = 老板反复反馈「这么说我更满意」，让他学会察言观色、对齐你的口味。只读过书（只预训练）的人，你问他事，他往往只顺着你的话<strong>续写半篇作文</strong>，而不是好好回答你 —— 这就是为什么必须有 ②③。</p></div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>现象：「先 SFT 后 RL，奖励会先变差、再变好」（Reward Hockey-Stick 曲线）。</strong>很多团队在 SFT / 蒸馏之后接 RL，会发现头几十~几百步<strong>奖励不升反降、benchmark 掉点</strong>，探到一个谷底后才回升、并最终反超起点 —— 形状像一根曲棍球杆。新手常在谷底误判「RL 训崩了」而提前停手，其实是停早了。</p>
+        <p><strong>为什么会这样：</strong>SFT 把策略压得过于确定（熵很低），RL 早期一探索就偏离 SFT 分布，加上 reward model 给这些 out-of-distribution 输出打分不准 → 短暂塌陷。<strong>怎么稳住：</strong>① 用足够的 KL penalty 把策略拴在参考模型附近；② 别把 SFT 练到熵太低；③ 谷底要敢熬过去 —— 同时盯 KL、熵、回答长度，而不是只盯单一 reward。</p>
+        <p><strong>DeepSeek-R1 的佐证：</strong>纯 RL 的 R1-Zero 会出现可读性差、中英混杂、重复，所以 R1 才先用<strong>冷启动 SFT</strong> 数据稳住格式再上 RL；而他们加的「语言一致性奖励」<strong>反而让某些 benchmark 掉分</strong> —— 一个为可读性牺牲少量分数的真实取舍。RL 过程中回答长度持续变长，并自发涌现「反思 / aha moment」。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2501.12948" target="_blank">DeepSeek-R1（arXiv:2501.12948）</a> · <a href="https://arxiv.org/abs/2509.00309" target="_blank">Balanced Actor Initialization：蒸馏模型 RLHF 的 hockey-stick 与稳定化（arXiv:2509.00309）</a></div>
+      </div>
+
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>这根「先变差再变好」的曲线，就像让一个<strong>打球姿势已经定型的老球员改用更标准的新动作</strong>：刚改那几天浑身别扭、打得反而更烂（谷底）；可一旦熬过适应期、新动作练顺，水平会反超从前。很多人就栽在「改了反而变差」的头几天放弃了 —— 其实再咬牙几天就柳暗花明。</p></div>
+
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> SFT 的 loss 与预训练的区别</div>
         <div class="deriv-body">
           <p class="math-note"><strong>预训练 loss</strong>：对整个序列 $[x_1,x_2,\dots,x_T]$ 都算 loss。<br>
@@ -2100,6 +2474,21 @@ def step(q_t, k_t, v_t):
       <h4>学习目标</h4>
       <p>CLIP 是几乎所有多模态大模型的视觉编码器来源。学完今天你应能：<strong>(1)</strong> 讲清「双塔 + 共享空间 + 对比学习」三件套；<strong>(2)</strong> 默写 InfoNCE 损失并解释温度 <em class="term">τ</em> 的作用；<strong>(3)</strong> 说清为什么 batch size 是关键、为什么要 L2 归一化；<strong>(4)</strong> 解释 zero-shot 分类的原理；<strong>(5)</strong> 用 open_clip 跑一次 zero-shot 推理。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · nano-mllm</span>
+        <p>今天你正式从「纯文本」跨进「多模态」。W1–W2 你已造好一个能听指令的小 LM（<code>model/transformer.py</code> + LoRA 微调）；本周（W3）的任务是给它装上「眼睛」，而第一步就是今天的<strong>视觉塔 + 对齐损失</strong>。</p>
+        <p><strong>今天产出：</strong><code>vision/clip.py</code>（对比损失 + 可训练 MiniCLIP，含单 batch 过拟合自检）、<code>eval/zeroshot_cifar10.py</code>（复现 CLIP 零样本）。</p>
+        <div class="repo-tree">nano-mllm/
+├── model/transformer.py      <span style="color:var(--ink-faint)">← W1 已建：你的 nano-GPT</span>
+├── finetune/lora.py          <span style="color:var(--ink-faint)">← W2 已建：指令微调</span>
+├── vision/
+│   ├── <b>clip.py</b>               <span style="color:var(--teal)">← 今天新增：对比损失 + MiniCLIP</span>
+│   └── encoder.py            <span style="color:var(--ink-faint)">（D12 选 SigLIP 后再补）</span>
+└── eval/
+    └── <b>zeroshot_cifar10.py</b>   <span style="color:var(--teal)">← 今天新增：复现零样本 ~88%</span></div>
+        <p><strong>怎么衔接：</strong>周四 <strong>D14（LLaVA）</strong>你会把这个视觉塔的输出，经一个 projector 接到 LM 的 embedding 空间，周末就能得到<strong>第一个能看图回答的 VLM</strong>。所以今天务必让单 batch 过拟合自检通过 —— 它是后面一切的地基。</p>
+      </div>
+
       <h4>一、动机：怎么让图像和文本「可比较」</h4>
       <p>图像和文本是两种完全不同的模态，无法直接比较。CLIP 的思路极其干净：<strong>用两个编码器各自把图像、文本映射到同一个 <em class="term">d 维向量空间</em></strong>，在这个空间里，「一张猫的图」和「a cat」这句话的向量应该挨得很近。一旦图文进入同一空间，「图像理解」就被转化成了「向量检索」。</p>
 
@@ -2111,9 +2500,18 @@ def step(q_t, k_t, v_t):
         <p>对多模态大模型而言，<strong>CLIP 真正值钱的是「图像编码器」——它产出的视觉特征天然和语言对齐</strong>，后面 LLaVA 只需一个小 projector 就能接上 LLM。</p>
       </div>
 
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>CLIP 训练像一场<strong>超大型相亲配对</strong>：一屋子 N 张图配 N 句话，每对本是天生一对。模型反复练习 —— 把「我的那一位」拉到身边，把其他所有人都往外推。练到最后眼力毒到：随便给一张新图，它能在一堆文字里一眼挑出最配的那句。这「一眼认人」的本事就是 <strong>zero-shot 分类</strong> —— 把每个候选类别写成一句话，看图跟哪句最配。</p></div>
+
       <div class="box-tip">
         <span class="label">💡 和你的 CV 直觉对接</span>
         <p>这其实就是你熟悉的<strong>度量学习 / 表征对齐</strong>：把 triplet loss 里「锚-正-负」的思路,扩展成「用整个 batch 内所有不匹配对当负样本」。CLIP 没有发明新数学,它的赢点是<strong>4 亿图文对 + 超大 batch</strong>——数据和规模再次胜过技巧。</p>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>「数据 &gt; 损失函数」不是口号，是有数字的。</strong>OpenCLIP 团队把对比预训练做成可复现的<strong>幂律 scaling</strong>：性能随算力 / 数据 / 模型规模平滑提升；但同样算力下，<strong>scaling 的斜率取决于数据分布</strong> —— 不同来源的数据，效率差很多。</p>
+        <p><strong>更狠的反例来自 DataComp：</strong>固定模型与算力、只改「怎么筛数据」，用筛出来的 <strong>DataComp-1B</strong> 训出的 ViT-L/14 在 ImageNet 零样本拿到 <strong>79.2%</strong>，反超相同算力的 OpenAI 原版 <strong>75.5%</strong>；甚至比 LAION-2B 上训的、更大的 ViT-g 还强，且省 9× 算力。<strong>结论：决定 CLIP 上限的是数据的规模与质量，而非损失函数上的小技巧</strong> —— 这也是为什么后面所有 MLLM 抢的都是「更干净的视觉塔 + 更好的图文数据」。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2212.07143" target="_blank">Reproducible Scaling Laws / OpenCLIP（arXiv:2212.07143）</a> · <a href="https://arxiv.org/abs/2304.14108" target="_blank">DataComp（arXiv:2304.14108）</a></div>
       </div>
 
       <h4>二、对比损失（InfoNCE）</h4>
@@ -2129,8 +2527,22 @@ def step(q_t, k_t, v_t):
           $$L = \tfrac{1}{2}\big(L_{i2t} + L_{t2i}\big)$$
           <p class="math-note"><strong>温度 $\tau$</strong>：越大分布越尖锐、越强调最难负样本（但易不稳）；CLIP 设为可学习并裁剪上限防爆炸。<br>
           <strong>为何大 batch</strong>：分母是「该样本 vs batch 内所有负样本」，$N$ 越大负样本越多、对比信号越强 —— CLIP 原论文 batch size $=32768$！</p>
+
+          <div class="math-cap">梯度：为什么一行 cross_entropy 就够了</div>
+          $$\frac{\partial L_{i2t}}{\partial S_{ij}} = \underbrace{\frac{\exp(S_{ij})}{\sum_k \exp(S_{ik})}}_{p_{ij}} \;-\; \mathbb{1}[i=j]$$
+          <p class="math-note">$p_{ij}$ 是第 $i$ 行的 softmax。这和交叉熵<strong>一模一样</strong>：把对角线 logit 推高、其余推低 —— 所以代码里一行 <code>F.cross_entropy(logits, labels)</code> 就够了，<code>labels = torch.arange(N)</code>（对角线才是匹配对）。</p>
+
+          <div class="math-cap">温度的裁剪（工程必做，不做会 NaN）</div>
+          $$\text{logit\_scale} = \exp(t),\qquad t \le \ln 100 \;\Longleftrightarrow\; \text{temperature} = \tfrac{1}{\text{logit\_scale}} \ge 0.01$$
+          <p class="math-note">不裁剪，$t$ 会被优化器一路推高 → logits 爆炸 → softmax 出 NaN。代码：<code>logit_scale.data.clamp_(max=math.log(100))</code>（CLIP 官方同款）。</p>
+
+          <div class="math-cap">为什么大 batch 真有用：InfoNCE 是互信息下界</div>
+          $$\mathbb{E}[L] \;\ge\; \log N - I(\text{image};\text{text})$$
+          <p class="math-note">最小化 InfoNCE 等价于<strong>最大化图文互信息 $I$ 的一个下界</strong>；$N$ 越大下界越紧 → 表征越好。这就是 CLIP 堆到 batch $=32768$ 的理论依据，也是「规模 &gt; 技巧」的根。</p>
         </div>
       </div>
+
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>几个旋钮翻成人话 —— <strong>温度</strong>像自信心：调高 = 模型很轴，只认最像的那个；调低 = 佛系，觉得谁都有点像。<strong>大 batch</strong>像相亲现场人多：干扰项越多越能逼出「火眼金睛」，一对一相亲太容易、练不出本事。<strong>L2 归一化</strong>像比身材只看比例、不看绝对胖瘦：先把每个向量缩到一样长，比的是「方向像不像」，而不是「谁向量模长大谁就赢」。</p></div>
 
       <h4>三、动手：用 CLIP 做 zero-shot 分类</h4>
       <p>CLIP 不需要在你的任务上训练,就能分类——把每个类别写成一句话,看哪句和图像向量最近。这就是 <em class="term">zero-shot</em>。</p>
@@ -2157,7 +2569,110 @@ with torch.no_grad():
 for label, p in zip(labels, probs[0]):
     print(f"{label:24s} {p.item():.3f}")</div>
 
-      <h4>四、自测 / 误区 / 面试</h4>
+      <h4>四、从零写对比损失 + MiniCLIP（今天的 capstone 产物）</h4>
+      <p>调一次 API 不等于懂。下面把 CLIP 的核心 —— <strong>对称 InfoNCE</strong> —— 亲手写出来，再拼一个能训练的 <code>MiniCLIP</code>。这两段就是 <code>vision/clip.py</code>，后面整条多模态主线都复用它。</p>
+      <div class="code-block"># nano-mllm/vision/clip.py —— 今天的 capstone 产物：对比损失 + 可训练 MiniCLIP
+import math, timm, torch, torch.nn as nn, torch.nn.functional as F
+
+def clip_contrastive_loss(img_emb, txt_emb, logit_scale):
+    """img_emb,txt_emb:(N,d)；logit_scale 是可学习标量。返回对称 InfoNCE。"""
+    img = F.normalize(img_emb, dim=-1)            # L2 归一化到单位球（漏了它 loss 不降！）
+    txt = F.normalize(txt_emb, dim=-1)
+    logits = logit_scale.exp() * img @ txt.t()    # (N,N) 相似度矩阵 S_ij
+    labels = torch.arange(img.size(0), device=img.device)  # 对角线才是匹配对
+    loss_i2t = F.cross_entropy(logits, labels)             # 按行：每张图找它的文
+    loss_t2i = F.cross_entropy(logits.t(), labels)         # 按列：每段文找它的图
+    return (loss_i2t + loss_t2i) / 2, logits
+
+class MiniCLIP(nn.Module):
+    def __init__(self, vocab=49408, d=256, ctx=32):
+        super().__init__()
+        self.visual = timm.create_model("vit_small_patch16_224",
+                                        num_classes=0, pretrained=True)   # 图像塔
+        self.img_proj  = nn.Linear(self.visual.num_features, d)
+        self.token_emb = nn.Embedding(vocab, d)                           # 文本塔（极简）
+        self.pos_emb   = nn.Parameter(torch.zeros(ctx, d))
+        layer = nn.TransformerEncoderLayer(d, 8, batch_first=True)
+        self.text     = nn.TransformerEncoder(layer, 3)
+        self.txt_proj = nn.Linear(d, d)
+        self.logit_scale = nn.Parameter(torch.tensor(2.6593))             # ln(1/0.07)，CLIP 初值
+
+    def encode_image(self, x):  return self.img_proj(self.visual(x))
+    def encode_text(self, ids):
+        h = self.token_emb(ids) + self.pos_emb[:ids.size(1)]
+        return self.txt_proj(self.text(h)[:, -1])                         # 取末 token 当句向量
+    def forward(self, img, ids): return self.encode_image(img), self.encode_text(ids)</div>
+      <p>写完先别急着上大数据。<strong>对比学习第一件事永远是「单 batch 过拟合自检」</strong>：连一个 batch 都学不到对角线 100%，代码一定有 bug，上再多数据也是白烧显卡。</p>
+      <div class="code-block"># 单 batch 过拟合自检：你的对比损失能把对角线学到 100% 吗？（CPU 上约 1 分钟）
+torch.manual_seed(0)
+model = MiniCLIP(); opt = torch.optim.AdamW(model.parameters(), lr=1e-4)
+img = torch.randn(8, 3, 224, 224)          # 假装 8 张图
+ids = torch.randint(0, 49408, (8, 16))     # 假装 8 段配对文本（第 i 段配第 i 张）
+for step in range(301):
+    i_emb, t_emb = model(img, ids)
+    loss, logits = clip_contrastive_loss(i_emb, t_emb, model.logit_scale)
+    opt.zero_grad(); loss.backward()
+    model.logit_scale.data.clamp_(max=math.log(100))   # ln100：防温度爆炸（CLIP 同款）
+    opt.step()
+    if step % 100 == 0:
+        acc = (logits.argmax(-1) == torch.arange(8)).float().mean().item()
+        print(f"step {step:3d}  loss {loss.item():.3f}  in-batch acc {acc:.2f}")
+# 预期：loss 从 ~2.08(=ln8) 一路降到 &lt;0.05，in-batch acc → 1.00
+# 没降？看下面「🐛 调试实录」第 ①③ 条 —— 十有八九是归一化或配对错位</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · CLIP 零样本</span>
+        <p>上面是「从零搭」，这里换成<strong>真·CLIP 权重</strong>复现论文的招牌能力：不在 CIFAR-10 上训练一步，直接零样本分类。这是检验「你真懂 zero-shot 流程」的最好方式，也产出 <code>eval/zeroshot_cifar10.py</code>。</p>
+        <div class="code-block"># nano-mllm/eval/zeroshot_cifar10.py —— 复现 CLIP 论文的零样本分类
+import open_clip, torch
+from torchvision.datasets import CIFAR10
+from torch.utils.data import DataLoader
+
+model, _, preprocess = open_clip.create_model_and_transforms("ViT-B-32", pretrained="openai")
+tokenizer = open_clip.get_tokenizer("ViT-B-32")
+model.eval().requires_grad_(False)
+
+classes   = ["airplane","automobile","bird","cat","deer","dog","frog","horse","ship","truck"]
+templates = ["a photo of a {}.", "a blurry photo of a {}.", "a photo of the {}."]  # 提示词集成
+with torch.no_grad():                                   # 文本权重：每类多模板取平均
+    cols = []
+    for c in classes:
+        e = model.encode_text(tokenizer([t.format(c) for t in templates]))
+        e = e / e.norm(dim=-1, keepdim=True)
+        cols.append(e.mean(0))
+    text_w = torch.stack(cols, dim=1)
+    text_w = text_w / text_w.norm(dim=0, keepdim=True)   # (d,10)
+
+ds = CIFAR10("./data", train=False, download=True, transform=preprocess)
+hit = tot = 0
+for img, y in DataLoader(ds, batch_size=256):
+    with torch.no_grad():
+        f = model.encode_image(img); f = f / f.norm(dim=-1, keepdim=True)
+        pred = (f @ text_w).argmax(-1)
+    hit += (pred == y).sum().item(); tot += img.size(0)
+print(f"CIFAR-10 zero-shot top-1 = {100*hit/tot:.2f}%")</div>
+        <table class="repro-table">
+          <caption>你的数字应落在「你应得到」区间内；与官方的差距几乎全部来自提示词模板数量，而非代码 bug。</caption>
+          <thead><tr><th>配置</th><th>来源</th><th>CIFAR-10 零样本 top-1</th></tr></thead>
+          <tbody>
+            <tr><td>ViT-B/32 · 80 模板集成</td><td>OpenAI 官方量级</td><td>≈ 91%</td></tr>
+            <tr><td>ViT-B/32 · 3 模板（上面代码）</td><td class="hit">你应得到</td><td class="hit">≈ 88–90%</td></tr>
+            <tr><td>ViT-B/32 · 单模板 "a photo of a {}"</td><td class="hit">你应得到</td><td class="hit">≈ 86–88%</td></tr>
+          </tbody>
+        </table>
+        <p class="math-note">对照解读：拿到 ~89% 就说明流程全对了；明显低于 85% → 多半是 <code>preprocess</code> 没用模型自带那套、或忘了归一化（见下方调试实录）。想逼近 91%？把模板加到 CLIP 官方那 80 个。</p>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>loss 卡在 ln N 不降</strong>（N=8 时 ≈2.08）：几乎一定是<strong>忘了 L2 归一化</strong>，或 <code>logit_scale</code> 没参与计算 → 检查 <code>F.normalize</code> 与 <code>.exp()</code>。</p>
+        <p>② <strong>训练几十步后 loss / grad 变 NaN</strong>：<code>logit_scale</code> 被推爆 → 加 <code>clamp_(max=math.log(100))</code>；混合精度下让 softmax 走 fp32。</p>
+        <p>③ <strong>单 batch 过拟合都到不了 100%</strong>：图、文 batch 顺序没对齐，第 i 张图没配第 i 段文 → 确认 <code>labels = torch.arange(N)</code> 且两塔同序。</p>
+        <p>④ <strong>zero-shot 比预期低 5–10 个点</strong>：提示词太单一 → 上 prompt ensembling；<strong>务必</strong>用模型自带的 <code>preprocess</code>（分辨率 / 均值方差错了直接掉点）。</p>
+        <p>⑤ <strong>检索看着对、分类却差</strong>：类别名歧义（"plane" vs "airplane"）→ 换更贴近预训练分布的类名与模板。</p>
+      </div>
+
+      <h4>五、自测 / 误区 / 面试</h4>
       <div class="box-tip">
         <span class="label">✅ 检查点自测</span>
         <p>① 温度 τ 变大,softmax 分布会更尖还是更平?② 为什么两个向量都要做 L2 归一化?③ batch=32768 这个数字为什么重要?④ CLIP 能不能用来「生成」图像描述?为什么?⑤ zero-shot 分类时,类别提示词写成 "cat" 和 "a photo of a cat" 哪个通常更好?</p>
