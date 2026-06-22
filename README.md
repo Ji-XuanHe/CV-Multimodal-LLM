@@ -44,21 +44,26 @@ python3 -m http.server
 
 ## 🧪 配套代码：[`nano-mllm/`](nano-mllm/)（可一步步运行）
 
-路线图里每天说的「今天产出 `xxx.py`」，在 [`nano-mllm/`](nano-mllm/) 里都能**直接运行**：从一行 numpy 反向传播，搭到 nano-GPT → 微调 → CLIP → Agent → 视觉 token 压缩。
+路线图里每天说的「今天产出 `xxx.py`」，在 [`nano-mllm/`](nano-mllm/) 里都能**直接运行**：从一行 numpy 反向传播，一路搭到**会看图说话的 tiny VLM**，再到你研究方向的诚实消融实验。全部自包含、CPU 可跑、零权重下载（**24 个脚本**）。
 
 ```bash
 cd nano-mllm && pip install -r requirements.txt   # 只要 numpy + torch
-python train_lm.py            # 训练一个 nano-GPT 并生成莎士比亚文本（CPU ~1 分钟）
+python train_lm.py            # 训一个 nano-GPT 并生成莎士比亚文本（CPU ~1 分钟）
+python train_vlm.py           # ★ 训一个 tiny VLM，对没见过的图说出「a red square」(held-out 100%)
 python finetune/toy_rlhf.py   # 从零 GRPO：无标注、规则奖励，奖励自己往上爬
+python finetune/opd.py        # 从零 OPD（On-Policy Distillation，2025 最新后训练范式）
+python research/ablation.py   # 退化感知 token 压缩的多 seed 消融（诚实报置信区间）
 ```
 
-**专门给「后训练 / RLHF / GRPO 难懂」的初学者**：先读 [`nano-mllm/finetune/README.md`](nano-mllm/finetune/README.md) —— 把 SFT → 奖励来源 → PPO vs GRPO → DPO 串成**能运行**的教程。
+主线：`engine(autograd) → model(nano-GPT) → finetune(SFT/GRPO/OPD/DPO/LoRA) → vision+connector(CLIP/视觉塔/projector) → model/mllm(VLM 合体，看图说话) → efficiency+research(退化感知视觉 token 压缩 + 多 seed 消融)`。
+
+**专门给「后训练 / RLHF / GRPO / OPD 难懂」的初学者**：先读 [`nano-mllm/finetune/README.md`](nano-mllm/finetune/README.md) —— 把 SFT → 奖励来源 → PPO/GRPO → OPD → DPO 串成**能运行**的教程。
 
 ## ✨ 特性
 
 - **共 9 周 · 45 天**（含前置周），精细到每天的学习安排
 - **15+ 处数学推导**，标注「需要手推」的关键公式
-- **10 个动手实践**，所有代码可直接运行
+- **配套可运行代码仓库** [`nano-mllm/`](nano-mllm/)：24 个脚本，从 nano-GPT 一路到会看图的 tiny VLM，CPU 即跑
 - **进度跟踪**：点击圆圈标记完成，顶部 / 侧边栏进度条实时更新（保存在浏览器本地）
 - **报刊式排版**：衬线字体 + 纸张质感，建议配合纸笔阅读 ✎
 
@@ -114,6 +119,13 @@ python finetune/toy_rlhf.py   # 从零 GRPO：无标注、规则奖励，奖励�
 ```
 CV-Multimodal-LLM/
 ├── cv-to-mllm-roadmap_2.html   # 交互式学习路线（主文件）
+├── nano-mllm/                  # 配套可运行代码仓库（24 个脚本，详见 nano-mllm/README.md）
+│   ├── engine/ data/ model/    # nano-GPT：autograd → attention/rope → transformer
+│   ├── train_lm.py             # 训练 nano-GPT
+│   ├── finetune/               # 后训练：SFT / GRPO / OPD / DPO / LoRA（+ 初学者教程）
+│   ├── vision/ connector/ model/mllm.py · train_vlm.py   # tiny VLM：看图说话
+│   ├── efficiency/ research/    # 退化感知视觉 token 压缩（研究方向）+ 多 seed 消融
+│   └── agent/ rag/ inference/   # ReAct Agent / 向量检索 / KV Cache
 └── README.md
 ```
 
