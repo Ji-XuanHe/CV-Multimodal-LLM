@@ -684,12 +684,14 @@ W1 -= 0.1 * dW1;  W2 -= 0.1 * dW2       # W ← W − lr·∂L/∂W
       <div class="box-repro">
         <span class="label">🔬 复现实验 · 梯度检查</span>
         <p>怎么确认你手写的反向是对的？用<strong>数值梯度</strong>当裁判：把某个参数微微加减一点 $\epsilon$，看 loss 的变化，$\frac{L(w+\epsilon)-L(w-\epsilon)}{2\epsilon}$ 就是该参数的近似梯度，它应当和你解析推导的梯度几乎相等。<strong>这是每个做深度学习的人都该会的自检</strong>，也正是 PyTorch <code>torch.autograd.gradcheck</code> 的原理。</p>
-        <div class="code-block"># 数值梯度 vs 解析梯度（接上一段的 W1,b1,W2,b2,x,y,dW1）：两者应一致到 ~1e-7
+        <div class="code-block"># 数值梯度 vs 解析梯度（自包含：用当前 W 重新前向+反向，自检你的 backward 写对没）
 def loss_of(W1, b1, W2, b2, x, y):
     z1 = W1 @ x + b1; h = np.maximum(0, z1)
     z2 = W2 @ h + b2; p = np.exp(z2 - z2.max()); p = p / p.sum()
     return -np.log(p[y.argmax()] + 1e-12)
 
+yhat, cache = forward(x, W1, b1, W2, b2)        # 用当前 W 重新前向
+dW1, dW2 = backward(y, yhat, cache, W2)         # 取此刻的解析梯度（不依赖上面的 GD 步）
 eps = 1e-5; num_grad = np.zeros_like(W1)
 for i in range(W1.shape[0]):
     for j in range(W1.shape[1]):
@@ -1042,7 +1044,7 @@ for d in [8, 64, 512]:
           <thead><tr><th>检查</th><th>预期</th><th>含义</th></tr></thead>
           <tbody>
             <tr><td>vs 官方 SDPA</td><td class="hit">max diff ~1e-6</td><td>你的注意力实现正确</td></tr>
-            <tr><td>不缩放 d_k=512</td><td>softmax 峰值 → 接近 1</td><td>饱和、梯度消失</td></tr>
+            <tr><td>不缩放 d_k=512</td><td>softmax 峰值显著升高（~0.9）</td><td>趋于饱和、梯度变小</td></tr>
             <tr><td>缩放 d_k=512</td><td class="hit">softmax 峰值平缓</td><td>这就是 ÷√d_k 的意义</td></tr>
           </tbody>
         </table>
@@ -4816,6 +4818,13 @@ print(f"全量 {full/1e9:.2f}B vs LoRA {lora/1e6:.0f}M → 省 {ratio:.0f}×")</
       <h4>学习目标</h4>
       <p>MLLM 不只能「看图说话」,还能<strong>指哪看哪</strong>——输出 bounding box 定位特定物体。这正是你 CV 检测背景的主场。学完今天你应能:<strong>(1)</strong> 说清两种 grounding 方案(坐标文本化 vs 特殊 token+回归头)的取舍;<strong>(2)</strong> 解释坐标为什么要归一化到 [0,1000];<strong>(3)</strong> 用 Qwen-VL 跑一次 grounding;<strong>(4)</strong> 把它和传统检测器的差异讲清楚。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 让 nano-mllm「指哪看哪」</span>
+        <p>你的 VLM 会看图说话，但还不会「定位」。今天给它加 grounding：写 <code>grounding/coord_tokens.py</code> —— 把 bounding box 归一化到 [0,1000] 当普通文本读写（最简单的「坐标文本化」方案，Qwen-VL / Shikra 同款）。配上 D17 的 M-RoPE 空间位置感，模型就能输出框；下游接 D22 的 SAM 就能分割。</p>
+        <div class="repo-tree">nano-mllm/grounding/
+└── <b>coord_tokens.py</b>      <span style="color:var(--teal)">← 今天新增：bbox ↔ [0,1000] 归一化坐标文本</span></div>
+      </div>
+
       <h4>一、让 LLM「说出」物体在哪</h4>
       <p>传统检测器输出固定类别的框;而 MLLM 可以<strong>按任意自然语言</strong>定位(「穿红衣服的那个人」「左边第二只猫」),这叫 <em class="term">referring expression / visual grounding</em>。关键问题:LLM 只会生成 token,怎么让它「输出坐标」?</p>
 
@@ -4846,6 +4855,50 @@ def denorm(box, W, H):                 # 归一化坐标 → 实际像素
     return [x1/1000*W, y1/1000*H, x2/1000*W, y2/1000*H]
 # 拿到像素坐标后即可叠加到原图 / 喂给下游（如 D22 的 SAM）</div>
 
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 坐标归一化往返 + IoU 自检</span>
+        <p>坐标文本化的两个基本功亲手验证：① 像素框 → 归一化 [0,1000] → 还原像素，能对回原值（仅受整数化的小误差）；② 算预测框和真值框的 IoU，看定位准不准 —— 你检测背景最熟的指标。</p>
+        <div class="code-block">def to_norm(box, W, H):              # 像素 → [0,1000] 归一化（与图像尺寸无关）
+    x1,y1,x2,y2 = box
+    return [round(x1/W*1000), round(y1/H*1000), round(x2/W*1000), round(y2/H*1000)]
+def to_pixel(nb, W, H):
+    x1,y1,x2,y2 = nb
+    return [x1/1000*W, y1/1000*H, x2/1000*W, y2/1000*H]
+def iou(a, b):
+    ix1,iy1 = max(a[0],b[0]), max(a[1],b[1]); ix2,iy2 = min(a[2],b[2]), min(a[3],b[3])
+    inter = max(0,ix2-ix1) * max(0,iy2-iy1)
+    ua = (a[2]-a[0])*(a[3]-a[1]) + (b[2]-b[0])*(b[3]-b[1]) - inter
+    return inter/ua if ua else 0.0
+
+W,H = 1280, 720; gt = [120, 80, 340, 360]
+nb  = to_norm(gt, W, H); back = to_pixel(nb, W, H)
+print("归一化:", nb, " 还原:", [round(v,1) for v in back])     # 还原 ≈ 原框
+print("往返框 IoU:", round(iou(gt, back), 4))                 # ≈ 1.0（几乎无损）</div>
+        <table class="repro-table">
+          <caption>归一化到 [0,1000] 让坐标脱离具体像素尺寸；往返 IoU≈1 说明表示几乎无损，精度主要受 tokenizer 对数字的切分影响。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>归一化 → 还原</td><td class="hit">≈ 原框（整数化小误差）</td></tr>
+            <tr><td>往返 IoU</td><td class="hit">≈ 1.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>怎么让一个「只会生成 token」的 LLM 输出精确的框？Kosmos-2 的答案很巧：把坐标也变成 token。</strong>它把连续的 bbox 坐标<strong>离散化成一串「位置 token」</strong>，和文本 token 用同一套方式编码，于是定位就变成了「生成」—— 用 Markdown 式的 <code>[文字片段](框)</code> 把文字和它指向的区域链起来，在大规模 grounded 图文数据 GrIT 上训练。</p>
+        <p><strong>意义：</strong>不需要给 LLM 外挂检测头，grounding 就被统一进了「下一个 token 预测」。这也是 Qwen-VL、Shikra 等原生支持定位的底层思路 —— 你今天写的归一化坐标文本，正是这条路线的最简版。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2306.14824" target="_blank">Kosmos-2（arXiv:2306.14824）</a> · <a href="https://arxiv.org/abs/2306.15195" target="_blank">Shikra（arXiv:2306.15195）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>把输出当像素坐标</strong>：模型给的是 [0,1000] 归一化值，忘了乘回 W/H 框就全错位。</p>
+        <p>② <strong>坐标格式不匹配</strong>：xyxy / cxcywh / 是否归一化，训练与解析必须一致，否则框乱飞。</p>
+        <p>③ <strong>tokenizer 把数字切碎</strong>：「340」被切成「3」「40」会影响坐标精度 —— 这是文本化方案精度上限的根源。</p>
+        <p>④ <strong>小目标定位差</strong>：分辨率不够，小物体根本看不清 → 配高分辨率 / 动态切片（D16）。</p>
+      </div>
+
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
         <span class="label">✅ 检查点自测</span>
@@ -4862,7 +4915,7 @@ def denorm(box, W, H):                 # 归一化坐标 → 实际像素
 
       <h4>阅读材料</h4>
       <ul>
-        <li><a href="https://arxiv.org/abs/2306.17107" target="_blank">Shikra</a>（坐标文本化的代表）</li>
+        <li><a href="https://arxiv.org/abs/2306.15195" target="_blank">Shikra</a>（坐标文本化的代表）</li>
         <li><a href="https://arxiv.org/abs/2306.14824" target="_blank">Kosmos-2</a>（特殊 token + grounding）</li>
         <li><a href="https://arxiv.org/abs/2308.12966" target="_blank">Qwen-VL</a>（原生 grounding/OCR 能力，回顾 D17）</li>
       </ul>
@@ -4911,6 +4964,15 @@ def denorm(box, W, H):                 # 归一化坐标 → 实际像素
       <h4>学习目标</h4>
       <p>把 MLLM 的<strong>语言理解</strong>和 SAM 的<strong>像素级分割</strong>拼起来,实现「说一句话就分割」。学完今天你应能:<strong>(1)</strong> 画出 Grounded-SAM 的 pipeline;<strong>(2)</strong> 说清「理解 + 执行」分工为什么是 Agent 雏形;<strong>(3)</strong> 知道 SAM 的 prompt 机制(点/框/mask);<strong>(4)</strong> 跑通 Grounded-SAM 并用你的低光图试效果。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 第一个「理解 + 调用工具」的雏形</span>
+        <p>今天把 nano-mllm 的 grounding（D21）和 SAM 串成 <code>tools/grounded_sam.py</code>：模型理解人话出框 → SAM 出像素 mask。<strong>这就是 Agent「理解意图 + 调用专业工具执行」的最小形态</strong>（Week 6 系统讲）。结合你的背景：把 SAM 换成你的低光增强模型，就是一个「MLLM 判断退化 → 调用增强工具」的研究切口。</p>
+        <div class="repo-tree">nano-mllm/
+├── grounding/coord_tokens.py   <span style="color:var(--ink-faint)">← D21</span>
+└── tools/
+    └── <b>grounded_sam.py</b>         <span style="color:var(--teal)">← 今天新增：理解出框 → SAM 出 mask（Agent 雏形）</span></div>
+      </div>
+
       <h4>一、为什么要「拼模型」</h4>
       <p>MLLM 擅长<em class="term">理解模糊的人话并定位</em>(「那只躲在角落的猫」),但它输出的 bbox 不够精细;SAM 擅长<em class="term">像素级精确分割</em>,但它不懂语言、需要 prompt(点/框)。把两者串起来:<strong>MLLM/Grounding 出 bbox → SAM 拿 bbox 当 prompt 出 mask</strong>,各取所长。</p>
 
@@ -4943,6 +5005,45 @@ predictor.set_image(image_rgb)
 masks, _, _ = predictor.predict(box=boxes[0].numpy(), multimask_output=False)
 # masks 即像素级掩码；可叠加到原图或喂给下游
 # 试试：把你的低光图喂进去，看 grounding/分割在退化下掉多少</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 串联管线的「误差传播」，量给你看</span>
+        <p>Grounded-SAM 是两段串联：grounding 出框 → SAM 出 mask。串联的代价是<strong>误差传播</strong> —— 框定位偏一点，最终 mask 就跟着偏。用 IoU 模拟：把准确的框人为抖动，看「框 IoU」如何拖垮「下游结果上限」。</p>
+        <div class="code-block">def iou(a, b):
+    ix1,iy1=max(a[0],b[0]),max(a[1],b[1]); ix2,iy2=min(a[2],b[2]),min(a[3],b[3])
+    inter=max(0,ix2-ix1)*max(0,iy2-iy1)
+    ua=(a[2]-a[0])*(a[3]-a[1])+(b[2]-b[0])*(b[3]-b[1])-inter
+    return inter/ua if ua else 0.0
+
+gt = [100, 100, 300, 400]                       # 真值框（≈ 真值 mask 范围）
+for shift in [0, 20, 60, 120]:                  # grounding 框逐渐偏移
+    pred = [c+shift for c in gt]
+    print(f"框偏移 {shift:3d}px → 框IoU {iou(gt,pred):.2f}  → SAM mask 大致也只能到这量级")
+# 前一段定位错了，SAM 分割再准也救不回 —— 误差传播是串联管线的通病</div>
+        <table class="repro-table">
+          <caption>SAM 的 mask 质量上限被前面的框锁死：框 IoU 掉到 0.5，下游 mask 基本也就 0.5 封顶。串联管线必须先保前段定位准。</caption>
+          <thead><tr><th>框偏移</th><th>框 IoU → 下游上限</th></tr></thead>
+          <tbody>
+            <tr><td>0 px</td><td class="hit">1.00（理想）</td></tr>
+            <tr><td>60 px</td><td>明显下滑</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>不训练新模型，把现成大模型「组装」起来，照样能开放词汇分割。</strong>Grounded SAM 把两个基础模型串起来：<strong>Grounding DINO</strong>（开放词汇检测，文字 → 框）+ <strong>SAM</strong>（promptable 分割，框 → 像素 mask）。零样本、无需任务标注，就在 SegInW「野外分割」基准上拿到 <strong>48.7 mAP</strong>，能分割训练集里压根没有的类别。</p>
+        <p><strong>范式启示：</strong>「组装基础模型完成新任务」正是 Agent 思想的源头 —— 每个模型当一个专业工具，由一个会理解意图的「大脑」来调度。你今天写的就是这个范式的最小实现。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2401.14159" target="_blank">Grounded SAM（arXiv:2401.14159）</a> · <a href="https://arxiv.org/abs/2304.02643" target="_blank">SAM（arXiv:2304.02643）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>以为 SAM 懂语言</strong>：SAM 只认点 / 框 / mask prompt，语言理解全靠前面的 grounding 模型。</p>
+        <p>② <strong>误差传播没防</strong>：前段框错了，SAM 再准也白搭 → 给框设置信度阈值、必要时多框 / 人工兜底。</p>
+        <p>③ <strong>坐标系不匹配</strong>：grounding 输出框的坐标系（归一化 / 像素 / 顺序）要和 SAM 期望的对齐。</p>
+        <p>④ <strong>退化图整条管线一起崩</strong>：低光 / 模糊下 grounding 先掉点 —— 这恰是「退化感知」研究的切入点。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -5019,6 +5120,15 @@ masks, _, _ = predictor.predict(box=boxes[0].numpy(), multimask_output=False)
       <h4>学习目标</h4>
       <p>不要独立的 OCR 引擎,<strong>直接用一个 MLLM 端到端理解文档、表格、图表</strong>。学完今天你应能:<strong>(1)</strong> 说清传统 OCR pipeline 的问题、OCR-free 的好处;<strong>(2)</strong> 解释「高分辨率」为什么是文档理解的命门;<strong>(3)</strong> 知道代表模型各自的路子;<strong>(4)</strong> 用 Qwen2-VL / GOT-OCR 读一张文档。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 让 nano-mllm 读得了文档</span>
+        <p>文档理解不是新模块，而是 <strong>D16 动态高分辨率能力的「应用考」</strong>：小字密集 → 必须高分辨率 → 必须动态切片 + Pixel Shuffle 压 token。今天写 <code>eval/doc_vqa.py</code> 验证你的高分辨率路径在文档上够不够清。结合你的背景：<strong>低光 / 模糊文档</strong>的 OCR-free 理解是一个干净的研究切口。</p>
+        <div class="repo-tree">nano-mllm/
+├── vision/dynamic_res.py   <span style="color:var(--ink-faint)">← D16（高分辨率）</span>
+└── eval/
+    └── <b>doc_vqa.py</b>           <span style="color:var(--teal)">← 今天新增：文档/表格理解评测（验高分辨率路径）</span></div>
+      </div>
+
       <h4>一、从「先 OCR 再理解」到「直接理解」</h4>
       <p>传统做法是 <em class="term">检测→识别→版面分析→喂 LLM</em> 的多模块流水线:每一级都可能出错,误差逐级累积,部署也繁琐。OCR-free 的思路:<strong>让 MLLM 直接「看懂」整张文档</strong>——读字、回答、甚至转成 Markdown 表格,一步到位。代价是:<em class="term">文档小字密集,必须喂高分辨率</em>(直接回扣 D13 的 token 压缩、D16 的动态分辨率)。</p>
 
@@ -5047,6 +5157,43 @@ tok = AutoTokenizer.from_pretrained("stepfun-ai/GOT-OCR2_0", trust_remote_code=T
 model = AutoModel.from_pretrained("stepfun-ai/GOT-OCR2_0", trust_remote_code=True,
                                   low_cpu_mem_usage=True, device_map="cuda").eval()
 print(model.chat(tok, "page.png", ocr_type="format"))   # format: 保留版面/表格</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 算一算：这个分辨率「看得清字」吗</span>
+        <p>文档 MLLM 卷高分辨率，是有硬道理的。一个 patch（14px）至少要覆盖一个字才看得清；算一下不同输入分辨率下「每个字摊到几个像素 / 几个 patch」，就懂 336px 为什么读不了密集文档。</p>
+        <div class="code-block">def pixels_per_char(line_chars, img_size, patch=14):
+    px_per_char = img_size / line_chars              # 一行 line_chars 个字，缩到 img_size 宽
+    return round(px_per_char, 1), round(px_per_char / patch, 2)
+
+patch_min = 14      # 一个字至少摊到 ~1 个 patch(14px) 才勉强分辨
+for size in [336, 768, 1344]:
+    px, patches = pixels_per_char(80, size)          # 一行 80 字的 A4 文档
+    ok = "✓ 够清" if px >= patch_min else "✗ 看不清"
+    print(f"{size}px: 每字 {px}px ≈ {patches} 个 patch  {ok}")</div>
+        <table class="repro-table">
+          <caption>一行 80 字时，336px 每字才 4px（远不足 1 个 patch）→ 必然读错；要到 ~1344px 每字才够 1 个 patch。这就是文档模型死磕高分辨率 + 动态切片的原因。</caption>
+          <thead><tr><th>分辨率</th><th>每字像素 / 是否够清</th></tr></thead>
+          <tbody>
+            <tr><td>336px</td><td>每字 4.2px · ✗ 看不清</td></tr>
+            <tr><td>1344px</td><td class="hit">每字 16.8px · ✓ 1+ patch</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>「先 OCR 再理解」的老路，错误会一级一级传下去。</strong>传统文档流水线是「文本检测 → 文字识别 → 版面分析 → 喂 LLM」，每级都可能出错、且<strong>误差逐级累积</strong>，部署还繁琐。Donut 第一个证明：<strong>干脆不要独立 OCR，用一个端到端 Transformer 直接「看」文档图、直接产出结构化结果</strong>，在速度、内存、准确率上反而<strong>全面超过</strong>依赖 OCR 的方案。</p>
+        <p><strong>代价与延伸：</strong>OCR-free 对分辨率极敏感（看不清就读错），所以文档类模型都在卷高分辨率 + 动态切片（D16）。你做低光 / 退化文档时，这个「看清」的前提更是命门。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2111.15664" target="_blank">Donut: OCR-free Document Understanding（arXiv:2111.15664）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>分辨率不够读错字</strong>：336px 读密集文档基本靠猜 → 上动态高分辨率（D16）。</p>
+        <p>② <strong>token 爆炸</strong>：高分辨率文档极易把 context 占满 → 配 Pixel Shuffle 压缩（D13）。</p>
+        <p>③ <strong>版面 / 表格结构丢失</strong>：只读出文字、丢了行列关系 → 用能输出 Markdown / HTML 结构的模型（GOT-OCR）。</p>
+        <p>④ <strong>退化文档直接崩</strong>：低光 / 模糊 / 折痕下普遍掉点，而现有模型几乎只在清晰扫描件上训。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -5122,6 +5269,13 @@ print(model.chat(tok, "page.png", ocr_type="format"))   # format: 保留版面/�
       <h4>学习目标</h4>
       <p>视频 = <strong>图像序列 + 时间维度</strong>。学完今天你应能:<strong>(1)</strong> 说清视频处理的核心矛盾(帧数 × 每帧 token);<strong>(2)</strong> 对比三种主流方案;<strong>(3)</strong> 把视频和 D17 的 M-RoPE 时间维联系起来;<strong>(4)</strong> 用 Qwen2-VL 跑一次视频问答。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 给 nano-mllm 加「时间维」</span>
+        <p>视频 = 图像序列 + 时间。今天写 <code>video/sample_frames.py</code>：均匀（或自适应）抽帧、控每帧分辨率，再用 D17 的 <strong>M-RoPE 时间维 t</strong> 给每帧标上「第几帧」。你前面写的视觉塔、projector、M-RoPE 在这里直接复用 —— 视频只是「带时间戳的多图」。</p>
+        <div class="repo-tree">nano-mllm/video/
+└── <b>sample_frames.py</b>      <span style="color:var(--teal)">← 今天新增：抽帧 + 控分辨率 + M-RoPE 时间戳</span></div>
+      </div>
+
       <h4>一、视频的核心矛盾：token 怎么都不够用</h4>
       <p>处理视频最朴素的做法:<em class="term">均匀抽 N 帧,每帧当图像编码,token 拼起来</em>。但问题立刻来了:8 帧 × 576 token = 4608,16 帧就快上万——<strong>总 token = 帧数 × 每帧 token</strong>,这是 D13 token 爆炸问题的「时间放大版」。于是只能在「<em class="term">看更久(更多帧) vs 看更清(每帧更多 token)</em>」之间拉扯。</p>
 
@@ -5151,6 +5305,43 @@ inputs = proc(text=[text], images=imgs, videos=vids,
               padding=True, return_tensors="pt").to(model.device)
 out = model.generate(**inputs, max_new_tokens=256)
 # 调 fps / max_pixels 就是在「看多久」和「看多清」之间做权衡</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 视频 token 预算 + 均匀采样的「时间间隔」</span>
+        <p>视频的两难一算就清楚：① 总 token = 帧数 × 每帧 token，涨得飞快；② 长视频均匀采样，相邻采样帧之间会隔很久 —— 短动作直接被跳过。算给你看。</p>
+        <div class="code-block">def video_budget(minutes, n_frames, tok_per_frame=576):
+    total_tok = n_frames * tok_per_frame
+    gap_sec   = minutes * 60 / n_frames          # 相邻采样帧的时间间隔
+    return total_tok, round(gap_sec, 1)
+
+for (mins, n) in [(0.5, 8), (5, 32), (30, 32)]:
+    tok, gap = video_budget(mins, n)
+    print(f"{mins:>4} 分钟取 {n:>2} 帧: {tok:>5} token，相邻帧间隔 {gap}s")
+# 30 分钟只取 32 帧 → 每 56s 才一帧，一个 2 秒的短动作大概率被整段跳过</div>
+        <table class="repro-table">
+          <caption>帧数 × 每帧 token 决定算力上限；而长视频均匀采样的大间隔，意味着关键瞬间被系统性漏掉 —— 这是采样策略要解决的真问题。</caption>
+          <thead><tr><th>场景</th><th>token / 采样间隔</th></tr></thead>
+          <tbody>
+            <tr><td>30 分钟取 32 帧</td><td class="hit">18432 tok / 每 56s 一帧</td></tr>
+            <tr><td>含义</td><td>2 秒短动作大概率被跳过</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>「均匀抽帧」这个最常用的做法，藏着一个系统性盲区。</strong>在长视频上（如 30 分钟），均匀采样成 32 帧意味着<strong>相邻帧相隔 50 秒以上</strong> —— 一个事件往往只采到一帧甚至采不到，于是模型<strong>根本回答不了「乒乓球往哪个方向转」这类动作 / 时序问题</strong>。Video-MME 等基准专门覆盖短、中、长视频来暴露这一点。</p>
+        <p><strong>去向：</strong>所以才有「自适应关键帧选择」「时序 token 压缩」「SlowFast」等一堆方法 —— 本质都是在「看多久 vs 看多清 vs 抓没抓到关键帧」之间找更聪明的折中。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2405.21075" target="_blank">Video-MME（arXiv:2405.21075）</a> · <a href="https://arxiv.org/abs/2311.10122" target="_blank">Video-LLaVA（arXiv:2311.10122）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>多抽帧就 OOM</strong>：总 token = 帧数 × 每帧 token，线性爆 → 控 fps 同时压每帧分辨率 / token。</p>
+        <p>② <strong>均匀采样漏关键帧</strong>：短动作正好落在两帧之间 → 自适应 / 关键帧选择。</p>
+        <p>③ <strong>丢了时间顺序</strong>：把视频当「一堆无序图」→ 必须用 M-RoPE 的时间维 t 标住帧序。</p>
+        <p>④ <strong>只靠单帧 + 语言先验答题</strong>：和图像 benchmark 一样（D19），视频题也可能不看时序就蒙对 → 评测要含真·时序题。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -5217,6 +5408,14 @@ out = model.generate(**inputs, max_new_tokens=256)
       <h4>学习目标</h4>
       <p>多模态幻觉(hallucination)是当前最棘手的问题之一:<strong>模型「看到」图中根本不存在的东西</strong>。学完今天你应能:<strong>(1)</strong> 说清幻觉的几类成因;<strong>(2)</strong> 解释「语言先验压过视觉」这个核心机制;<strong>(3)</strong> 列举主流缓解手段(RLHF-V、对比解码、高分辨率);<strong>(4)</strong> 用 POPE 协议评估一个模型的幻觉程度。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 给 nano-mllm 配「测谎 + 缓解」</span>
+        <p>幻觉是 VLM 的硬伤。今天给项目补两件：<code>eval/pope.py</code>（POPE 协议测物体幻觉，接 D15/D19）+ 一个 <strong>VCD 对比解码</strong>开关（推理时压一压语言先验）。结合你背景：<strong>低光 / 退化会显著加剧幻觉</strong>（看不清就更靠脑补），「退化条件下的幻觉量化与缓解」是你 CV × MLLM 安全性的交叉课题。</p>
+        <div class="repo-tree">nano-mllm/
+├── eval/<b>pope.py</b>          <span style="color:var(--teal)">← 今天新增：物体幻觉评测（yes/no 探针）</span>
+└── inference/<b>vcd.py</b>      <span style="color:var(--teal)">← 今天新增：对比解码，压语言先验</span></div>
+      </div>
+
       <h4>一、为什么模型会「脑补」</h4>
       <p>MLLM 的底座是个强大的 LLM,它从海量文本里学到了强烈的<em class="term">语言先验</em>(「草地上常有羊」「厨房里常有刀」)。当解码时<strong>语言先验的权重压过了实际视觉证据</strong>,模型就会顺着「常识」把不存在的东西说出来——尤其在长描述的后半段,越说越放飞。</p>
 
@@ -5248,6 +5447,45 @@ for q, gold in questions:
     yes_cnt += (pred.startswith("yes"))
 print("Acc:", correct/len(questions), " Yes 比例:", yes_cnt/len(questions))
 # Yes 比例远高于真实 → 模型「见啥都说有」，幻觉倾向重</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · VCD 对比解码：把「语言先验」扣掉</span>
+        <p>VCD 的妙处是<strong>无需训练</strong>：同一问题喂「正常图」和「加噪图」各解码一次，<strong>正常 logits 减去 α×加噪 logits</strong> —— 加噪图让模型只能靠语言先验答，相减就把「不看图也会说的词」压下去，留下真正由视觉支持的词。亲手看这个抵消过程。</p>
+        <div class="code-block">import torch
+# 某一步「下一个词」的打分（词表只列 4 个候选）
+#                      羊(先验高)  狗(图里真有)  草(先验高)  围栏
+clean = torch.tensor([   2.3,        2.1,        1.5,      0.3])   # 正常图：羊因强先验仍略高
+noisy = torch.tensor([   2.4,        0.5,        1.8,      0.2])   # 加噪图：只剩语言先验 → 羊/草虚高
+
+alpha = 1.0
+vcd = clean - alpha * noisy        # 对比：扣掉「不看图也会说」的成分
+names = ["羊","狗","草","围栏"]
+print("普通解码选:", names[clean.argmax()])   # 羊 ← 语言先验赢了（脑补）
+print("VCD  解码选:", names[vcd.argmax()])     # 狗 ← 语言先验被压下去，视觉证据胜出</div>
+        <table class="repro-table">
+          <caption>加噪图基本只剩语言先验；正常 − α·加噪 把「羊/草」这类脑补词扣掉，让真正有视觉证据的「狗」胜出。这就是 VCD 不训练也能降幻觉的原理。</caption>
+          <thead><tr><th>解码</th><th>选中</th></tr></thead>
+          <tbody>
+            <tr><td>普通（易受先验干扰）</td><td>羊（脑补）</td></tr>
+            <tr><td>VCD 对比解码</td><td class="hit">狗（有视觉证据）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>降幻觉不一定要重训模型 —— VCD 用「对比解码」零成本缓解。</strong>它的洞察：物体幻觉主要来自<strong>对语言先验和训练统计偏置的过度依赖</strong>。做法是给图像<strong>加高斯噪声</strong>得到一个「看不清」的版本，让它只能靠语言先验作答，再用<strong>正常输出减去这个先验输出</strong>，把脑补成分压下去 —— <strong>不需要任何额外训练或外部模型</strong>（CVPR 2024 Highlight）。</p>
+        <p><strong>这串起了你整条感知周：</strong>D15 你亲历幻觉、D19 学会量化它、今天学会从数据 / 训练（RLHF-V）/ 解码（VCD）/ 评测（POPE）四个层面治它。退化场景下幻觉更重，正是你的研究空地。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2311.16922" target="_blank">VCD: Visual Contrastive Decoding（arXiv:2311.16922）</a> · <a href="https://arxiv.org/abs/2312.00849" target="_blank">RLHF-V（arXiv:2312.00849）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>只看准确率不看 Yes 比例</strong>：「见啥都说有」要靠倾向性指标才暴露（POPE 同时报 Yes 比例）。</p>
+        <p>② <strong>以为更大模型不幻觉</strong>：根因是先验 vs 视觉的权衡，大模型一样会脑补。</p>
+        <p>③ <strong>以为 RLHF / VCD 能根治</strong>：都是缓解、非根治；长描述后半段仍最危险。</p>
+        <p>④ <strong>忽视退化场景</strong>：低光 / 模糊下幻觉显著加重，而主流 benchmark 几乎不覆盖 —— 你的机会。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
