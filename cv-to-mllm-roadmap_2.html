@@ -2281,6 +2281,17 @@ print("temp=0.5 峰值:", f"{to_probs(logits,0.5).max():.3f}",
 
       <h4>学习目标</h4>
       <p>理解为什么不能只做预训练——预训练只学会「续写」，需要 SFT 学会「听指令」，需要 RLHF 学会「对齐人类偏好」。<strong>这三阶段是后面 LLaVA 多模态训练(D14/D20)的母版</strong>。</p>
+
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 让 nano-GPT 学会「听指令」</span>
+        <p>W1 你训出的 nano-GPT 只会「续写」—— 你说「中国的首都是」，它接「一个有着悠久历史的国家…」，而不是回答你。本周（W2）就来修这件事：今天起给它做 <strong>SFT（监督微调）</strong>，产出 <code>finetune/sft.py</code>，让它学会「看到指令就好好回答」。</p>
+        <p><strong>本周路线：</strong>今天 SFT → D07 DPO 对齐 → D08 LoRA 省显存 → D09 在你 Mac 上真跑一次 → D10 推理提速。</p>
+        <div class="repo-tree">nano-mllm/
+├── train_lm.py            <span style="color:var(--ink-faint)">← W1：预训练 nano-GPT</span>
+└── finetune/
+    └── <b>sft.py</b>             <span style="color:var(--teal)">← 今天新增：指令微调（loss 只算回答）</span></div>
+      </div>
+
       <div class="box-important"><span class="label">🔥 三阶段对比</span>
         <p><strong>① 预训练（Pre-training）</strong>：海量无标注文本（万亿 token），next token prediction，学到语言知识和世界知识。需要数千张 GPU。你不会从零做这一步。</p>
         <p><strong>② 监督微调（SFT）</strong>：高质量 instruction-response 对（数万到数十万条），让模型学会按指令格式回答。loss 通常只算 response 部分。</p>
@@ -2326,6 +2337,46 @@ loss = F.cross_entropy(
 
 # 对比预训练：labels = input_ids（整条序列都算 loss，不 mask）
 # 一句话：预训练「全文都学」，SFT「只学怎么答」</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · loss mask 真的只学「回答」吗</span>
+        <p>SFT 的精髓是「prompt 不算 loss、只算 response」。用一个最小例子<strong>亲手验证</strong>：把 prompt 段的 label 设成 <code>-100</code>，SFT loss 应当严格等于「只对 response 段算的交叉熵」。</p>
+        <div class="code-block">import torch, torch.nn.functional as F
+torch.manual_seed(0)
+T, V = 8, 1000                                   # 序列长 8、词表 1000
+logits = torch.randn(T, V)
+labels = torch.randint(0, V, (T,))
+prompt_len = 5                                   # 前 5 个是 system+user，后 3 个是回答
+masked = labels.clone(); masked[:prompt_len] = -100   # prompt 段不算 loss
+
+sft_loss  = F.cross_entropy(logits, masked, ignore_index=-100)   # 只算回答
+resp_only = F.cross_entropy(logits[prompt_len:], labels[prompt_len:])  # 单独算后 3 个
+print(f"SFT loss = {sft_loss:.4f}   仅 response = {resp_only:.4f}")
+print("两者一致?", torch.allclose(sft_loss, resp_only))          # True</div>
+        <table class="repro-table">
+          <caption>SFT loss 严格等于「只对 response 段算的 CE」—— 这就是 <code>ignore_index=-100</code> 的作用，D14/D15 遮视觉 token 同一招。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>SFT loss vs 仅 response</td><td class="hit">完全一致（True）</td></tr>
+            <tr><td>改 prompt 段 label</td><td>loss 不变（被 -100 忽略）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>SFT 到底需要多少数据？答案可能颠覆直觉：LIMA 只用 1000 条。</strong>Meta 的 LIMA 把 65B LLaMA 仅用 <strong>1000 条精挑细选</strong>的指令-回答做 SFT（不做任何 RLHF），人类评测竟<strong>胜过用 RLHF 训练的 DaVinci-003</strong>。</p>
+        <p><strong>它提出「肤浅对齐假说」：</strong>模型的知识几乎全在<strong>预训练</strong>里学好了，SFT 主要是教它「用什么格式、什么口吻」把知识说出来 —— 所以<strong>数据质量 ≫ 数据数量</strong>。这条经验直接指导后面的多模态指令数据构造（D18/D23）：与其堆量，不如把每条做干净。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2305.11206" target="_blank">LIMA: Less Is More for Alignment（arXiv:2305.11206）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>prompt 段忘了 mask</strong>：连「问题」一起学，模型会爱复读 prompt、不好好答 —— SFT 必须只算 response。</p>
+        <p>② <strong>chat 模板对不上</strong>：训练用 ChatML、推理用别的格式 → 模型「认不出」该自己接话，答非所问。</p>
+        <p>③ <strong>SFT 学崩、通用能力下降</strong>：数据太窄 / 学太多轮 → 灾难性遗忘（D09 细说），少量多样数据 + 早停更稳。</p>
+        <p>④ <strong>special token 没对齐</strong>：<code>&lt;|im_start|&gt;</code> 等没加进 tokenizer，被切成普通字符，模型学不到边界。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -2383,6 +2434,15 @@ loss = F.cross_entropy(
 
       <h4>学习目标</h4>
       <p>RLHF 太复杂（需要训练 reward model + PPO），DPO 把它简化成了一个<strong>简单的分类式损失</strong>。现在大多数开源模型都用 DPO 或其变体。</p>
+
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 给 nano-GPT 对齐偏好</span>
+        <p>D06 的 SFT 让模型学会「听指令」，但还不会判断「哪个回答更好」。今天用 <strong>DPO</strong> 补上偏好对齐 —— 产出 <code>finetune/dpo.py</code>，只用「好 / 坏回答对」就能优化，不需要 reward model、不需要 PPO。这是开源社区现在最常用的对齐方式。</p>
+        <div class="repo-tree">nano-mllm/finetune/
+├── sft.py           <span style="color:var(--ink-faint)">← D06</span>
+└── <b>dpo.py</b>           <span style="color:var(--teal)">← 今天新增：偏好对齐，无需 reward model</span></div>
+      </div>
+
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> DPO 损失函数完整推导</div>
         <div class="deriv-body">
           <div class="math-cap">RLHF 目标（Bradley-Terry 模型）</div>
@@ -2398,6 +2458,9 @@ loss = F.cross_entropy(
           <p class="math-note">直觉：抬高好回答概率、压低差回答概率，同时由 $\beta$ 控制不偏离参考模型 $\pi_{\text{ref}}$ 太远。</p>
         </div>
       </div>
+
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>RLHF 像<strong>先请一个裁判（reward model）学会打分，再让选手照着刷分</strong> —— 多一个模型、还要玩强化学习，又贵又难调。DPO 的聪明在于：数学上证明了「最优选手」和「裁判打分」之间有个固定换算关系，于是<strong>把裁判直接消掉</strong>，变成一道「二选一」判断题：给一对「好回答 vs 坏回答」，直接告诉模型「这个比那个好」。<strong>β</strong> 是根牵引绳，拴住模型别为了讨好偏好就忘了本（偏离原模型太远）。</p></div>
+
       <h4>动手：DPO loss 就这几行</h4>
       <div class="code-block">import torch.nn.functional as F
 
@@ -2411,6 +2474,43 @@ def dpo_loss(logp_w, logp_l, ref_w, ref_l, beta=0.1):
 
 # 直觉：抬高好回答概率、压低差回答概率，同时用 β 约束不偏离 SFT 模型太多
 # 对比 RLHF：这里没有 reward model、没有 PPO，只有一个交叉熵式的 loss</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · DPO 到底在往哪个方向优化</span>
+        <p>DPO loss 看着抽象，跑两个数就懂：当策略「比参考模型更偏好好回答」时 loss 低，反之 loss 高 —— 它就是把「好 vs 坏回答」的差距往正确方向推。</p>
+        <div class="code-block">import torch, torch.nn.functional as F
+def dpo_loss(lw, ll, rw, rl, beta=0.1):      # log 概率：l=策略 π_θ, r=参考 π_ref；w=chosen, l=rejected
+    return -F.logsigmoid(beta * ((lw - ll) - (rw - rl)))
+
+rw, rl = torch.tensor(-2.0), torch.tensor(-2.0)               # 参考模型对好/坏一视同仁
+A = dpo_loss(torch.tensor(-1.0), torch.tensor(-3.0), rw, rl)  # 策略更偏好「好回答」
+B = dpo_loss(torch.tensor(-3.0), torch.tensor(-1.0), rw, rl)  # 策略更偏好「坏回答」
+print(f"更偏好好回答 loss = {A.item():.3f}")    # 较小
+print(f"更偏好坏回答 loss = {B.item():.3f}")    # 较大 → 梯度把它往 A 推</div>
+        <table class="repro-table">
+          <caption>DPO 把对齐变成一道「二选一」：loss 越小 = 策略相对参考越偏好人类选的那个回答。</caption>
+          <thead><tr><th>情形</th><th>loss</th></tr></thead>
+          <tbody>
+            <tr><td>策略更偏好「好回答」</td><td class="hit">≈ 0.60（小）</td></tr>
+            <tr><td>策略更偏好「坏回答」</td><td>≈ 0.80（大）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>DPO 有个反直觉的暗坑：「好回答」的概率也会跟着一起降。</strong>实践中常见 <strong>likelihood displacement（似然位移）</strong> —— 训练时 <code>log π(chosen)</code> 和 <code>log π(rejected)</code> <strong>双双下降</strong>，只是 rejected 降得更多；于是「margin」看着在涨、其实模型把概率质量挪给了一堆<strong>没出现在训练里的其它回答</strong>。</p>
+        <p><strong>后果与对策：</strong>可能让模型越训越「不爱说话」甚至跑偏。常见缓解：别让 SFT 起点熵太低、配一点 SFT loss 做正则、控制 β 与训练步数、盯 chosen 的<strong>绝对</strong> logprob 而非只看 margin。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2305.18290" target="_blank">DPO（arXiv:2305.18290）</a> · <a href="https://arxiv.org/abs/2502.07599" target="_blank">DPO-Shift：似然位移分析（arXiv:2502.07599）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>忘了冻结参考模型</strong>：<code>π_ref</code> 必须固定（通常是 SFT 后的快照）；跟着一起训就失去了「锚」。</p>
+        <p>② <strong>log 概率算了 prompt+response 全长</strong>：应只对 response 段求和（和 D06 的 mask 同理），否则 prompt 概率污染信号。</p>
+        <p>③ <strong>β 太小过拟合偏好</strong>：模型学会钻偏好数据空子（DPO 版 reward hacking）→ 适当增大 β、早停。</p>
+        <p>④ <strong>chosen 概率一路下滑</strong>：likelihood displacement → 加 SFT 正则、盯 chosen 绝对 logprob。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -2469,6 +2569,15 @@ def dpo_loss(logp_w, logp_l, ref_w, ref_l, beta=0.1):
 
       <h4>学习目标</h4>
       <p>LoRA 是你后面做任何微调实验（D09 本地微调、D20 训 MLLM）的基础工具，必须吃透——<strong>它是你在有限显存上能动手的前提</strong>。</p>
+
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 让微调在你的显卡上跑得起</span>
+        <p>前两天的 SFT / DPO 若全量微调，nano-GPT 还好；但等 W3 接上视觉塔、W8 训真正的 MLLM，全量微调的显存你根本扛不住。今天产出 <code>finetune/lora.py</code> —— 冻结大模型、只训低秩旁路，<strong>这是你后面一切微调（D09 本地跑、D20 训 MLLM）的省钱前提</strong>。</p>
+        <div class="repo-tree">nano-mllm/finetune/
+├── sft.py / dpo.py    <span style="color:var(--ink-faint)">← D06/D07</span>
+└── <b>lora.py</b>            <span style="color:var(--teal)">← 今天新增：低秩适配，微调省 ~100× 参数</span></div>
+      </div>
+
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> LoRA 核心数学（务必理解）</div>
         <div class="deriv-body">
           <p class="math-note">全量微调 $W' = W + \Delta W$，其中 $\Delta W\in\mathbb{R}^{d\times d}$（参数量巨大）。LoRA 假设 $\Delta W$ 低秩，分解为：</p>
@@ -2483,6 +2592,9 @@ def dpo_loss(logp_w, logp_l, ref_w, ref_l, beta=0.1):
           <p class="math-note">$A\sim\mathcal{N}(0,\sigma^2)$（随机），$B=0$（零初始化，保证起步 $\Delta W=0$）；缩放因子 $\alpha/r$（$\alpha$ 常取 $r$ 的 1–2 倍）。</p>
         </div>
       </div>
+
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>全量微调像<strong>把整栋楼推倒重盖</strong>，又贵又慢。LoRA 的想法是：大楼（预训练权重 W）不动，只在旁边<strong>搭一条小小的「临时通道」</strong>（低秩的 A、B 两个小矩阵）来微调行为。这条通道参数极少（省上百倍），训完还能<strong>无缝并回主楼</strong>、推理零额外开销。<strong>B 初始化为 0</strong> 是关键：保证一开始这条通道「什么都不改」，从原模型平滑起步，不会一上来就把好端端的模型搅乱。</p></div>
+
       <div class="box-important"><span class="label">🔥 QLoRA</span>
         <p><strong>QLoRA = 量化基础模型 + LoRA</strong>。基础模型以 4-bit NF4 格式加载（省内存），只训练 LoRA 的 A/B 矩阵（FP16/BF16）。这就是你在 32GB MacBook 上能微调 7B 模型的原因。</p>
       </div>
@@ -2507,6 +2619,52 @@ lora = LoRALinear(lin, r=16)
 trainable = sum(p.numel() for p in lora.parameters() if p.requires_grad)
 print(f"可训练参数: {trainable/1e3:.0f}K（全量是 {4096*4096/1e6:.1f}M）")
 # 实战直接用 peft: get_peft_model(model, LoraConfig(r=16, ...))</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 数一数省了多少 + 验证「零起步」</span>
+        <p>两点亲手验证：① LoRA 可训练参数确实只有全量的零头；② <strong>B 零初始化</strong>保证训练第一步 <code>ΔW=0</code> —— 加了 LoRA 的输出和原模型<strong>逐元素相等</strong>，不会一上来就破坏模型。</p>
+        <div class="code-block">import torch, torch.nn as nn
+class LoRALinear(nn.Module):
+    def __init__(self, base, r=16, alpha=32):
+        super().__init__()
+        self.base = base
+        for p in base.parameters(): p.requires_grad = False
+        self.A = nn.Parameter(torch.randn(r, base.in_features) * 0.01)
+        self.B = nn.Parameter(torch.zeros(base.out_features, r))    # 零初始化
+        self.scale = alpha / r
+    def forward(self, x):
+        return self.base(x) + self.scale * (x @ self.A.T) @ self.B.T
+
+lin = nn.Linear(4096, 4096); lora = LoRALinear(lin)
+full  = sum(p.numel() for p in lin.parameters())
+train = sum(p.numel() for p in lora.parameters() if p.requires_grad)
+x = torch.randn(2, 4096)
+print(f"可训练 {train/1e3:.0f}K  vs  全量 {full/1e6:.1f}M  → 省 {full/train:.0f}×")
+print("B=0 时输出与原模型一致?", torch.allclose(lora(x), lin(x)))   # True</div>
+        <table class="repro-table">
+          <caption>r=16、d=4096：可训练参数从 16.8M 砍到 ~131K（省 ~128×），且 B=0 让它从原模型无损起步。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>可训练参数</td><td class="hit">≈ 131K（全量 16.8M）</td></tr>
+            <tr><td>B=0 时输出 vs 原模型</td><td class="hit">完全一致（True）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>QLoRA 把「微调大模型」从机房拉到了单卡。</strong>它把基础模型用 <strong>4-bit NF4</strong> 量化加载（省显存），只训练 FP16 的 LoRA 旁路，结果：<strong>在单张 48GB GPU 上微调 65B 模型</strong>，而且 NF4 + 双重量化<strong>完整恢复了 16-bit 全量微调的性能</strong>（MMLU 等基本不掉点）。</p>
+        <p><strong>对你的意义：</strong>这正是你 D09 能在一台 MacBook 上微调 7B Qwen 的底层原理，也定义了今天开源微调的默认姿势 —— <strong>4-bit 基座 + LoRA 旁路</strong>。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2305.14314" target="_blank">QLoRA（arXiv:2305.14314）</a> · <a href="https://arxiv.org/abs/2106.09685" target="_blank">LoRA（arXiv:2106.09685）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>B 也随机初始化</strong>：一上来就给原模型加噪声，训练前期剧烈震荡 —— B 必须为 0。</p>
+        <p>② <strong>LoRA 没挂到关键层</strong>：只加在个别层、漏了 attention 的 q/v 投影 → 学不动；常挂到 q、k、v、o（甚至 FFN）。</p>
+        <p>③ <strong>r 调太大</strong>：失去省参意义、还易过拟合小数据；多数任务 r=8~32 足够。</p>
+        <p>④ <strong>学习率照搬全量</strong>：LoRA 有效学习率更大，lr 一般取 1e-4 量级，别照搬全量微调的 1e-5。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -2555,6 +2713,13 @@ print(f"可训练参数: {trainable/1e3:.0f}K（全量是 {4096*4096/1e6:.1f}M�
 
       <h4>今日目标</h4>
       <p>纯实践日。在你的 MacBook 上完成一次完整的 LoRA 微调流程（D08 的代码落地版），建立「数据→训练→适配器→推理」的肌肉记忆，为 D20 训 MLLM 打底。</p>
+
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 把 LoRA 真正跑一遍（Mac 实战）</span>
+        <p>前几天都在写代码，今天<strong>真刀真枪在你自己的 MacBook 上</strong>用 MLX 跑一次完整 LoRA 微调，把 D08 的概念变成肌肉记忆。这套「数据 → 训练 → 适配器 → 推理」的心智模型，和 D20 训多模态模型一模一样，只是换了模型和数据。</p>
+        <p><strong>今天产出：</strong>一份 <code>data/train.jsonl</code> + 训练出的 <code>adapters/</code>，以及「微调前 vs 后」同一问题的回答对比。</p>
+      </div>
+
       <div class="code-block"># 1. 安装环境
 pip install mlx-lm
 
@@ -2577,6 +2742,45 @@ mlx_lm.generate \
   --adapter-path adapters \
   --prompt "解释低光图像中的噪声特性"</div>
       <div class="box-tip"><span class="label">💡 经验</span><p>关注训练 loss 曲线和生成质量变化。如果 loss 快速下降但生成变差，说明过拟合了——减少 iters 或增加数据。</p></div>
+
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>整个流程就像<strong>给一个全能助理岗前培训</strong>：<strong>JSONL 数据</strong>是「岗位手册」（几十条你领域的问答）；<strong>mlx_lm.lora</strong> 是培训，但它不重塑整个人（基座 4-bit 冻结），只让他记一本「便利贴」（adapter，几十 MB）；用的时候把便利贴往身上一贴（<code>--adapter-path</code>）就上岗。便利贴随时可撕换，也能正式写进员工手册（合并回权重）。</p></div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 微调前 vs 后，问同一个问题</span>
+        <p>判断微调有没有「真学到」，最直接的办法是<strong>同一问题问两次</strong>：不带 adapter（原模型）和带 adapter（微调后）各生成一次，看风格 / 术语 / 格式是否朝你的数据靠拢。</p>
+        <div class="code-block"># 微调前：原始 Qwen
+mlx_lm.generate --model mlx-community/Qwen2.5-7B-Instruct-4bit \
+  --prompt "解释低光图像中的噪声特性"
+
+# 微调后：挂上你训出的 adapter
+mlx_lm.generate --model mlx-community/Qwen2.5-7B-Instruct-4bit \
+  --adapter-path adapters \
+  --prompt "解释低光图像中的噪声特性"
+# 预期：微调后更贴你数据的口吻 / 术语 / 结构；若开始胡说或复读 → 过拟合，减 iters / 加数据</div>
+        <table class="repro-table">
+          <caption>微调成功的标志不是 loss 多低，而是「带 adapter 的回答明显更像你的数据风格、且没退化」。</caption>
+          <thead><tr><th>观察</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr><td>带 adapter 风格更贴数据</td><td class="hit">学到了</td></tr>
+            <tr><td>带 adapter 开始胡说 / 复读</td><td>过拟合 → 减 iters、加数据</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>微调有个隐形代价：灾难性遗忘。</strong>实证研究发现，在窄领域数据上持续微调 LLM，会让它<strong>在该领域变强的同时、通用能力（推理、常识、其它任务）悄悄退化</strong> —— 而且模型越大、有时遗忘越明显。你今天如果把几十条数据训上几千步，很可能就亲历这一幕：模型开始只会说你那点东西。</p>
+        <p><strong>为什么 LoRA 能缓解：</strong>它冻结绝大部分原权重、只动低秩旁路，对原能力的扰动天然更小 —— 这也是「少量多样数据 + 适度步数 + 早停」成为微调铁律的原因。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2308.08747" target="_blank">An Empirical Study of Catastrophic Forgetting in LLMs（arXiv:2308.08747）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>数据太少还训太多 iters</strong>：必过拟合、开始胡说 —— 几十条数据配几百步足矣，盯生成质量而非 loss。</p>
+        <p>② <strong>JSONL 格式 / 字段名不对</strong>：MLX 期望特定字段（如 <code>messages</code> / <code>text</code>），格式错会报错或学不到指令格式。</p>
+        <p>③ <strong>学习率照搬全量</strong>：LoRA 用更小 lr（1e-5~1e-4 量级），太大几步就训崩。</p>
+        <p>④ <strong>推理忘了带 <code>--adapter-path</code></strong>：那是在用原模型，自然看不出微调效果。</p>
+      </div>
 
       <h4>自测 / 误区</h4>
       <div class="box-tip">
@@ -2631,6 +2835,16 @@ mlx_lm.generate \
 
       <h4>学习目标</h4>
       <p>理解两个在现代 LLM 中无处不在的工程概念：Mixture of Experts（稀疏激活，连 D16 InternVL/DeepSeek-V3）和 KV Cache（加速推理，连 D15 视觉 token 只编码一次）。</p>
+
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 让 nano-GPT 生成得更快</span>
+        <p>W2 收官：给 nano-GPT 加上 <strong>KV Cache</strong>，把自回归生成从每步 O(t²) 降到 O(t)，产出 <code>inference/kv_cache.py</code>。顺带理解 <strong>MoE</strong> —— 它是 D16 InternVL、DeepSeek-V3 等「总参巨大、激活很小」的关键，你以后选型会反复遇到。</p>
+        <p><strong>本周到此：</strong>nano-GPT 已经会续写（W1）、会听指令（SFT/DPO）、能省显存微调（LoRA）、能快速生成（KV Cache）。下周 W3，给它接上「眼睛」。</p>
+        <div class="repo-tree">nano-mllm/
+└── inference/
+    └── <b>kv_cache.py</b>      <span style="color:var(--teal)">← 今天新增：缓存历史 K/V，生成提速</span></div>
+      </div>
+
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> MoE 与 KV Cache 原理</div>
         <div class="deriv-body">
           <div class="math-cap">Mixture of Experts（MoE）</div>
@@ -2645,6 +2859,9 @@ mlx_lm.generate \
           $$\text{显存} \approx 2\times n_{\text{layers}}\times d_{\text{model}}\times \text{seq\_len}\times \text{dtype}\quad(\text{7B / 4K ctx}\approx 1\mathrm{GB})$$
         </div>
       </div>
+
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span><strong>MoE</strong> 像一家有很多<strong>专科医生</strong>的医院，但每个病人（token）只挂最对口的 1~2 个号 —— 医院总规模很大（什么病都能看），每次却只动用一小部分（算力省）。<strong>KV Cache</strong> 则是<strong>记笔记</strong>：自回归生成时，前面每个词算过的 K、V 不会再变，与其每生成一个字就把整段重算，不如记在本子上、每步只算新来的那个字 —— 用一点显存（笔记本）换巨大的提速。代价是句子越长、笔记越厚（KV Cache 吃显存），所以才有 GQA/MQA 来压缩。</p></div>
+
       <h4>动手：KV Cache 的本质（伪代码）</h4>
       <div class="code-block"># 自回归生成时，历史的 K、V 不会变 → 缓存起来，每步只算新 token
 cache_k, cache_v = [], []
@@ -2659,6 +2876,54 @@ def step(q_t, k_t, v_t):
 # 缓存后：每步只算第 t 个 → O(t)，长文本生成提速巨大
 # 代价：显存 ≈ 2·layers·d·seq·dtype（7B/4K ≈ 1GB）→ 用 GQA/MQA 省
 # 注：HF 里 model.generate(use_cache=True) 默认就开了</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · KV Cache 不改结果、只改速度</span>
+        <p>KV Cache 是「优化」，前提是<strong>结果必须和不缓存完全一致</strong>。把「一次性 full causal attention」和「逐步 KV Cache」两种算法对拍，确认输出逐元素相等 —— 它省的只是重复计算，不动语义。</p>
+        <div class="code-block">import torch, torch.nn.functional as F
+torch.manual_seed(0)
+T, d = 6, 32
+Q_all, K_all, V_all = (torch.randn(T, d) for _ in range(3))
+
+# A：一次性 full causal attention（训练时算法）
+S = Q_all @ K_all.T / d**0.5
+S = S + torch.triu(torch.full((T, T), float("-inf")), 1)
+full = F.softmax(S, -1) @ V_all
+
+# B：逐步 KV Cache（生成时算法）
+ck, cv, outs = [], [], []
+for t in range(T):
+    ck.append(K_all[t]); cv.append(V_all[t])         # 追加当前步的 K、V
+    Kc, Vc = torch.stack(ck), torch.stack(cv)
+    s = Q_all[t] @ Kc.T / d**0.5                      # 只用 q_t，对已缓存的 K
+    outs.append(F.softmax(s, -1) @ Vc)
+cached = torch.stack(outs)
+
+print("KV Cache 与 full attention 一致?", torch.allclose(full, cached, atol=1e-5))  # True</div>
+        <table class="repro-table">
+          <caption>缓存只省「重算历史 K/V」的算力（每步 O(t²)→O(t)），不改变任何一个输出值。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>逐步缓存 vs 一次性全算</td><td class="hit">逐元素一致（True）</td></tr>
+            <tr><td>每步算力</td><td class="hit">O(t²) → O(t)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>MoE 最大的工程难点不是路由，而是「专家坍塌」。</strong>放任不管，gate 会偷懒 —— 把绝大多数 token 都塞给少数几个「热门专家」，其余专家长期闲置、训不动，白白浪费容量还引发训练不稳。Switch Transformer 的解法是加一个<strong>负载均衡辅助损失</strong>：谁被路由得太多就压它的路由概率，形成自我纠偏，逼 token 均匀分散到各专家。</p>
+        <p><strong>代价与延伸：</strong>这个辅助损失本身（尤其 router z-loss）又可能带来新的不稳定，是 MoE 训练里持续被打磨的点。理解这一层，你看 Mixtral、DeepSeek-MoE 的设计就不再是黑箱。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2101.03961" target="_blank">Switch Transformer（arXiv:2101.03961）</a> · <a href="https://arxiv.org/abs/2401.04088" target="_blank">Mixtral（arXiv:2401.04088）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>以为 MoE 省显存</strong>：所有专家都得常驻显存，省的是<strong>算力</strong>不是显存 —— 显存反而更大。</p>
+        <p>② <strong>缓存了 Q</strong>：KV Cache 只缓存 K、V；Q 每步是新 token 的，缓存了就错。</p>
+        <p>③ <strong>生成质量随长度变差</strong>：常是 KV Cache 的位置编码 / 拼接没对齐（新 token 的 position 算错）。</p>
+        <p>④ <strong>MoE 训练 loss 抖 / 专家闲置</strong>：负载均衡损失没加或权重不对 → 专家坍塌，加 aux loss 并调系数。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
