@@ -7040,6 +7040,13 @@ print("教训：反复在测试集上选最好 = 过拟合测试集，'提升'�
       <h4>今日目标</h4>
       <p>把 D35 选定的方向,落成一份 <strong>1–2 页的项目计划书(proposal)</strong>。学完今天你应能:<strong>(1)</strong> 用六要素把 idea 讲清;<strong>(2)</strong> 区分「问题/动机(为什么做)」和「数据/方法/基线/指标(怎么验证)」;<strong>(3)</strong> 给你的低光 MLLM 项目写出第一版 proposal;<strong>(4)</strong> 自检它站不站得住。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 从「学完」到「立项」</span>
+        <p>W7 你锁定了方向（退化感知 token 压缩 / 低光 MLLM），今天把它写成 <code>research/proposal.md</code> 的正式版：六要素 + 两周最小验证计划。这是 <code>nano-mllm</code> 从「学习项目」变成「研究项目」的转折点 —— 之后 D37–D39 就是按它执行。</p>
+        <div class="repo-tree">nano-mllm/research/
+└── <b>proposal.md</b>      <span style="color:var(--teal)">← 今天定稿：Problem/Data/Method/Baseline/Metric + Timeline</span></div>
+      </div>
+
       <h4>一、为什么先写一页纸</h4>
       <p>动手前先逼自己<strong>用一页纸讲清整件事</strong>。能讲清,说明想透了;讲不清,大概率是 idea 还含糊。proposal 不是给别人看的形式,而是<em class="term">逼你自己把逻辑捋顺</em>——尤其是「怎么证明我赢了」(数据+基线+指标)这个闭环。</p>
 
@@ -7076,6 +7083,42 @@ LLaVA-1.5-7B · InternVL2-8B · Qwen2-VL-7B（统一协议，见 D38）
 
 ## Timeline（两周最小验证）
 W1: 数据+基线  W2: 方法第一版 → 看有没有正向信号（见 D39）</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 你的测试集，够不够「看出」改进</span>
+        <p>写 proposal 时最该先算一笔账：要想可靠检出「我的方法比基线高 N 个点」，测试集得多大？太小的测试集，<strong>+2 个点可能只是噪声</strong>。用准确率的标准误差粗估一下，免得辛苦做完发现「测不出」。</p>
+        <div class="code-block">import math
+def detectable(n_test, acc=0.6):
+    se = math.sqrt(acc * (1 - acc) / n_test)     # 准确率的标准误差
+    return 1.96 * se * 2                          # 约 95% 置信下能稳定区分的最小差距
+
+for n in [100, 500, 2000]:
+    print(f"测试集 {n:>4} 题: 能稳定看出的最小提升 ≈ {detectable(n)*100:.1f} 个点")
+# 经验：想可靠证明 +2 点，测试集通常得上千题；否则先扩测试集再谈提升</div>
+        <table class="repro-table">
+          <caption>测试集越小，能可靠检出的「真提升」门槛越高。先把测试集做够大，再谈「我赢了 X 点」，否则可能是在量噪声。</caption>
+          <thead><tr><th>测试集大小</th><th>可稳定检出的最小提升</th></tr></thead>
+          <tbody>
+            <tr><td>100 题</td><td>≈ 19 个点（太粗）</td></tr>
+            <tr><td>2000 题</td><td class="hit">≈ 4 个点</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>「提升」可能是假的 —— 因为你比的基线没调好。</strong>《Are We Really Making Much Progress?》复现 7 个号称 SOTA 的神经推荐模型，结果<strong>有 6 个被「认真调过参的简单基线」（矩阵分解、甚至启发式）打败</strong>。作者称之为「phantom progress（幻影进步）」：很多论文的提升，不是方法更强，而是<strong>对手（基线）太弱、没调好</strong>。</p>
+        <p><strong>对你立项的意义：</strong>proposal 的 ⑤ Baselines 不是凑数 —— 你必须<strong>把 LLaVA-1.5 / Qwen2-VL 调到它们该有的状态</strong>再比，否则赢了也没人信。一个站得住的强基线，是论文可信度的地基（连 D38）。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/1907.06902" target="_blank">Are We Really Making Much Progress?（arXiv:1907.06902）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · 立项避坑</span>
+        <p>① <strong>问题贪大</strong>：「全面提升低光多模态」做不完 → 收窄到一个能两周验证的最小问题。</p>
+        <p>② <strong>测试集太小</strong>：见上方实验，+2 点测不出 → 先把评测集做够大、够干净。</p>
+        <p>③ <strong>没有可掉点的「正常光照」对照</strong>：证明不了「是低光导致」→ 一定要配正常光照基线（D38）。</p>
+        <p>④ <strong>指标和卖点脱节</strong>：你说省 token，却只报准确率 → 指标必须能体现你声称的改进。</p>
+      </div>
 
       <h4>三、自测 / 误区</h4>
       <div class="box-tip">
@@ -7132,6 +7175,14 @@ W1: 数据+基线  W2: 方法第一版 → 看有没有正向信号（见 D39）
       <h4>今日目标</h4>
       <p>把项目要用的数据<strong>从原图加工成可训练/可评测的数据集</strong>。学完今天你应能:<strong>(1)</strong> 走通数据流水线五步;<strong>(2)</strong> 用可控退化合成低光数据(你的强项);<strong>(3)</strong> 产出 LLaVA 格式的指令数据(接 D18);<strong>(4)</strong> 正确划分 train/val/test 并避免泄露。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 造你项目要用的数据集</span>
+        <p>按 proposal 执行第一步：用你的图像背景<strong>可控合成低光数据 + 构建退化感知指令集</strong>，落成 <code>data/lowlight_vqa/</code>。复用 D18 的格式、今天的退化合成 —— 这套「能量化退化程度」的数据，正是纯 NLP 背景的人造不出来的，是你的数据贡献点。</p>
+        <div class="repo-tree">nano-mllm/data/
+├── build_instruct.py     <span style="color:var(--ink-faint)">← D18</span>
+└── <b>lowlight_vqa/</b>         <span style="color:var(--teal)">← 今天产出：低光图 + QA + 退化参数 + train/val/test</span></div>
+      </div>
+
       <h4>一、数据决定项目成败</h4>
       <p>呼应 D18「数据 &gt; 架构」:实战阶段,<strong>一份干净、对齐目标、划分严谨的数据,比方法本身更决定结果</strong>。对低光方向,你有一个独特优势——<em class="term">能用图像退化模型可控地合成低光数据</em>,且知道怎么量化退化程度,这正是别人做不了的。</p>
 
@@ -7173,6 +7224,43 @@ def split_by_image(samples, ratios=(0.8, 0.1, 0.1)):
 
 # with open("train.jsonl","w") as f:
 #     for s in train: f.write(json.dumps(s, ensure_ascii=False)+"\n")</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 划分泄露自检（最容易翻车的一步）</span>
+        <p>数据出问题，99% 的评测虚高都来自<strong>泄露</strong>：同一张原图的不同退化版本，跨到了 train 和 test。写个小自检，确认任何一张原图只出现在一个 split 里 —— 这一步不做，后面所有结论都不可信。</p>
+        <div class="code-block">def base_image(path):                          # 从 "scene7_deg2.jpg" 取原图 id "scene7"
+    return path.split("_deg")[0]
+
+train = ["scene1_deg0.jpg", "scene1_deg1.jpg", "scene2_deg0.jpg"]
+test  = ["scene3_deg0.jpg", "scene1_deg2.jpg"]   # ← scene1 也在 train！泄露
+leak  = {base_image(p) for p in train} &amp; {base_image(p) for p in test}
+print("泄露的原图:", leak or "无")              # {'scene1'} → 必须把它整组挪到同一 split
+print("是否安全:", "✗ 有泄露，须修" if leak else "✓ 无泄露")
+# 上线前应 assert not leak，让有泄露的数据集直接构建失败</div>
+        <table class="repro-table">
+          <caption>按「原图 id」分组划分，杜绝同图不同退化跨 split。这个检查应在每次建数据集后自动跑 —— 它是评测可信的前提。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>train ∩ test 的原图</td><td class="hit">空集（无泄露）</td></tr>
+            <tr><td>有泄露时</td><td>报警，强制修</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>连 ImageNet、MNIST 这种「黄金标准」都有不少标错的。</strong>Northcutt 等人系统检查 10 个常用数据集，发现<strong>测试集平均约 3.3% 的标签是错的</strong>（ImageNet 验证集高达约 6%，连被引用过万次的 MNIST 测试集都有 15 个确凿错标）。更扎心的是：<strong>把这些错标修正后，模型排名会翻转</strong> —— 原本「更强」的大模型，可能只是更会拟合那些错误标签。</p>
+        <p><strong>对你的意义：</strong>你<strong>自建 / GPT-4V 合成</strong>的低光 QA 数据，错标率只会更高 → 务必<strong>抽检、清洗、记录退化参数</strong>。数据干净，是你整个项目结论可信的地基（连 D18 合成数据风险）。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2103.14749" target="_blank">Pervasive Label Errors in Test Sets（arXiv:2103.14749）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · 数据避坑</span>
+        <p>① <strong>随机划分导致泄露</strong>：同图不同退化分到 train/test → 按原图 id 分组划分（见上方自检）。</p>
+        <p>② <strong>退化不可控 / 不记录</strong>：没存 gamma、噪声参数 → 没法做「退化程度 vs 性能」的分析与消融。</p>
+        <p>③ <strong>盲信 GPT-4V 标注</strong>：合成 QA 会带幻觉 → 抽检一批人工核对，再上量。</p>
+        <p>④ <strong>train / test 退化分布不一致</strong>：训练只见轻度、测试全是重度 → 测的不是你想测的能力。</p>
+      </div>
 
       <h4>三、自测 / 误区</h4>
       <div class="box-tip">
@@ -7233,6 +7321,13 @@ def split_by_image(samples, ratios=(0.8, 0.1, 0.1)):
       <h4>今日目标</h4>
       <p>在你的数据上跑 2–3 个基线,<strong>用统一协议记录性能</strong>,并量化「低光 vs 正常」的差距。学完今天你应能:<strong>(1)</strong> 说清基线为什么必须统一数据/协议;<strong>(2)</strong> 用 VLMEvalKit 跑通多基线(接 D19);<strong>(3)</strong> 算出 Δ(正常−低光)来证明问题成立;<strong>(4)</strong> 规范地记录结果。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 立起可信的对照线</span>
+        <p>按 proposal 执行第二步：在你 D37 的数据上，用统一协议跑 LLaVA-1.5 / InternVL2 / Qwen2-VL 三个基线，产出 <code>experiments/baselines.csv</code>。重点是算出 <strong>Δ(正常 − 低光)</strong> —— 如果基线普遍在低光下大幅掉点，你的问题就被自己的实验证明了（这往往是论文 intro 最有力的第一张图）。</p>
+        <div class="repo-tree">nano-mllm/experiments/
+└── <b>baselines.csv</b>      <span style="color:var(--teal)">← 今天产出：3 基线 × {正常,低光} 分数 + Δ（统一协议）</span></div>
+      </div>
+
       <h4>一、基线的双重作用</h4>
       <p>基线不是走过场:它<strong>既证明你的问题真实存在</strong>(低光下大家都掉点),<strong>又是你方法必须超越的对照线</strong>。前提是<em class="term">公平</em>——同一测试集、同一 prompt 模板、同一评分协议、同一 split。任何一处不一致,对比就失去意义(连 D19 的评测陷阱)。</p>
 
@@ -7255,6 +7350,43 @@ df = pd.read_csv("outputs/summary.csv")
 df["drop"] = df["normal"] - df["lowlight"]      # 掉点幅度
 print(df[["model", "normal", "lowlight", "drop"]])
 # 若 drop 普遍很大 → 问题成立；记下来，这是你方法要缩小的差距</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 多 seed 报均值±标准差，别拿单次结果下结论</span>
+        <p>跑基线（和后面你的方法）最容易犯的错：只跑一次就比大小。同一个模型不同随机种子，分数会上下浮动。<strong>跑多个 seed、报 mean±std</strong>，两个结果的差落在波动范围内就不能算「赢」。</p>
+        <div class="code-block">import numpy as np
+# 两个其实差不多的方法，各跑 5 个 seed
+baseline = np.array([66.1, 65.8, 66.5, 66.0, 66.3])
+ours     = np.array([66.4, 66.9, 66.2, 67.1, 66.6])
+def report(name, x): print(f"{name}: {x.mean():.2f} ± {x.std():.2f}")
+report("baseline", baseline); report("ours", ours)
+gap   = ours.mean() - baseline.mean()
+noise = baseline.std() + ours.std()                      # 粗略的波动量级
+print(f"差距 {gap:+.2f}，波动 ±{noise:.2f} → {'可能是噪声' if gap &lt; noise else '较可信'}")</div>
+        <table class="repro-table">
+          <caption>差距小于种子波动 = 不能宣称提升。报均值±标准差、多 seed、必要时做显著性检验，是基线对比（和你方法对比）的底线。</caption>
+          <thead><tr><th>做法</th><th>结论</th></tr></thead>
+          <tbody>
+            <tr><td>只跑一次比大小</td><td>可能把噪声当提升</td></tr>
+            <tr><td>多 seed + mean±std</td><td class="hit">差距 vs 波动，才下结论</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>光是换个随机种子，结论就能反过来。</strong>《Deep RL That Matters》发现：用<strong>完全相同的算法和超参、只换全局随机种子</strong>，两组模型的性能能差到<strong>统计显著不同</strong> —— 把 10 个种子分两半各取平均，画出来像是来自两个不同的分布。而当时的论文大多只用 ≤5 个种子。</p>
+        <p><strong>对你的意义：</strong>跑基线、报你方法的提升时，<strong>多个种子 + 报均值±方差 + 显著性检验</strong>是底线；尤其低光实验方差更大。一个「+0.5 点」如果落在种子波动里，就不是提升 —— 这是审稿人和你自己都该过的一关。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/1709.06560" target="_blank">Deep Reinforcement Learning That Matters（arXiv:1709.06560）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · 基线避坑</span>
+        <p>① <strong>各模型用不同 prompt / 评分</strong>：对比直接失效 → 同一套数据、prompt、评分、split（D19）。</p>
+        <p>② <strong>只跑一次就比大小</strong>：把种子噪声当结论 → 多 seed、报 mean±std（见上方实验）。</p>
+        <p>③ <strong>直接抄论文自报数字</strong>：实现 / 协议不同不可比 → 自己统一重跑。</p>
+        <p>④ <strong>基线没调到合理状态</strong>：分辨率 / 模板设错，赢了也不算（连 D20 格式坑、Dacrema 的 phantom progress）。</p>
+      </div>
 
       <h4>三、自测 / 误区</h4>
       <div class="box-tip">
@@ -7319,6 +7451,13 @@ print(df[["model", "normal", "lowlight", "drop"]])
       <h4>今日目标</h4>
       <p>在基线代码上<strong>实现你的改进、跑出第一版结果</strong>。学完今天你应能:<strong>(1)</strong> 在 LLaVA 框架里找到合适的「插入点」放你的模块;<strong>(2)</strong> 把改动做得小而可开关(便于消融);<strong>(3)</strong> 用最小实验快速验证有没有 signal;<strong>(4)</strong> 建立「跑→看→改」的迭代节奏。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 把你的 idea 变成可开关的模块</span>
+        <p>按 proposal 执行第三步：在基线框架里插入你的模块（<code>efficiency/degradation_aware.py</code>，承接 D32），做成<strong>「一个开关」</strong> —— 关掉就逐位等于基线，开着才是你的方法。这样性能差能干净地归因到你的改动，为 D40 的消融铺路。</p>
+        <div class="repo-tree">nano-mllm/efficiency/
+└── <b>degradation_aware.py</b>     <span style="color:var(--teal)">← 今天落地：质量感知模块（enable 开关，便于消融）</span></div>
+      </div>
+
       <h4>一、改动要「小而可归因」</h4>
       <p>实现方法时,最忌一次改一大堆——赢了输了都不知道是哪一步起的作用。正确姿势:<strong>每次只动一个地方,做成可开关的开关</strong>。对低光方向,你的模块通常插在 <em class="term">ViT → Projector 之间</em>(质量感知 / token 自适应 / 先增强),底座尽量沿用基线,这样性能差就能干净地归因到你的改动(为 D40 的消融做准备)。</p>
 
@@ -7347,6 +7486,48 @@ class QualityAwareVisual(nn.Module):
 #       acc = quick_eval(build_model(enable), mini_testset)
 #       print(enable, acc)
 # 看到 ours 稳定 > baseline（哪怕 +1~2 点）→ 有信号，值得深挖</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 消融：提升到底来自哪一步</span>
+        <p>拿到「+几个点」别急着高兴 —— 先做消融，确认提升真来自<strong>你的核心改动</strong>，而非顺手调的别的东西。把每个改动做成独立开关，逐个打开看增益归属。</p>
+        <div class="code-block"># 假设你同时改了三处：质量估计、token 自适应、退化数据微调
+# 消融 = 逐个开关，看每一项贡献多少（这里用模拟分数演示归因逻辑）
+configs = {
+    "baseline":      60.0,
+    "+退化数据微调":  63.5,   # 单独这一项就涨 3.5
+    "+质量估计":      60.4,   # 几乎没用
+    "+token自适应":   61.2,   # 有一点
+    "全开(ours)":     64.0,
+}
+base = configs["baseline"]
+for name, acc in configs.items():
+    if name != "baseline":
+        print(f"{name:&lt;13} {acc:5.1f}  (Δ vs baseline {acc-base:+.1f})")
+print("→ 主要增益来自『退化数据微调』，而非你以为的『质量估计』——归因清楚才知道卖点在哪")</div>
+        <table class="repro-table">
+          <caption>消融把「全开 +4 点」拆成每一项的贡献。常见结局：大头来自数据 / 调参，而非你最得意的模块 —— 早发现，才能把故事讲对。</caption>
+          <thead><tr><th>改动</th><th>Δ vs baseline</th></tr></thead>
+          <tbody>
+            <tr><td>退化数据微调</td><td class="hit">+3.5（主要增益）</td></tr>
+            <tr><td>质量估计</td><td>+0.4（几乎没用）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>很多论文的「提升」，其实不来自它声称的那个改动。</strong>《Troubling Trends in Machine Learning Scholarship》点名一个普遍病症：<strong>没能识别经验增益的真正来源</strong> —— 比如大讲特讲一个新颖的网络结构，而实际涨分来自<strong>更好的超参调优、更多数据或训练 trick</strong>。结果读者被误导、后人白白模仿那个没用的「创新」。</p>
+        <p><strong>对你的意义：</strong>这正是上面消融实验的价值 —— <strong>每个改动独立开关、逐项归因</strong>，诚实说清「提升来自哪」。把你以为的卖点和真正起作用的部分分清楚，比多刷一两个点更重要，也更经得起审稿（连 D35 公平比较）。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/1807.03341" target="_blank">Troubling Trends in ML Scholarship（arXiv:1807.03341）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · 做实验避坑</span>
+        <p>① <strong>一次改太多</strong>：赢输都无法归因 → 每次只动一处、可开关。</p>
+        <p>② <strong>没有「关掉=baseline」的开关</strong>：消融做不干净 → enable=False 必须逐位等于基线。</p>
+        <p>③ <strong>一上来跑大实验</strong>：慢、贵、改一次等一天 → 先 1~2k 样本 + LoRA 看信号。</p>
+        <p>④ <strong>把噪声当信号</strong>：+0.3 点可能只是种子波动 → 多 seed 复核（连 D38）。</p>
+      </div>
 
       <h4>三、自测 / 经验 / 误区</h4>
       <div class="box-tip">
@@ -7410,6 +7591,17 @@ class QualityAwareVisual(nn.Module):
       <h4>今日目标</h4>
       <p>回望整条路线,确认能力清单,并把 Week 08 的项目接续成<strong>持续 3–6 个月的真正研究</strong>。这一天既是结束,也是你研究生涯的起点。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · nano-mllm 全部完工 🎓</span>
+        <p>40 天，你从一行 numpy 反向传播，一路搭到了一个完整的 <code>nano-mllm</code>：训练引擎 → nano-GPT → 微调 → 视觉塔 → VLM → grounding / 分割 → Agent → 效率优化 → 一个真实研究项目。每个文件都对应一个你亲手复现过的真实方法。这套 repo + 这份路线，就是你转型多模态最硬的作品集。</p>
+        <div class="repo-tree">nano-mllm/                       <span style="color:var(--teal)">← 40 天的成果</span>
+├── engine/ model/ vision/ connector/   <span style="color:var(--ink-faint)">前置周–W3：从训练引擎到 VLM</span>
+├── finetune/ inference/ eval/          <span style="color:var(--ink-faint)">W2–W5：微调 / 推理 / 评测</span>
+├── agent/ rag/ tools/ demo/            <span style="color:var(--ink-faint)">W6：视觉 Agent</span>
+├── efficiency/ vla/ train/             <span style="color:var(--ink-faint)">W7：前沿 + 效率</span>
+└── research/ data/ experiments/        <span style="color:var(--teal)">W8：你的研究项目（退化感知压缩）</span></div>
+      </div>
+
       <div class="box-important"><span class="label">🔥 你现在应该具备的能力</span>
         <p>✅ 理解 LLM 的完整架构和训练流程（Transformer → SFT → RLHF/DPO，W1–W2）<br>
         ✅ 掌握 LoRA/QLoRA 微调，能在本地完成模型微调（D8/D20）<br>
@@ -7423,6 +7615,41 @@ class QualityAwareVisual(nn.Module):
       <div class="box-tip">
         <span class="label">💡 你的护城河（务必记住）</span>
         <p>整条路线我反复把每一周连回你的<strong>低光 / 退化 / 图像质量</strong>背景。多模态的「多」就包含视觉——<em class="term">你比纯 NLP 背景的人更懂图像</em>。把「退化条件」当成你切入每个方向的统一视角(D25/D31/D32/D35),这就是别人复制不了的差异化优势。</p>
+      </div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 给自己打个分：这 40 天到位了吗</span>
+        <p>转型不是「看完」而是「能做」。跑一下这个自检：诚实勾掉你<strong>真能独立做到</strong>的项（不是「听过」），看看哪里还需要回炉。</p>
+        <div class="code-block">checklist = {
+    "手推反向传播 + 写出 attention": True,
+    "从零拼一个 nano-GPT 并训练": True,
+    "讲清 CLIP→Projector→LLM 怎么把图变成 token": True,
+    "用 LoRA 在本地微调一个模型": True,
+    "跑通并评测一个 VLM（含盲测基线）": True,
+    "搭一个会调工具的视觉 Agent": True,
+    "复现一个 token 压缩方法 + 想清研究切口": True,
+    "为自己的项目写 proposal + 跑基线 + 做消融": False,   # ← W8 还在进行
+}
+done = sum(checklist.values())
+print(f"已掌握 {done}/{len(checklist)} 项 = {done/len(checklist)*100:.0f}%")
+for k, v in checklist.items():
+    print(("✅ " if v else "⬜ ") + k)
+# 勾不掉的项，就是你接下来 1~2 周该回炉补的地方</div>
+        <table class="repro-table">
+          <caption>「能独立做」才算掌握。这份清单也是你跟导师 / 面试官展示能力的提纲 —— 每一项背后都有你 repo 里的真实代码。</caption>
+          <thead><tr><th>勾选标准</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>能独立做到</td><td class="hit">才打勾（非「听过」）</td></tr>
+            <tr><td>没勾掉的</td><td>接下来 1~2 周回炉</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 贯穿全程的三条铁律</span>
+        <p>40 天里反复出现、被一篇篇论文验证的三条「研究铁律」，请刻进肌肉记忆：</p>
+        <p>① <strong>数据 ≫ 架构</strong>：LIMA 1000 条胜 RLHF、DataComp 靠筛数据反超、ShareGPT4V 靠 caption 涨分 —— 想提升，先看数据（D06/D11/D18）。<br>② <strong>评测要诚实</strong>：MMStar「不看图也能答」、Metric Learning Reality Check「提升多是过拟合测试集」、Henderson「换种子结论翻转」—— 先把评测做对，再谈赢（D19/D35/D38）。<br>③ <strong>简单 + 归因</strong>：LLaVA 朴素 MLP 胜 Q-Former、Dacrema 强基线打穿 SOTA、Troubling Trends「说清增益来自哪」—— 简单可信的小提升，胜过刷出来的大数字（D13/D36/D39）。</p>
+        <div class="report-src">来源：综合 LIMA(2305.11206) · MMStar(2403.20330) · Metric Learning Reality Check(2003.08505) · Troubling Trends(1807.03341) 等贯穿全程的实证</div>
       </div>
 
       <h4>后续学习方向</h4>
