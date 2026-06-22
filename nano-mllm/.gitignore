@@ -10,4 +10,5 @@ adapters/
 outputs/
 *.egg-info/
 .DS_Store
-research/proposal.md   # 私有研究立项文档，本地保留、不公开到 GitHub
+# 私有研究立项文档，本地保留、不公开到 GitHub
+research/proposal.md
