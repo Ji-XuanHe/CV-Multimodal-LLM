@@ -3286,6 +3286,14 @@ print(f"CIFAR-10 zero-shot top-1 = {100*hit/tot:.2f}%")</div>
       <h4>学习目标</h4>
       <p>CLIP 用 softmax 对比,分母要看「整个 batch」,于是必须超大 batch + 跨卡同步,很贵。SigLIP 把它换成<em class="term">逐对 sigmoid</em>,一举解决。学完今天你应能：<strong>(1)</strong> 说清 softmax 对比「贵在哪」;<strong>(2)</strong> 默写 SigLIP 的 sigmoid loss、解释 bias 项;<strong>(3)</strong> 说清「为什么 sigmoid 省掉了跨卡同步」;<strong>(4)</strong> 知道主流 MLLM 各用什么视觉编码器、怎么选;<strong>(5)</strong> 用 HF 跑一次 SigLIP(记住推理用 sigmoid 不是 softmax)。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 给视觉塔定型</span>
+        <p>D11 你写了 CLIP 风格的 <code>vision/clip.py</code>，今天搞懂 SigLIP 后，把视觉编码器封装成可切换的 <code>vision/encoder.py</code>（CLIP / SigLIP 一键换），并默认选 <strong>SigLIP</strong> —— 它正成为新一代 MLLM 的标配视觉塔。D14 装配 VLM 时直接 <code>import</code> 它。</p>
+        <div class="repo-tree">nano-mllm/vision/
+├── clip.py        <span style="color:var(--ink-faint)">← D11</span>
+└── <b>encoder.py</b>     <span style="color:var(--teal)">← 今天新增：统一视觉塔接口（默认 SigLIP）</span></div>
+      </div>
+
       <h4>一、动机：CLIP softmax 贵在哪</h4>
       <p>CLIP 的损失分母是 <code>∑_j exp(S_ij)</code>——要对「这张图 vs batch 里所有文本」做归一化。batch 越大效果越好,但 batch 大到几万时,负样本分散在几十张卡上,每步都要 <strong>all-gather 把所有特征拉到一起</strong>算 softmax,通信开销巨大。SigLIP 的洞察:<strong>把「N 选 1 的多分类」换成「N² 个独立的是/否二分类」</strong>,每个格子只看自己,归一化消失,跨卡同步也就没了。</p>
 
@@ -3341,6 +3349,42 @@ with torch.no_grad():
 
 for t, p in zip(texts, probs[0]):
     print(f"{t:24s} {p.item():.3f}")       # 每个概率独立，不强制和为 1</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · sigmoid 与 softmax 的本质差别</span>
+        <p>SigLIP 推理用 <code>sigmoid</code>、CLIP 用 <code>softmax</code> —— 差别不只是函数名：sigmoid 让<strong>每个类别概率独立</strong>（可都高、也可都低，对应「这张图什么都不像」），softmax 则强制<strong>和为 1</strong>（必须选一个）。亲手看一眼。</p>
+        <div class="code-block">import torch
+logits = torch.tensor([2.5, -1.0, 0.3])          # 图 vs 三个文本的相似度打分
+print("softmax:", [f"{p:.2f}" for p in logits.softmax(-1)], "和 =", f"{logits.softmax(-1).sum():.2f}")
+print("sigmoid:", [f"{p:.2f}" for p in logits.sigmoid()],  "和 =", f"{logits.sigmoid().sum():.2f}")
+
+none = torch.tensor([-3.0, -2.5, -3.2])          # 全是不相关文本
+print("都不匹配 → softmax:", [f"{p:.2f}" for p in none.softmax(-1)])   # 仍被迫凑出一个高的
+print("都不匹配 → sigmoid:", [f"{p:.2f}" for p in none.sigmoid()])     # 可以全部给低分</div>
+        <table class="repro-table">
+          <caption>sigmoid 各概率独立、不必和为 1 —— 这既是 SigLIP 去掉跨卡同步的根，也让它能表达「图文都不匹配」。</caption>
+          <thead><tr><th>场景</th><th>softmax</th><th>sigmoid</th></tr></thead>
+          <tbody>
+            <tr><td>有一个匹配</td><td>突出那个</td><td class="hit">突出那个</td></tr>
+            <tr><td>全不匹配</td><td>仍凑一个高分</td><td class="hit">可全部低分</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>SigLIP 把「对比学习必须大 batch」这条铁律打破了。</strong>实测：当 batch <strong>小于 16k</strong> 时，sigmoid 损失<strong>显著优于</strong> softmax；而且 SigLIP 在 batch=32k 就达到最优，softmax 却要堆到 <strong>98k</strong> 还追不上。原因正是今天讲的：sigmoid 逐对独立、不需要「全 batch 归一化」，于是省掉了跨卡 all-gather。</p>
+        <p><strong>结果：</strong>SigLIP 训练更省、对小 batch 更友好，已成为 PaliGemma 等新一代模型的默认视觉塔 —— 你 D11 学的 CLIP 思想没白学，SigLIP 只换了最后那个 loss。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2303.15343" target="_blank">SigLIP（arXiv:2303.15343）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>对 SigLIP logits 用 softmax</strong>：最常见的错 —— SigLIP 各类独立，必须用 <code>sigmoid</code>，否则概率全错。</p>
+        <p>② <strong>忘了 bias 项 b</strong>：正负样本极不平衡（N² 个负、N 个正），没 bias 初期会全判负、训不动。</p>
+        <p>③ <strong>视觉塔与 LLM 维度没对齐</strong>：SigLIP 输出维度（如 1152）≠ LLM 隐藏维 → 必须经 projector 投影（D13/D14）。</p>
+        <p>④ <strong>换塔没换预处理</strong>：SigLIP 与 CLIP 的 resize / 归一化不同，套错预处理直接掉点（和 D11 同理）。</p>
+      </div>
 
       <h4>四、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -3415,6 +3459,15 @@ for t, p in zip(texts, probs[0]):
       <h4>学习目标</h4>
       <p>多模态模型最核心的工程问题:<strong>怎么把一张图变成 LLM 能吃的 token,还不能太多</strong>。学完今天你应能:<strong>(1)</strong> 算出任意分辨率/tile 下的视觉 token 数;<strong>(2)</strong> 说清「分辨率 vs token 数」的核心矛盾;<strong>(3)</strong> 对比 4 种 connector(MLP / Pixel Shuffle / Resampler / Q-Former)的取舍;<strong>(4)</strong> 解释动态分辨率为什么会让 token 数爆炸;<strong>(5)</strong> 用代码算 token 数并理解 Pixel Shuffle 怎么压缩。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 接「眼睛」到「大脑」的那根线</span>
+        <p>视觉塔（D11/D12）吐出的视觉 token，维度和数量都不对 LLM 的胃口。今天写 <code>connector/projector.py</code> —— 把视觉 token <strong>对齐到 LLM 的隐藏维度</strong>（并可选压缩数量）。这是 D14 把「眼睛」接到「大脑」的那根关键的线。</p>
+        <div class="repo-tree">nano-mllm/
+├── vision/encoder.py     <span style="color:var(--ink-faint)">← D11/D12</span>
+└── connector/
+    └── <b>projector.py</b>      <span style="color:var(--teal)">← 今天新增：视觉 token → LLM 维度（MLP / Pixel Shuffle）</span></div>
+      </div>
+
       <h4>一、图像怎么变成 token</h4>
       <p>LLM 只认 token 序列。把图像变 token 的标准流程:<strong>切 patch → ViT 编码 → 每个 patch 成一个视觉 token → connector 对齐到 LLM 维度 → 和文本 token 拼成一队</strong>。和 D14 的 LLaVA 一脉相承,这里我们把镜头拉近,专门盯住<em class="term">「token 数量」</em>这件要命的事。</p>
 
@@ -3469,6 +3522,49 @@ def pixel_shuffle_down(x, h, w, scale=2):
 tokens = torch.randn(1, 24 * 24, 1024)            # 576 个 1024 维 token
 out = pixel_shuffle_down(tokens, 24, 24, scale=2)
 print(out.shape)   # (1, 144, 4096)  数量 576→144，维度 1024→4096</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · Pixel Shuffle 是「无损重排」吗</span>
+        <p>Pixel Shuffle 把 token 数 ÷4、维度 ×4，听着像压缩，其实是<strong>把信息从「空间」搬到「通道」、一个不丢</strong>。验证它<strong>可逆</strong>：折下去再展开，能逐元素还原 —— 这正是它比 Q-Former「压到固定数」更保真的原因。</p>
+        <div class="code-block">import torch
+def shuffle_down(x, h, w, s=2):                  # (B, h*w, C) → (B, h/s*w/s, C*s²)
+    B, _, C = x.shape
+    x = x.view(B, h//s, s, w//s, s, C)
+    return x.permute(0,1,3,2,4,5).reshape(B, (h//s)*(w//s), C*s*s)
+def shuffle_up(y, h, w, s=2):                    # 逆操作：展开回去
+    B, _, C2 = y.shape; C = C2 // (s*s)
+    y = y.view(B, h//s, w//s, s, s, C)
+    return y.permute(0,1,3,2,4,5).reshape(B, h*w, C)
+
+tok  = torch.randn(1, 24*24, 1024)               # 576 个 1024 维 token
+down = shuffle_down(tok, 24, 24)                 # → (1, 144, 4096)
+back = shuffle_up(down, 24, 24)                  # → (1, 576, 1024)
+print("压缩后:", tuple(down.shape), " 还原后:", tuple(back.shape))
+print("无损可逆?", torch.allclose(tok, back))     # True → 信息一个没丢</div>
+        <table class="repro-table">
+          <caption>576→144 token、1024→4096 维，且完全可逆 —— 把分辨率「折叠」进通道，是当前最流行的压缩折中。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>token 数 / 维度</td><td class="hit">576→144 / 1024→4096</td></tr>
+            <tr><td>折叠再展开</td><td class="hit">逐元素还原（True）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>连接器越复杂越好？恰恰相反。</strong>BLIP-2 用了精巧的 <strong>Q-Former</strong>（可学习 query + 多层 cross-attention 压缩视觉信息），而 LLaVA-1.5 只用一个朴素的<strong>两层 MLP</strong> 把视觉 token 投到 LLM 维度。消融显示：<strong>这个两层 MLP 在标准 benchmark 上稳定胜过 Q-Former</strong>，训练还更快更省。</p>
+        <p><strong>「simple beats complex」：</strong>Q-Former 引入大量额外训练开销与不稳定，而 MLP「大到能做非线性变换、小到能在不多的数据上训得稳」。这也是为什么今天主流 connector 是 MLP / Pixel Shuffle，而非 Q-Former。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2310.03744" target="_blank">LLaVA-1.5（arXiv:2310.03744）</a> · <a href="https://arxiv.org/abs/2301.12597" target="_blank">BLIP-2 / Q-Former（arXiv:2301.12597）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>connector 输出维度 ≠ LLM 隐藏维</strong>：视觉 token 接不进 LLM → projector 的输出维必须等于 <code>d_model</code>。</p>
+        <p>② <strong>Pixel Shuffle 的 h/w 不能被 scale 整除</strong>：reshape 直接报错 → 先 pad 到可整除，或选合适分辨率。</p>
+        <p>③ <strong>折叠时打乱了空间顺序</strong>：permute 维度搞错 → 视觉 token 的二维位置全乱，模型「看不懂图」却不报错。</p>
+        <p>④ <strong>为省 token 压得太狠</strong>：Resampler / Q-Former 压到很少 → OCR、小目标、计数明显掉点（连 D22 文档、D25 幻觉）。</p>
+      </div>
 
       <h4>四、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -3545,6 +3641,17 @@ print(out.shape)   # (1, 144, 4096)  数量 576→144，维度 1024→4096</div>
 
       <h4>学习目标</h4>
       <p>LLaVA 是把视觉接入 LLM 最经典、最干净的范式。学完今天，你应当能：<strong>(1)</strong> 讲清 LLaVA 的「三件套」各自做什么；<strong>(2)</strong> 把一张图到一段回答的<em class="term">维度变换</em>全程画出来；<strong>(3)</strong> 说清视觉 token 是<em class="term">怎么塞进文本序列</em>的（面试必考）；<strong>(4)</strong> 解释两阶段训练各冻结什么、loss 算在哪；<strong>(5)</strong> 用 Hugging Face 跑通一次 LLaVA 推理。</p>
+
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · capstone 合体时刻 🎉</span>
+        <p>今天是整条路线的<strong>高光</strong>：把 <code>vision/encoder.py</code>（D12）、<code>connector/projector.py</code>（D13）、你 W1–W2 造的 <code>model/transformer.py</code> 三块<strong>拼成第一个完整 VLM</strong> <code>model/mllm.py</code> —— nano-GPT 终于有了眼睛。装配逻辑就是今天讲的：图像 → 视觉塔 → projector → 替换 <code>&lt;image&gt;</code> 占位符 → 和文本一起进 LLM。</p>
+        <p><strong>两阶段训练：</strong>Stage 1 冻结视觉塔和 LLM、只训 projector（对齐）；Stage 2 再联合微调（学指令）。明天 D15 你就让它真的看图说话。</p>
+        <div class="repo-tree">nano-mllm/
+├── vision/encoder.py        <span style="color:var(--ink-faint)">← D12</span>
+├── connector/projector.py   <span style="color:var(--ink-faint)">← D13</span>
+├── model/transformer.py     <span style="color:var(--ink-faint)">← W1（nano-GPT）</span>
+└── model/<b>mllm.py</b>            <span style="color:var(--teal)">← 今天合体：视觉塔 + projector + LLM = 完整 VLM</span></div>
+      </div>
 
       <h4>一、动机：让「只懂文字」的 LLM「看见」图像</h4>
       <p>LLM 的输入是一串 token 的<em class="term">词向量</em>（embedding 序列），而图像是连续像素。要让 LLM 处理图像，核心问题只有一个：<strong>找一个「翻译官」，把图像变成 LLM 词向量空间里的若干个「伪词」</strong>，和文本词向量拼在一起喂进去。LLaVA 给出的答案简单到令人意外——这个翻译官就是<strong>一个 MLP</strong>。</p>
@@ -3646,6 +3753,47 @@ def merge(input_ids, text_embeds, image_embeds, IMG_ID):
                       text_embeds[pos+1:]], dim=0)     # 占位符之后的文字
 # 文本里 1 个占位符 → 展开成 576 个视觉向量，序列随之变长</div>
 
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 占位符如何撑长序列、loss 落在哪</span>
+        <p>把「1 个 <code>&lt;image&gt;</code> → 576 视觉 token」的合并亲手跑一遍，验证两件事：① 合并后序列长度 = 文本长度 − 1 + 576；② 视觉 token 与问题的 label 都是 <code>-100</code>（不计 loss），只有回答算 loss。</p>
+        <div class="code-block">import torch
+IMG_ID, d, n_vis = -200, 4096, 576
+# 文本 7 个 token：[USER, &lt;image&gt;, 问, 题, ASSISTANT, 答, 案]，&lt;image&gt; 在第 1 位
+input_ids = torch.tensor([10, IMG_ID, 11, 12, 13, 14, 15])
+labels    = torch.tensor([-100, -100, -100, -100, -100, 14, 15])   # 只有「答案」算 loss
+text_emb  = torch.randn(len(input_ids), d)
+img_emb   = torch.randn(n_vis, d)                                   # projector 输出的 576 个
+
+pos        = (input_ids == IMG_ID).nonzero()[0].item()
+merged_emb = torch.cat([text_emb[:pos], img_emb, text_emb[pos+1:]], 0)
+merged_lab = torch.cat([labels[:pos], torch.full((n_vis,), -100), labels[pos+1:]], 0)
+print("合并后序列长度:", merged_emb.size(0), "= 7 - 1 +", n_vis)    # 582
+print("参与 loss 的 token 数:", int((merged_lab != -100).sum()))    # 2（只有答案）</div>
+        <table class="repro-table">
+          <caption>1 个占位符撑成 576 个视觉向量；视觉 + 指令全 mask，只有「回答」贡献 loss —— 与 D06 的 SFT mask 一脉相承。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>合并后长度</td><td class="hit">7 − 1 + 576 = 582</td></tr>
+            <tr><td>计 loss 的 token</td><td class="hit">仅答案（2 个）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>LLaVA 最反直觉的结论：决定多模态能力的不是「融合模块多精巧」，而是「指令数据多好」。</strong>它用 GPT-4 把图像标注<strong>改写成多样的视觉指令数据</strong>，配一个朴素 MLP + 强 LLM，就打穿了一众结构复杂的模型。LLaVA-1.5 更进一步：<strong>几乎不动架构</strong>，只把 projector 换 2 层 MLP、分辨率提到 336、补 VQA/OCR 数据并规范 prompt 格式，就刷到当时 SOTA。</p>
+        <p><strong>给你的启示：</strong>做 MLLM 想提升，先别堆结构花活 —— <strong>数据质量、分辨率、prompt 格式</strong>这三样的杠杆往往大得多。这条经验贯穿 W4（数据 / 评测）到 W8（你自己的项目）。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2304.08485" target="_blank">LLaVA: Visual Instruction Tuning（arXiv:2304.08485）</a> · <a href="https://arxiv.org/abs/2310.03744" target="_blank">LLaVA-1.5（arXiv:2310.03744）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>占位符数量与视觉 token 对不上</strong>：动态分辨率下视觉 token 不是 576，<code>&lt;image&gt;</code> 展开数要和 projector 实际输出一致，否则序列错位。</p>
+        <p>② <strong>替换的是 token id 而非 embedding</strong>：视觉向量不在词表里，必须在 embedding 层 <code>torch.cat</code> 进去（D15 细看代码）。</p>
+        <p>③ <strong>loss 算到了图像 / 问题上</strong>：视觉 token 和指令必须 <code>label=-100</code>，否则模型学歪。</p>
+        <p>④ <strong>跳过 Stage 1 直接端到端</strong>：随机初始化的 projector 会给 LLM 灌乱码梯度 → 灾难性遗忘；务必先对齐再联训。</p>
+      </div>
+
       <h4>五、自测 / 误区 / 面试</h4>
       <div class="box-tip">
         <span class="label">✅ 检查点自测</span>
@@ -3721,6 +3869,12 @@ def merge(input_ids, text_embeds, image_embeds, IMG_ID):
       <h4>今日目标</h4>
       <p>纯实操日。读懂 LLaVA 把图像「插进」文本序列的<em class="term">真实代码</em>,并在本地跑通推理。学完你应能:<strong>(1)</strong> 在 3 种后端(Ollama / mlx-vlm / HF)里任选一种跑通;<strong>(2)</strong> 讲清 <code>encode_images → prepare_inputs_labels_for_multimodal → generate</code> 三步;<strong>(3)</strong> 说清视觉 token 为什么在 <em class="term">embedding 层</em>合并、而不是 token 层;<strong>(4)</strong> 解释推理时图像只编码一次的原因(KV cache)。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · W3 毕业作品：会看图说话的 VLM</span>
+        <p>本周的终点：让你 D14 拼出的 <code>model/mllm.py</code><strong>真的跑起来、看图回答</strong>。今天用成熟的 LLaVA 权重跑通推理，对照源码里的 <code>prepare_inputs_labels_for_multimodal</code>，把你自己 merge 逻辑的每一步都验明正身。</p>
+        <p><strong>里程碑：</strong>至此 nano-mllm 完成从「纯文本 nano-GPT」到「能看图对话的 VLM」的跨越 —— capstone 的核心骨架全部就位。W4 起给它加数据、评测与前沿能力。</p>
+      </div>
+
       <h4>一、先跑起来：三种后端任选其一</h4>
       <div class="code-block"># —— 方式 A：Ollama（最快上手，一行体验）——
 ollama run llava:7b           # 启动后直接拖入图片或给路径对话
@@ -3762,6 +3916,41 @@ def prepare_inputs_labels_for_multimodal(self, input_ids, labels, images):
       <div class="box-important">
         <span class="label">🔥 四个必看的点</span>
         <p>① <code>encode_images()</code>:vision_tower(CLIP) + mm_projector(MLP),出 <code>(B,576,4096)</code>。② <code>IMAGE_TOKEN_INDEX = -200</code>:负数 id,故意不在词表里——所以必须在 <strong>embedding 层</strong>替换,不能走正常 embedding。③ 合并发生在 <code>prepare_inputs_labels_for_multimodal()</code>:用 <code>torch.cat</code> 把视觉向量插进占位符位置。④ 视觉 token 的 <code>label=-100</code>:自回归 loss 不算在图像上(呼应 D14 的 loss 落点)。</p>
+      </div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 用 yes/no 探针，亲手逼出「物体幻觉」</span>
+        <p>VLM 跑通后别只问「这是什么」。挑一张图，分别问一个<strong>确实存在</strong>和一个<strong>根本不存在</strong>的物体（同样的「图里有没有 X？」句式）。你大概率会看到：模型对不存在的物体也倾向答「有」 —— 这就是 POPE 揭示的物体幻觉与「yes 偏好」。</p>
+        <div class="code-block"># 同一张「猫在沙发上」的图，问两个 yes/no（HF / Ollama 均可）
+prompts = [
+    "USER: &lt;image&gt;\nIs there a cat in the image? Answer yes or no. ASSISTANT:",   # 真有
+    "USER: &lt;image&gt;\nIs there a dog in the image? Answer yes or no. ASSISTANT:",   # 没有
+]
+# 逐个喂给 model.generate(...)，对照回答
+# 预期：第 1 个 "yes"（对）；第 2 个常也答 "yes"（幻觉！换成与场景常共现的物体更明显）</div>
+        <table class="repro-table">
+          <caption>POPE 正是这样量化幻觉：问一批存在 / 不存在的物体，看模型的「yes 偏好」多重。这是 D24 评测、D25 对齐要解决的核心问题。</caption>
+          <thead><tr><th>问题</th><th>理想</th><th>常见现象</th></tr></thead>
+          <tbody>
+            <tr><td>问存在的物体</td><td>yes</td><td class="hit">yes（对）</td></tr>
+            <tr><td>问不存在的物体</td><td>no</td><td>常错答 yes（幻觉）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>你刚亲历的不是偶然 —— 物体幻觉是 LVLM 的通病。</strong>POPE（用 yes/no 探针量化幻觉）测了一批主流 LVLM，发现它们<strong>普遍存在严重物体幻觉</strong>：尤其是<strong>训练数据里高频、或与图中物体常共现</strong>的东西最容易被「脑补」出来（沙发场景里硬说有遥控器），而且模型有明显的「<strong>yes 偏好</strong>」。</p>
+        <p><strong>根因与去向：</strong>语言先验太强、视觉证据没压住语言惯性。这正是 D24（评测体系）要测、D25（幻觉与对齐）要治的核心，也和你做低光 / 复原时「模型脑补不存在的细节」的直觉相通。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2305.10355" target="_blank">POPE: Evaluating Object Hallucination in LVLMs（arXiv:2305.10355）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong><code>&lt;image&gt;</code> 占位符 id 配错</strong>：processor 用的图像 token id 和模型预期不一致 → 合并错位、输出乱码。</p>
+        <p>② <strong>误以为每步都重编码图像</strong>：图像只在首步过一次 CLIP，之后靠 KV cache（D10）；循环里重复编码会慢几十倍。</p>
+        <p>③ <strong>batch 变长没配 attention_mask</strong>：不同样本视觉 + 文本长度不同，pad 后必须给对 mask，否则会 attend 到 padding。</p>
+        <p>④ <strong>processor 与权重版本不匹配</strong>：transformers 版本不对，<code>&lt;image&gt;</code> 展开数 / 模板会变 → 先对齐版本再调试。</p>
       </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
