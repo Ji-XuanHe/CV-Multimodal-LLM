@@ -5569,6 +5569,13 @@ print("VCD  解码选:", names[vcd.argmax()])     # 狗 ← 语言先验被压�
       <h4>学习目标</h4>
       <p>Agent 的核心:<strong>感知 → 推理 → 行动 → 观察</strong> 的循环。学完今天你应能:<strong>(1)</strong> 讲清 ReAct 范式、它和固定 pipeline 的本质区别;<strong>(2)</strong> 说清 Function Calling / Tool Use 的机制;<strong>(3)</strong> 自己写一个最小 ReAct loop;<strong>(4)</strong> 把它和你 CV+Agent 的工作对应起来。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · nano-mllm 进化成 Agent</span>
+        <p>前 5 周你造了一个能看图、定位、分割的 VLM（W3–W5），但它还是「被动应答」。本周让它<strong>主动决策、调用工具</strong>。今天写 <code>agent/react.py</code> —— Thought→Action→Observation 的循环骨架，把你之前的工具（grounded_sam、增强、OCR）注册进去，让 MLLM 自己决定先调谁。</p>
+        <div class="repo-tree">nano-mllm/agent/
+└── <b>react.py</b>      <span style="color:var(--teal)">← 今天新增：ReAct 循环，让 VLM 会「想→做→看→再想」</span></div>
+      </div>
+
       <h4>一、从「固定流程」到「动态决策」</h4>
       <p>传统 CV pipeline 是<em class="term">写死的流程</em>:检测→分类→输出。Agent 不一样:<strong>LLM 在每一步先「想」(Thought),再决定「做什么」(Action),执行后看「结果」(Observation),再据此想下一步</strong>——流程不是写死的,而是<em class="term">根据中间结果动态生成</em>的。这就是 ReAct(Reason + Act)。</p>
 
@@ -5604,6 +5611,60 @@ def react(llm, question, max_steps=5):
 
 # LLM 每一步看着 scratch（含历史 Thought/Action/Observation）决定下一步——
 # 这就是 Agent 的全部秘密：把"历史 + 工具结果"喂回去，让它自己接着想。</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 把 ReAct 循环真的跑起来</span>
+        <p>上面是骨架，这里配一个「脚本化大脑」+ 真工具，让循环<strong>真的跑完一条轨迹</strong>：评估质量 → 增强 → 检测 → 收尾作答。看清「历史回灌 → 下一步决策」是怎么自动推进的。</p>
+        <div class="code-block">TOOLS = {
+    "measure_quality": lambda img: "PSNR=18.3, 低光退化严重",
+    "enhance_image":   lambda img: "已增强 → enhanced.jpg",
+    "detect_objects":  lambda img: "检测到: 1辆车, 2个人",
+}
+def fake_llm(scratch):                              # 真实场景这里是 MLLM
+    n = scratch.count("Observation:")              # 已观察几次 → 决定下一步
+    plan = [
+        {"thought": "先评估图像质量", "action": {"name": "measure_quality"}},
+        {"thought": "太暗，先增强",   "action": {"name": "enhance_image"}},
+        {"thought": "再检测物体",     "action": {"name": "detect_objects"}},
+    ]
+    return plan[n] if n &lt; len(plan) else {"answer": "图中有 1 车 2 人（已增强后识别）"}
+
+def react(llm, question, max_steps=6):
+    scratch = question
+    for _ in range(max_steps):
+        out = llm(scratch)
+        if out.get("answer"): return out["answer"], scratch
+        act = out["action"]; obs = TOOLS[act["name"]]("dark.jpg")
+        scratch += f"\nThought: {out['thought']}\nAction: {act['name']}\nObservation: {obs}"
+    return "达到最大步数", scratch
+
+ans, trace = react(fake_llm, "任务：这张暗图里有什么？")
+print(ans)                                  # 图中有 1 车 2 人（已增强后识别）
+print("共调用", trace.count("Action:"), "次工具")   # 3</div>
+        <table class="repro-table">
+          <caption>同一段 scratch（历史）不断被回灌，模型每步看着它决定下一步 —— 这就是「动态决策」与写死 pipeline 的本质区别。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>工具调用次数</td><td class="hit">3（评估→增强→检测）</td></tr>
+            <tr><td>最终输出</td><td class="hit">综合作答</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>「边想边做」比「只想不做」更不容易胡编。</strong>ReAct 的实验发现：只做思维链（CoT）推理时，模型会<strong>顺着自己的想象编造事实</strong>；而把<strong>推理（Thought）和行动（Action，去查 Wikipedia）交替进行</strong>，每步推理都能被真实「观察」校正，在 HotpotQA 问答、Fever 事实核查上<strong>明显压住了幻觉与错误传播</strong>，轨迹也更可解释。</p>
+        <p><strong>对你的意义：</strong>这正是 Agent 比「LLM 一次性硬答」更可靠的根源 —— 拿不准就交给工具去「看一眼」，而非闭眼猜。你的视觉 Agent（D30）同理：不确定就调检测 / 质量评估工具核实。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct（arXiv:2210.03629）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>以为 LLM 自己执行工具</strong>：LLM 只生成调用指令（JSON），真正执行在外部系统 → 解析 JSON、跑函数、把结果回灌。</p>
+        <p>② <strong>忘把 Observation 喂回去</strong>：不回灌就退化成单步问答，失去「看结果再调整」的能力。</p>
+        <p>③ <strong>没有终止条件</strong>：容易死循环狂烧 token → 必须有 <code>max_steps</code> + 完成判定。</p>
+        <p>④ <strong>工具调用 JSON 解析失败</strong>：模型偶尔输出非法 JSON → 加容错重试 / 用受约束解码（function calling）。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -5670,6 +5731,14 @@ def react(llm, question, max_steps=5):
       <h4>学习目标</h4>
       <p>GUI Agent 让 MLLM <strong>看屏幕截图、操作电脑/手机</strong>——纯软件环境,不需要机械臂,最适合你的条件。学完今天你应能:<strong>(1)</strong> 画出 GUI Agent 的感知-动作循环;<strong>(2)</strong> 说清动作空间和「点击坐标 = grounding」的联系(回扣 D21);<strong>(3)</strong> 知道代表模型各自的侧重;<strong>(4)</strong> 找到结合你低光背景的研究切口。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 让 Agent 会「操作界面」</span>
+        <p>把 D26 的 ReAct 落到「操作电脑 / 手机」这个具体场景：写 <code>agent/gui_agent.py</code> —— 截屏当观察、<code>click(x,y)</code> 当动作。点击定位复用你 D21 的 grounding（坐标归一化）。结合你的背景：<strong>低光 / 反光屏幕下的 GUI Agent 鲁棒性</strong>是个干净的空白点。</p>
+        <div class="repo-tree">nano-mllm/agent/
+├── react.py           <span style="color:var(--ink-faint)">← D26</span>
+└── <b>gui_agent.py</b>       <span style="color:var(--teal)">← 今天新增：截屏 → 动作循环（点击 = grounding）</span></div>
+      </div>
+
       <h4>一、让模型「用」软件</h4>
       <p>GUI Agent = 把 ReAct(D26)落到「操作界面」这个具体场景:<strong>截屏当观察、点击/输入当动作</strong>。它的难点是 <em class="term">视觉定位</em>——要准确点到「那个登录按钮」,本质就是 D21 的 grounding:看懂界面 + 输出该点的坐标。</p>
 
@@ -5698,6 +5767,47 @@ def gui_agent(mllm, goal, env, max_steps=15):
 
 # env.execute 把归一化坐标换算成真实像素再点击：
 #   px = int(action["x"] * screen_w);  py = int(action["y"] * screen_h)</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 归一化点击坐标 → 像素 + 命中判定</span>
+        <p>GUI Agent「点对按钮」= D21 的 grounding。亲手把模型输出的归一化坐标换算成屏幕像素，再判断点击是否落在目标按钮框内 —— 这就是评测点击成功与否的最小逻辑。</p>
+        <div class="code-block">def to_pixel(action, screen_w, screen_h):       # 归一化 [0,1] → 屏幕像素
+    return int(action["x"] * screen_w), int(action["y"] * screen_h)
+def hit(px, py, btn):                            # 点 (px,py) 是否落在按钮框 [x1,y1,x2,y2]
+    x1,y1,x2,y2 = btn
+    return x1 &lt;= px &lt;= x2 and y1 &lt;= py &lt;= y2
+
+W, H = 1920, 1080
+login_btn = [1600, 60, 1750, 100]                # 「登录」按钮的像素框
+good = {"type":"click", "x":0.87, "y":0.074}     # 模型给的归一化坐标（接近按钮中心）
+bad  = {"type":"click", "x":0.50, "y":0.50}      # 点歪到屏幕中间
+for name, a in [("good", good), ("bad", bad)]:
+    px, py = to_pixel(a, W, H)
+    print(f"{name}: 像素({px},{py}) 命中登录按钮? {hit(px, py, login_btn)}")</div>
+        <table class="repro-table">
+          <caption>点击成功 = 归一化坐标换算后落在目标元素框内。GUI Agent 的核心难点，就是把它从「大致对」做到「像素级对」。</caption>
+          <thead><tr><th>动作</th><th>命中</th></tr></thead>
+          <tbody>
+            <tr><td>坐标接近按钮中心</td><td class="hit">True（点对了）</td></tr>
+            <tr><td>坐标点歪</td><td>False（misclick）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>GUI Agent 离「能用」还很远，瓶颈正是「点不准」。</strong>OSWorld（真实操作系统里的多模态 Agent 基准）实测：顶尖模型的任务成功率<strong>普遍只有个位数到 ~10% 出头</strong>，与人类基线差距巨大；失败的典型原因就是<strong>点击坐标预测不准、反复误点、被意外弹窗干扰</strong>。GUI grounding（把「那个登录按钮」精确映射到屏幕坐标）被公认是核心难题。</p>
+        <p><strong>对你的意义：</strong>这条赛道<strong>远未饱和</strong>，而「定位精度」恰好是你视觉背景的强项；叠加「低光 / 反光屏幕下定位更难」，就是一个有真实痛点、又少人做的切口。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2404.07972" target="_blank">OSWorld（arXiv:2404.07972）</a> · <a href="https://arxiv.org/abs/2312.08914" target="_blank">CogAgent（arXiv:2312.08914）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>以为有结构化的界面元素信息</strong>：纯视觉 GUI Agent 只有截图，要自己「看」出按钮在哪（坐标全靠 grounding）。</p>
+        <p>② <strong>坐标当像素直接用</strong>：模型多输出归一化值，要乘回屏幕分辨率才点得对。</p>
+        <p>③ <strong>一次就想完成</strong>：是多步循环，每步依赖最新截图；点完要重新截屏看变化。</p>
+        <p>④ <strong>没有错误恢复</strong>：点错 / 弹窗出现后要能从新截图里自我纠正，否则一步错步步错。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -5767,6 +5877,14 @@ def gui_agent(mllm, goal, env, max_steps=15):
       <h4>学习目标</h4>
       <p>单 Agent 能力有限,Multi-Agent 让多个<strong>专才协作</strong>完成复杂任务。学完今天你应能:<strong>(1)</strong> 区分管道/讨论/层级三种协作模式及适用场景;<strong>(2)</strong> 说清各自的代价(通信成本、失控风险);<strong>(3)</strong> 知道主流框架;<strong>(4)</strong> 写一个最小的层级式分派骨架。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 把单 Agent 升级成「一个团队」</span>
+        <p>单个 Agent 既要评估又要增强又要审查，容易顾此失彼。今天写 <code>agent/orchestrator.py</code> —— 层级式：一个 Manager 把「低光图理解」拆成<strong>质量评估 → 增强 → 检测 → 审查</strong>四个子任务，分派给各自的 Worker。这正是你研究方向的天然落地形态。</p>
+        <div class="repo-tree">nano-mllm/agent/
+├── react.py / gui_agent.py   <span style="color:var(--ink-faint)">← D26/D27</span>
+└── <b>orchestrator.py</b>          <span style="color:var(--teal)">← 今天新增：Manager 拆解 + 分派 Worker</span></div>
+      </div>
+
       <h4>一、为什么需要「一群」Agent</h4>
       <p>让一个 Agent 既当规划者、又当程序员、又当审稿人,容易顾此失彼。把角色拆开——<strong>每个 Agent 专注一件事,再让它们协作</strong>,复杂任务更可控、可调试。代价是:Agent 之间要<em class="term">通信</em>,轮次多了 token 成本高,还可能互相带偏(失控)。</p>
 
@@ -5797,6 +5915,47 @@ def manager(llm, goal):
 #   - 子任务划分是否清晰（影响能不能并行、好不好调试）
 #   - Worker 之间是否需要共享中间结果（共享多→更强但更乱）
 #   - 终止与预算控制（防止 Agent 之间无限对话烧 token）</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 层级式分派 + 讨论式投票，各跑一遍</span>
+        <p>两种最常用的协作模式，用可跑的最小例子各看一次：① 层级式 Manager 把任务拆开、分派给对口 Worker 再汇总；② 讨论式让多个 Agent 各答、多数投票，压掉单模型的随机错误。</p>
+        <div class="code-block"># ① 层级式：Manager 拆解 → Worker 各做 → 汇总
+def manager(goal):
+    plan = ["评估质量", "增强", "检测", "审查"]            # 实际由 LLM 生成
+    workers = {"评估质量": lambda: "PSNR=18.3 低光严重", "增强": lambda: "已增强",
+               "检测": lambda: "1车2人", "审查": lambda: "结果一致，通过"}
+    results = {st: workers[st]() for st in plan}          # 每个子任务交给对口 Worker
+    return f"[{goal}] " + " | ".join(f"{k}:{v}" for k, v in results.items())
+print(manager("理解这张低光图"))
+
+# ② 讨论式：多个 Agent 各答 → 多数投票（对抗单模型的随机错误）
+from collections import Counter
+votes = ["3只", "2只", "3只", "3只", "2只"]                # 5 个 Agent 的答案
+print("多数投票:", Counter(votes).most_common(1)[0][0])    # 3只</div>
+        <table class="repro-table">
+          <caption>层级式适合「可拆解」的大任务；讨论式适合「需多视角纠错」的难题。两者都在用「分工 / 多数」对抗单 Agent 的局限。</caption>
+          <thead><tr><th>模式</th><th>输出</th></tr></thead>
+          <tbody>
+            <tr><td>层级式分派汇总</td><td class="hit">四子任务结果合并</td></tr>
+            <tr><td>讨论式多数投票</td><td class="hit">3只（5 票里 3 票）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>让几个模型「吵一架」，答案反而更靠谱。</strong>Multiagent Debate 发现：让<strong>多个 LLM 实例各自作答、再多轮互相质疑和修正</strong>，最后收敛出的答案，在事实性和推理任务上<strong>明显优于单个模型一次作答</strong> —— 分歧促使它们暴露并纠正彼此的错误。AutoGen、MetaGPT 等框架把这套「角色分工 + 协作」工程化了。</p>
+        <p><strong>但别滥用：</strong>Agent 越多，通信轮次和 token 成本越高，还可能<strong>互相带偏</strong>。多 Agent 适合「能拆解 / 需多视角纠错」的任务；简单任务单 Agent 更省更稳。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2305.14325" target="_blank">Multiagent Debate（arXiv:2305.14325）</a> · <a href="https://arxiv.org/abs/2308.08155" target="_blank">AutoGen（arXiv:2308.08155）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>以为 Agent 越多越好</strong>：通信 / token 成本随轮次飙升，还可能互相带偏 → 够用就好，简单任务单 Agent。</p>
+        <p>② <strong>没有终止条件</strong>：Agent 之间可能无限对话 → 设轮次上限 + 预算控制。</p>
+        <p>③ <strong>子任务划分含糊</strong>：拆不清就没法分工、没法并行、没法调试 → 让 Manager 输出明确、可独立完成的子任务。</p>
+        <p>④ <strong>把「讨论式」当真并行</strong>：多数实现仍是串行轮流发言，别误以为是真多机并行。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -5866,6 +6025,13 @@ def manager(llm, goal):
       <h4>学习目标</h4>
       <p>RAG 让 LLM <strong>接入外部知识库</strong>:回答有出处、减少幻觉、知识可更新而无需重训。学完今天你应能:<strong>(1)</strong> 画出 RAG 离线/在线两阶段;<strong>(2)</strong> 解释向量检索(相似度)怎么工作;<strong>(3)</strong> 说清多模态 RAG 怎么用 CLIP 跨模态检索;<strong>(4)</strong> 用 LlamaIndex 搭一个能问你论文的 RAG。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 给 Agent 配「可查的外挂知识库」</span>
+        <p>让你的 Agent 不只靠记忆。今天写 <code>rag/retriever.py</code> —— 文档分块 → 向量化 → 检索 Top-K 拼进 prompt。相似度用余弦（正是 D11 CLIP 的归一化点积），<strong>多模态 RAG 还能直接复用你的 CLIP 视觉塔做跨模态检索</strong>（文本 query → 找相关图 / 文档页）。可拿来问你自己的论文。</p>
+        <div class="repo-tree">nano-mllm/rag/
+└── <b>retriever.py</b>      <span style="color:var(--teal)">← 今天新增：向量检索 Top-K（文本 / 跨模态，复用 CLIP）</span></div>
+      </div>
+
       <h4>一、给 LLM 配一个「可查的外挂知识库」</h4>
       <p>LLM 的知识冻结在训练时,且容易幻觉。RAG 的思路:<strong>先把外部文档变成向量存起来,回答前先「查资料」,把检索到的相关内容拼进 prompt 再生成</strong>。模型不再纯靠记忆,而是<em class="term">带着证据作答</em>,这天然减少幻觉(回扣 D25)。</p>
 
@@ -5894,6 +6060,50 @@ engine = index.as_query_engine(similarity_top_k=4)
 resp = engine.query("这篇论文用什么方法缓解低光下的幻觉？")
 print(resp)                       # 回答
 print(resp.source_nodes)          # 命中的原文片段（出处，可核查）</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 余弦检索 Top-K + lost-in-the-middle</span>
+        <p>RAG 的检索内核就是「向量 + 余弦」。用一个玩具 embedding 亲手跑一遍 Top-K 检索，看最相关的文档是否排第一；再记住「答案放上下文哪个位置」会影响模型用不用得上。</p>
+        <div class="code-block">import numpy as np
+docs = ["low light image enhancement", "a cat sat on the mat", "object detection with yolo"]
+q    = "how to enhance low light photos"
+vocab = sorted(set(" ".join(docs + [q]).split()))
+def embed(text):
+    v = np.array([text.split().count(w) for w in vocab], float)
+    n = np.linalg.norm(v); return v / n if n else v            # 归一化
+def cos(a, b): return float(a @ b)                              # 已归一 → 点积即余弦
+
+qv = embed(q)
+ranked = sorted(((round(cos(qv, embed(d)), 3), d) for d in docs), reverse=True)
+print("Top-1:", ranked[0][1])     # low light image enhancement（共享 low/light → 排第一）
+
+# lost-in-the-middle：同一个「答案块」放在上下文不同位置，模型利用率不同
+for pos, util in [("开头","高"), ("中间","低 ← 易被忽略"), ("结尾","高")]:
+    print(f"答案块放{pos}: 模型利用率 {util}")</div>
+        <table class="repro-table">
+          <caption>检索把最相关块排到前面只是第一步；放进 prompt 时还得避开「中间盲区」，否则召回再准也用不上。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>Top-1 检索</td><td class="hit">low light enhancement（最相关）</td></tr>
+            <tr><td>答案放中间</td><td>利用率低（U 形曲线）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>检索到正确内容，不等于模型会用 —— 看你把它放在哪。</strong>「Lost in the Middle」实测：把答案所在的文档放在长上下文的<strong>开头或结尾，准确率高；放到中间，准确率显著下降</strong>，呈一条 U 形曲线。而且<strong>把上下文窗口做大并不能解决</strong>（4K / 16K / 32K 都这样）。</p>
+        <p><strong>对你 RAG 的直接指导：</strong>检索回来的 Top-K 不能随便堆 —— <strong>把最相关的块放在 prompt 的最前 / 最后</strong>，别埋在中间；检索召回再准，排序放错位置也白搭。这也是 RAG（用外部证据减少幻觉，回扣 D25）真正落地时的工程关键。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2307.03172" target="_blank">Lost in the Middle（arXiv:2307.03172）</a> · <a href="https://arxiv.org/abs/2005.11401" target="_blank">RAG（arXiv:2005.11401）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>Query 和文档用了不同 embedding 模型</strong>：向量空间对不齐，检索直接失效 → 必须同一个模型。</p>
+        <p>② <strong>chunk 切得太大 / 太小</strong>：太大检索不精、噪声多；太小丢上下文 → 按语义切、适当重叠。</p>
+        <p>③ <strong>把最相关块埋在 prompt 中间</strong>：lost-in-the-middle → 放最前 / 最后。</p>
+        <p>④ <strong>以为检索到就一定对</strong>：检索错 / 不全，生成照样幻觉（垃圾进垃圾出）→ 检索质量是 RAG 的上限。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -5962,6 +6172,12 @@ print(resp.source_nodes)          # 命中的原文片段（出处，可核查�
       <h4>今日目标</h4>
       <p>综合本周:搭一个<strong>视觉 Agent</strong>——输入图像 + 指令,Agent 用 ReAct(D26)自动决定调用哪些视觉工具完成任务。这把你的 CV 老本行(增强、质量评估)变成 Agent 的工具,是<em class="term">结合你背景的最佳练手项目</em>。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · W6 毕业作品：你的视觉 Agent 🤖</span>
+        <p>本周收官：把 ReAct（D26）、工具（grounded_sam / 增强 / OCR）、RAG（D29）<strong>合成一个能跑的视觉 Agent</strong> <code>demo/visual_agent.py</code> —— MLLM 当大脑，你的 CV 老本行（增强、质量评估）当工具。输入「这张暗图里有什么」，Agent 自己决定：先评估质量 → 太暗就增强 → 再检测 → 汇总。这是把你研究方向做成一条「Agent 决策路径」的最佳练手。</p>
+        <p><strong>里程碑：</strong>nano-mllm 从「会看图」进化到「会自己调工具解决问题」。W7 起切入前沿（含你方向的 token 压缩 D32）。</p>
+      </div>
+
       <h4>一、设计：大脑 + 工具箱</h4>
       <p>视觉 Agent = <strong>MLLM 当大脑</strong>(D26 的 ReAct 决策)+ <strong>一组视觉工具</strong>。模型不亲自做每件事,而是<em class="term">看情况调工具</em>:图太暗 → 先调 <code>enhance_image</code>;要找东西 → 调 <code>detect_objects</code>;要读字 → 调 <code>ocr</code>。这正是「理解 + 执行」(D22)的完整体。</p>
 
@@ -5996,6 +6212,57 @@ def visual_agent(mllm, image, instruction, max_steps=6):
 
 # 典型轨迹：measure_quality → (太暗) enhance_image → detect_objects → ocr → 汇总作答
 # 关键：让 MLLM「先评估质量、退化就先增强」——把你的研究做成 Agent 的一条决策路径</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 跑出一条完整的「低光理解」轨迹</span>
+        <p>配一个脚本化大脑 + 真工具，让视觉 Agent <strong>真的跑完一条决策路径</strong>：评估质量（发现太暗）→ 增强 → 检测 → 作答。看清「按中间结果决定下一步」是怎么自动发生的。</p>
+        <div class="code-block">TOOLS = {
+    "measure_quality": lambda img: {"psnr": 18.3, "verdict": "低光退化严重"},
+    "enhance_image":   lambda img: {"out": "enhanced.jpg"},
+    "detect_objects":  lambda img: {"objects": ["car", "person", "person"]},
+}
+def brain(history):                       # 真实场景这里是 MLLM；此处用规则模拟决策
+    if "measure_quality" not in history: return {"action": "measure_quality"}
+    if "psnr" in history and "enhance_image" not in history: return {"action": "enhance_image"}
+    if "detect_objects" not in history:  return {"action": "detect_objects"}
+    return {"answer": "图中有 1 辆车、2 个人（先增强了低光再识别）"}
+
+def visual_agent(image, max_steps=6):
+    history, trace = "", []
+    for _ in range(max_steps):
+        step = brain(history)
+        if "answer" in step: return step["answer"], trace
+        obs = TOOLS[step["action"]](image); trace.append(step["action"])
+        history += f"\nAction:{step['action']} Obs:{obs}"
+    return "未完成", trace
+
+ans, trace = visual_agent("dark.jpg")
+print("轨迹:", " → ".join(trace))    # measure_quality → enhance_image → detect_objects
+print("回答:", ans)</div>
+        <table class="repro-table">
+          <caption>同一套 ReAct 内核，工具换成你的 CV 模型，就成了视觉 Agent。「先评估、退化就先增强」正是把你的研究嵌进决策路径。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>决策轨迹</td><td class="hit">评估 → 增强 → 检测</td></tr>
+            <tr><td>最终作答</td><td class="hit">综合工具结果</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>Demo 跑通 ≠ 真能用：Agent 的可靠性会随步数「指数衰减」。</strong>在 WebArena（真实网站任务）这类基准上，连最强模型的<strong>端到端成功率也只有约 14%，而人类约 78%</strong>。原因是长链条里<strong>每一步的小错误会连乘</strong>：单步 90% 可靠，10 步下来只剩 <code>0.9¹⁰ ≈ 35%</code>。</p>
+        <p><strong>给你的提醒：</strong>Demo 惊艳容易，稳定可用很难。让 Agent 更可靠的关键，是<strong>每一步都能核实 + 能从错误里恢复</strong>（呼应 D26 ReAct：拿不准就用工具看一眼，而非闭眼猜）。你做的「质量评估 → 按需增强」就是给关键步加一道核实闸。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2307.13854" target="_blank">WebArena（arXiv:2307.13854）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>让 MLLM 亲自做所有事</strong>：精确检测 / 分割 / 复原该交给专用工具，大脑只负责决策编排。</p>
+        <p>② <strong>工具结果不回灌</strong>：退化成单步，失去「按结果调整」的自适应 —— Agent 的灵魂就在回灌。</p>
+        <p>③ <strong>工具描述不清</strong>：模型不知道何时该调哪个 → 给每个工具写清「干什么、何时用、输入输出」。</p>
+        <p>④ <strong>没有步数 / 预算上限与错误恢复</strong>：长链条易死循环、错误连乘 → 设上限、关键步加核实、失败能回退。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
