@@ -42,6 +42,10 @@ python efficiency/token_prune.py        # D32 FastV 剪枝 + 「退化改变重�
 python efficiency/degradation_aware.py  # D32/D38 ★ 退化感知压缩（你的研究种子，带消融开关）
 python agent/react.py              # D26 ReAct Agent 跑出决策轨迹
 python rag/retriever.py            # D29 余弦检索 Top-K
+
+# —— 研究方向：把退化感知 token 压缩接进真 VLM，跑真实消融 —— 
+python efficiency/token_select.py  # D32/D34 三种 token 压缩器（full / blind / degaware）
+python research/ablation.py        # D35-D40 ★ 多 seed 消融 -> experiments/baselines.csv（CPU ~3-4 分钟）
 ```
 
 > 想一键全跑：`for f in engine/autograd_demo.py model/attention.py ... ; do python $f; done`
@@ -66,6 +70,8 @@ python rag/retriever.py            # D29 余弦检索 Top-K
 | `train_vlm.py` | D14/D15 | **★ 训 tiny VLM 看图说话（held-out 100%）** |
 | `efficiency/token_prune.py` | D32 | FastV 剪枝 + 「退化改变重要性」现象 |
 | `efficiency/degradation_aware.py` | D32/D38 | **退化感知压缩（研究种子，带消融开关）** |
+| `efficiency/token_select.py` | D32/D34 | 视觉 token 压缩器（接进 VLM 的 `compress` 钩子） |
+| `research/ablation.py` | D35–D40 | **★ 多 seed 退化消融 → `experiments/baselines.csv`** |
 | `agent/react.py` | D26/D30 | ReAct Agent 循环 |
 | `rag/retriever.py` | D29 | 向量检索 |
 
@@ -86,6 +92,17 @@ DPO 用大白话 + 可运行代码串起来。
 👉 跑一下 `python train_vlm.py`：自包含合成「彩色形状」数据，CPU 上 ~30 秒训出一个 tiny VLM，
 对**没见过**的图生成「a red square」之类的描述，**held-out 准确率 100%** —— 这是 nano-mllm 里
 「M」真正成立的时刻。不下载任何权重；要换真 SigLIP/CLIP 视觉塔，见 `vision/encoder.py` 末尾说明。
+
+## 重点：你的研究方向，做成能跑的实验骨架 🔬
+
+`model/mllm.py` 留了个 `compress` 钩子，`efficiency/token_select.py` 提供三种视觉 token 压缩器
+（不压缩 / 退化盲 / **退化感知**）。`research/ablation.py` 把它们接进真 VLM，在**清晰 vs 低光**图上、
+给定 token 预算跑 **with/without 消融**，输出 `experiments/baselines.csv`。
+
+👉 它顺带演示了一条**做研究的纪律**：单 seed 上「退化感知」一度比基线高 +10pp，但跑 **5 个 seed
+报 mean±std**，差距落进噪声里（`+0.01 ± 0.09`，符号还会翻）—— 这正是路线图 D38 的教训：
+**单 seed 的提升常是噪声**。脚本如实报数、不为「赢」造数据。把 `render` 换成真实低光图、
+`TinyViT` 换成 SigLIP，这套流程照搬即用，就是你真正研究的起点。
 
 ## 状态
 

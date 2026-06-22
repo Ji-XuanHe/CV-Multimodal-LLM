@@ -24,10 +24,13 @@ class TinyVLM(nn.Module):
         self.vision = vision
         self.proj = Projector(vision.dim, gpt.cfg.d_model)
         self.image_token_id = image_token_id
+        self.compress = None      # 可选钩子：fn(vis_tokens, images)->kept_tokens，插入视觉 token 压缩（研究方向）
 
     def _merge(self, images, input_ids):
         """把 <image> 占位符那一格，替换成 N 个投影后的视觉 token（LLaVA 的核心动作）。"""
         vis = self.proj(self.vision(images))                      # (B, Nv, d)
+        if self.compress is not None:                             # 训练时为 None；推理可挂上压缩器做消融
+            vis = self.compress(vis, images)                      # (B, K, d)，K<=Nv
         tok = self.gpt.tok_emb(input_ids)                         # (B, T, d)
         # 简化：假设整个 batch 的 <image> 在同一列（真 LLaVA 支持逐样本任意位置）
         pos = (input_ids[0] == self.image_token_id).nonzero()[0, 0].item()

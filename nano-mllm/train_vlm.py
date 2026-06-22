@@ -27,8 +27,9 @@ ID2W = {4: "a", 5: "red", 6: "green", 7: "blue", 8: "square", 9: "circle", 10: "
 VOCAB = 11
 
 
-def render(color, shape, rng):
-    """画一张 12×12 的图：颜色=哪个通道亮，形状=亮区的空间样式。每次带噪声，不可逐像素记忆。"""
+def render(color, shape, rng, dim=1.0):
+    """画一张 12×12 的图：颜色=哪个通道亮，形状=亮区的空间样式。每次带噪声，不可逐像素记忆。
+    dim<1 模拟低光退化（整体变暗、信号沉向噪声底）—— 你研究方向的核心场景。"""
     img = rng.normal(0, 0.05, (3, 12, 12)).astype("float32")
     yy, xx = np.mgrid[0:12, 0:12]
     if shape == 0:                                       # 方块：中央实心块
@@ -38,7 +39,7 @@ def render(color, shape, rng):
     else:                                                # 三角：左下三角
         m = (yy >= 2) & (xx >= 2) & (xx <= yy)
     img[color][m] += 1.0
-    return img
+    return img * dim
 
 
 def make_batch(B, rng):
@@ -48,19 +49,24 @@ def make_batch(B, rng):
     return torch.tensor(imgs), torch.tensor(ids), colors, shapes
 
 
-def main(steps=600, B=64, lr=3e-3, seed=0):
+def train_model(steps=600, B=64, lr=3e-3, seed=0, verbose=True, drop_to=None):
+    """训练 tiny VLM（清晰图），返回 (vlm, dev)。供 research/ablation.py 复用。
+    drop_to!=None 时做 token dropout（每步随机保留 [drop_to, N] 个视觉 token），让模型学会用任意子集，
+    这样推理期「保留哪些 token」才真正影响准确率（消融才有意义）。"""
+    from efficiency.token_select import make_compressor
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-
     gpt = GPT(GPTConfig(vocab_size=VOCAB, n_layer=2, n_head=4, d_model=128, block_size=64))
     vlm = TinyVLM(gpt, TinyViT(), image_token_id=IMG).to(dev)
     opt = torch.optim.AdamW(vlm.parameters(), lr=lr)
-    print(f"TinyVLM 参数量 ≈ {sum(p.numel() for p in vlm.parameters()) / 1e6:.2f}M  设备 {dev}")
-
+    if verbose:
+        print(f"TinyVLM 参数量 ≈ {sum(p.numel() for p in vlm.parameters()) / 1e6:.2f}M  设备 {dev}")
     for step in range(steps + 1):
         imgs, ids, _, _ = make_batch(B, rng)
         imgs, ids = imgs.to(dev), ids.to(dev)
+        if drop_to is not None:                          # 随机 token dropout：每步保留 [drop_to, N] 个
+            vlm.compress = make_compressor(int(rng.integers(drop_to, vlm.vision.n_patches + 1)), "random")
         logits, n_vis, pos = vlm(imgs, ids)
         tgt = ids[:, pos + 1:]                            # 监督目标：[a, 颜色, 形状, EOS]
         lg = logits[:, pos + n_vis - 1: pos + n_vis - 1 + tgt.size(1)]
@@ -68,9 +74,15 @@ def main(steps=600, B=64, lr=3e-3, seed=0):
         opt.zero_grad()
         loss.backward()
         opt.step()
-        if step % 150 == 0:
+        if verbose and step % 150 == 0:
             print(f"step {step:4d}  loss {loss.item():.3f}")
+    vlm.compress = None
+    return vlm, dev
 
+
+def main(steps=600):
+    vlm, dev = train_model(steps=steps)
+    rng = np.random.default_rng(123)                     # held-out 用新 rng
     # —— 看图说话：对没见过的新图（9 类各 10 张）生成 caption ——
     print("\n--- 看图说话（held-out）---")
     correct, shown = 0, 0
