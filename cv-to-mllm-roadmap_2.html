@@ -6337,6 +6337,14 @@ print("回答:", ans)</div>
       <h4>学习目标</h4>
       <p>思维链(CoT)让模型「<strong>先想再答</strong>」;多模态版还要先「<strong>看准</strong>」。学完今天你应能:<strong>(1)</strong> 说清文本 CoT 与多模态 CoT 的差别;<strong>(2)</strong> 解释「错误传播」为什么是多模态推理的命门(回扣 D25 幻觉);<strong>(3)</strong> 写一个让模型「先描述再推理」的 prompt;<strong>(4)</strong> 知道前沿的视觉推理思路。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 给 nano-mllm 加「先看再想」</span>
+        <p>让你的 VLM 不只直接吐答案，而是<strong>先客观描述、再基于描述推理</strong>。今天写 <code>inference/cot.py</code> —— 把「感知 / 推理 / 答案」三段显式分开的 prompt 包装，还能在描述步要求带上 bbox（复用 D21 grounding），把视觉证据钉死、压制凭语言先验硬猜（接 D25）。</p>
+        <div class="repo-tree">nano-mllm/inference/
+├── vcd.py        <span style="color:var(--ink-faint)">← D25</span>
+└── <b>cot.py</b>        <span style="color:var(--teal)">← 今天新增：感知→推理→答案 三段式（带视觉证据）</span></div>
+      </div>
+
       <h4>一、为什么多模态推理更难</h4>
       <p>文本 CoT 就是 <em class="term">step by step</em> 地想。但多模态多了一层:模型得<strong>先把图像「看准」,再在看到的内容上推理</strong>。一旦第一步「看」错了(幻觉),后面想得再有条理,结论也错——这就是 <em class="term">错误传播</em>。所以多模态推理的关键不只是「会想」,而是「视觉地基稳不稳」。</p>
 
@@ -6364,6 +6372,44 @@ PROMPT = """请按以下步骤回答（不要跳步）：
 #   - 让模型在推理时引用第1步的具体事实，便于定位错误来源
 #   - 进阶：在描述步要求带上 bbox（grounding，D21），把视觉证据钉死
 out = mllm(image, PROMPT.format(question="桌上的书够放进那个书架吗？"))</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 错误传播：第①步看错，答案必错</span>
+        <p>多模态 CoT 的命门一跑就清楚：把「看」和「想」分开后，<strong>就算推理逻辑完全正确，只要第①步「看」错（幻觉），最终答案照样错</strong>。这说明多模态推理的瓶颈在「看准」，不在「会想」。</p>
+        <div class="code-block">def cot_answer(perception, reason_fn):       # perception=第①步看到的事实，reason_fn=正确推理
+    return reason_fn(perception)
+def reason(facts):                           # 推理逻辑本身完全正确
+    shelf, books = facts["书架层数"], facts["桌上书数"]
+    return "放得下" if books &lt;= shelf * 3 else "放不下"
+
+truth  = {"书架层数": 3, "桌上书数": 2}        # 真实：2 本 → 放得下
+halluc = {"书架层数": 3, "桌上书数": 10}       # 第①步看错成 10 本
+print("看准 →", cot_answer(truth,  reason))    # 放得下（对）
+print("看错 →", cot_answer(halluc, reason))    # 放不下（推理没错，却因看错而答错）</div>
+        <table class="repro-table">
+          <caption>同一套正确推理，喂「看准的事实」得对答案，喂「幻觉事实」得错答案 —— 这就是为什么缓解幻觉（D25）= 提升推理。</caption>
+          <thead><tr><th>第①步感知</th><th>最终答案</th></tr></thead>
+          <tbody>
+            <tr><td>看准（2 本）</td><td class="hit">放得下（对）</td></tr>
+            <tr><td>幻觉（10 本）</td><td>放不下（错）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>给推理「配上眼睛」，比单纯让它想更靠谱。</strong>Multimodal-CoT 发现：纯语言模型做思维链时，会<strong>编造出看似有条理、实则错误的推理链</strong>并误导最终答案。它的解法是把<strong>「生成推理依据」和「给出答案」拆成两阶段</strong>，并让<strong>视觉特征参与推理依据的生成</strong> —— 推理被真实视觉锚住后，幻觉式推理明显减少、答案更准。</p>
+        <p><strong>对你的意义：</strong>这正是你「先描述再推理 + 描述带 bbox」做法的论文依据；而退化图像让第①步更不可靠，「<strong>退化条件下的可靠多模态推理 / 不确定性感知</strong>」就是你能切的题（接 D25/D32）。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2302.00923" target="_blank">Multimodal-CoT（arXiv:2302.00923）</a> · <a href="https://arxiv.org/abs/2201.11903" target="_blank">Chain-of-Thought（arXiv:2201.11903）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>以为加 CoT 就一定更准</strong>：第①步看错时，CoT 反而把错误「论证」得更像真的 → 先保证感知，再谈推理。</p>
+        <p>② <strong>把感知和推理混在一步</strong>：错了无法定位是「没看清」还是「没想对」→ 显式分段。</p>
+        <p>③ <strong>推理时脱离图像</strong>：纯文字往下推容易跑偏 → 要求引用第①步事实、带上 bbox（D21）。</p>
+        <p>④ <strong>以为 CoT 能消除幻觉</strong>：只能缓解，根因仍在 D25（语言先验压过视觉）。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -6436,6 +6482,14 @@ out = mllm(image, PROMPT.format(question="桌上的书够放进那个书架吗�
       <h4>学习目标</h4>
       <p><strong>在不掉点的前提下减少视觉 token 数量</strong>——这是你 CV 背景最容易切入的研究方向之一。学完今天你应能:<strong>(1)</strong> 说清视觉 token 为什么冗余、压缩为什么省算力(回扣 D13);<strong>(2)</strong> 区分四类压缩方法及取舍;<strong>(3)</strong> 实现一个最简单的相似度合并;<strong>(4)</strong> 想清你「退化感知压缩」的研究切口。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 你的研究方向落地 🎯</span>
+        <p>这是和你研究方向最近的一天。今天写两个文件：<code>efficiency/token_prune.py</code>（FastV 式：浅层之后按 attention 剪掉冗余视觉 token）和你的研究种子 <code>efficiency/degradation_aware.py</code> —— <strong>退化 / 质量感知的压缩</strong>：低光、噪声会改变「哪些 token 重要」，现有方法几乎只在清晰图上设计，这就是你的空白点。</p>
+        <div class="repo-tree">nano-mllm/efficiency/
+├── <b>token_prune.py</b>          <span style="color:var(--teal)">← 今天新增：FastV 式深层剪枝</span>
+└── <b>degradation_aware.py</b>     <span style="color:var(--teal)">← 今天新增：退化感知压缩（你的研究种子）</span></div>
+      </div>
+
       <h4>一、为什么能压、压了为什么快</h4>
       <p>相邻 patch 画面相似 → 视觉 token <em class="term">高度冗余</em>;而 LLM 的 attention 是 <em class="term">O(L²)</em>,序列减半计算约降 4 倍(回扣 D13/D24)。所以「少而精」既省 context 又提速——只要别把关键信息(小目标、文字)压没。</p>
 
@@ -6470,6 +6524,50 @@ def token_merge(tokens, keep_ratio=0.5):
     return merged[keep_idx]                         # (keep, D)
 
 print(token_merge(torch.randn(576, 1024)).shape)   # → (288, 1024)，省一半</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · FastV 省多少 FLOPs + 退化会改变「该留谁」</span>
+        <p>两个直接对接你研究的实验：① 复现 FastV「浅层后剪半视觉 token」能省的算力量级；② 亲手验证你的核心假设 —— <strong>退化会打乱 token 的重要性排序</strong>，所以清晰图上设计的压缩策略未必适用于退化图。</p>
+        <div class="code-block">import numpy as np
+# ① FastV：前 2 层用全部视觉 token，之后剪掉一半。大模型 FLOPs 主要正比于「序列长 × 层」
+def seq_cost(n_text, n_vis): return n_text + n_vis           # 每层成本 ∝ 序列长（FFN/线性主导）
+n_text, n_vis, L = 64, 576, 32
+full  = L * seq_cost(n_text, n_vis)
+fastv = 2 * seq_cost(n_text, n_vis) + (L - 2) * seq_cost(n_text, n_vis // 2)
+print(f"FastV 省 FLOPs ≈ {(1 - fastv/full)*100:.0f}%")        # ≈ 42%（与论文 ~45% 同量级）
+
+# ② 你的假设：退化是否改变「最该保留的 token」？
+imp_clean = np.array([0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2])      # 清晰图：各 token 重要性
+degrade   = np.array([-0.5,-0.4,-0.3,0.0,0.0,0.4,0.5,0.6])   # 低光/噪声：压制细节、抬高平坦区
+imp_noisy = imp_clean + degrade
+top_clean = set(np.argsort(imp_clean)[-4:])                  # 清晰图最该留的 4 个
+top_noisy = set(np.argsort(imp_noisy)[-4:])                  # 退化图最该留的 4 个
+print("清晰最该留:", sorted(top_clean), " 退化最该留:", sorted(top_noisy))
+print("保留集相同?", top_clean == top_noisy, " 重叠:", len(top_clean &amp; top_noisy), "/4")</div>
+        <table class="repro-table">
+          <caption>① FastV 量级的省算力是真的；② 退化下「该留谁」明显变了（重叠仅 1/4）—— 这正是「退化感知压缩」值得做、且现有方法没覆盖的空白。</caption>
+          <thead><tr><th>实验</th><th>结果</th></tr></thead>
+          <tbody>
+            <tr><td>FastV 式剪枝省 FLOPs</td><td class="hit">≈ 42%（论文 ~45%）</td></tr>
+            <tr><td>退化前后保留集</td><td class="hit">不同（重叠 1/4）→ 你的机会</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>「一张图，过了第 2 层就只值一半 token。」</strong>FastV（标题就叫《An Image is Worth 1/2 Tokens After Layer 2》）发现：在 LLaVA 这类模型里，<strong>视觉 token 在深层几乎没人再看它们</strong>（attention 极低、极度冗余）。于是它<strong>在第 2 层之后按 attention 分数把低分视觉 token 直接剪掉</strong> —— 完全 training-free、即插即用，就让 <strong>LLaVA-1.5-13B 省下约 45% 的 FLOPs</strong>，甚至能把 13B 的算力压到比 7B 还低、性能还更好。</p>
+        <p><strong>对你的意义：</strong>FastV 是这条赛道的基石，但它（和几乎所有同类）都<strong>默认输入是清晰图</strong>。你上面的实验已经说明：退化会改变「该留谁」。把「退化 / 质量感知」嵌进这套剪枝逻辑，就是一个干净、可发表、且站在你护城河上的切口。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2403.06764" target="_blank">FastV: An Image is Worth 1/2 Tokens After Layer 2（arXiv:2403.06764）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>在太浅的层就剪</strong>：浅层视觉 token 还很重要，剪早了掉点明显（PyramidDrop 的发现：冗余随深度才上升）→ 像 FastV 那样第 2 层之后再剪。</p>
+        <p>② <strong>无脑均匀剪</strong>：会把关键小目标 / 文字 token 一起剪掉 → 按 attention / 重要性剪，OCR、计数任务尤其敏感。</p>
+        <p>③ <strong>只在清晰图上验证</strong>：退化下重要性分布会变（见上方实验）→ 这正是大量现有工作的盲区，也是你的入口。</p>
+        <p>④ <strong>盯 FLOPs 不看实际延迟</strong>：FLOPs 降了不等于 wall-clock 一定快（受 kernel / 访存影响）→ 一定要实测延迟。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -6536,6 +6634,13 @@ print(token_merge(torch.randn(576, 1024)).shape)   # → (288, 1024)，省一半
       <h4>学习目标</h4>
       <p>VLA(Vision-Language-Action)把 MLLM 从「会说」推进到「<strong>会做</strong>」。即使你组里不做机器人,这个思路也很值钱。学完今天你应能:<strong>(1)</strong> 说清 VLA 的结构、它和 MLLM 的关系;<strong>(2)</strong> 解释「动作当 token 预测」的核心洞察;<strong>(3)</strong> 把它迁移到 GUI/驾驶等非机器人场景;<strong>(4)</strong> 知道 RT-2 / OpenVLA 的代表性。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 把「动作」也纳入 token 词表</span>
+        <p>VLA 证明 MLLM 不止能说话、还能直接输出结构化决策。今天写 <code>vla/action_tokens.py</code> —— 把连续动作（Δxyz、旋转、夹爪）离散成 token，复用你 nano-GPT 的「下一 token 预测」。即使你不做机器人：这套思路就是你 GUI Agent（D27，动作=click/type）的理论靠山。</p>
+        <div class="repo-tree">nano-mllm/vla/
+└── <b>action_tokens.py</b>      <span style="color:var(--teal)">← 今天新增：连续动作 ↔ 离散 token（复用下一 token 预测）</span></div>
+      </div>
+
       <h4>一、把「动作」也当成 token</h4>
       <p>MLLM 的输出是文字 token。VLA 的关键一招:<strong>把机器人动作(位移 Δx,Δy,Δz、旋转、夹爪开合)<em class="term">离散化成 token</em>,接到同一个词表里</strong>。于是「预测下一步动作」就和「预测下一个词」是同一件事——直接复用了 LLM 强大的序列建模和世界知识。这就是 RT-2 的核心思想。</p>
 
@@ -6562,6 +6667,45 @@ def discretize_action(action, bins=256, low=-1.0, high=1.0):
 #   action_tokens = vlm.generate(image, "把红色方块放进盒子")
 #   action = undiscretize(action_tokens)   # 送给机器人/仿真执行
 # 训练：和语言建模完全一样——拿 (图像, 指令, 动作序列) 做下一 token 预测</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 动作离散化往返，看精度代价</span>
+        <p>VLA 的关键一招就是「把动作变成 token」。亲手跑一遍连续动作 → token id → 还原，看离散化带来的精度损失有多大（分桶越多越精，但词表越大）。</p>
+        <div class="code-block">import numpy as np
+def discretize(action, bins=256, lo=-1.0, hi=1.0):       # 连续动作 → token id
+    return np.round((action - lo) / (hi - lo) * (bins - 1)).astype(int).clip(0, bins - 1)
+def undiscretize(ids, bins=256, lo=-1.0, hi=1.0):        # token id → 连续动作
+    return ids / (bins - 1) * (hi - lo) + lo
+
+act = np.array([0.13, -0.5, 0.0, 0.8, -0.21, 0.33, 1.0])  # 7 维：Δxyz + 旋转 + 夹爪
+ids = discretize(act)
+rec = undiscretize(ids)
+print("动作 token id:", ids)
+print("还原最大误差:", round(float(np.abs(act - rec).max()), 4))   # ~1/256 量级</div>
+        <table class="repro-table">
+          <caption>动作被当成「词」来预测，于是训练 = 语言建模、推理 = 自回归生成。离散化精度（分桶数）就是「动作分辨率 vs 词表大小」的权衡。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>动作 → token → 还原</td><td class="hit">误差 ~1/256（≈0.004）</td></tr>
+            <tr><td>分桶越多</td><td>越精细，但词表越大</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>RT-2 干了一件很「暴力」却很有效的事：把机器人动作直接当文字 token，丢进同一个词表。</strong>于是「预测下一步动作」和「预测下一个词」变成同一件事，<strong>整个互联网级视觉-语言预训练的常识和泛化能力被直接继承</strong> —— 模型能听懂没见过的指令、对新物体做零样本操作。OpenVLA 进一步把这套开源成 7B 模型，在 Open X-Embodiment（22 种机器人、百万级轨迹）上训练。</p>
+        <p><strong>对你的意义：</strong>VLA 的核心信号是「<strong>MLLM 能直接输出结构化决策</strong>」—— 正是你 CV+Agent（D27/D30）的理论靠山。一个轻量切口：<strong>退化视觉输入下 VLA / GUI 策略的鲁棒性</strong>（看不清时动作会不会失准）。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2307.15818" target="_blank">RT-2（arXiv:2307.15818）</a> · <a href="https://arxiv.org/abs/2406.09246" target="_blank">OpenVLA（arXiv:2406.09246）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>以为 VLA 是全新架构</strong>：主干就是个 VLM，改的只是输出空间（文字 → 动作 token）。</p>
+        <p>② <strong>以为只能用于机器人</strong>：GUI（click/type）、驾驶（方向/油门）、游戏同理，不一定要真机械臂。</p>
+        <p>③ <strong>离散化分桶太粗</strong>：动作精度不够，精细操作做不了 → 加桶数 / 用更细的动作表示。</p>
+        <p>④ <strong>以为有视觉就够</strong>：真机器人还需本体感知 + 闭环控制，开环纯视觉会累积误差。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -6627,6 +6771,14 @@ def discretize_action(action, bins=256, low=-1.0, high=1.0):
       <h4>学习目标</h4>
       <p>用有限算力(比如你的 4×4090)高效训练大模型。学完今天你应能:<strong>(1)</strong> 说清四大省显存技术各省在哪;<strong>(2)</strong> 默写 FlashAttention 的核心思想(为什么 O(N²)→O(N));<strong>(3)</strong> 把这些技术对应到 D20 的训练命令;<strong>(4)</strong> 遇到 OOM 知道按什么顺序上手段。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 把训练优化配置沉淀下来</span>
+        <p>D20 你已经用过这些开关，今天把它们理解透并沉淀成 <code>train/efficient.py</code> 的默认配置：ZeRO / BF16 / 梯度检查点 / FlashAttention + LoRA。这样你训自己的 nano-mllm 或复现论文时，在 4×4090 上也能把「放不下」的训练塞进去。</p>
+        <div class="repo-tree">nano-mllm/train/
+├── train_vit.py / train_lm.py   <span style="color:var(--ink-faint)">← P05 / D05</span>
+└── <b>efficient.py</b>                <span style="color:var(--teal)">← 今天新增：省显存默认配置（OOM 决策树）</span></div>
+      </div>
+
       <h4>一、显存不够，怎么办</h4>
       <p>训大模型的主要瓶颈是<em class="term">显存</em>:模型参数 + 优化器状态 + 梯度 + 激活,动辄上百 GB。核心思路只有一个——<strong>用「算力/通信」换「显存」,且尽量不丢精度</strong>。四大手段层层叠加,就能把「放不下」的训练塞进有限的卡。</p>
 
@@ -6660,6 +6812,40 @@ args = TrainingArguments(
 #   model = AutoModelForCausalLM.from_pretrained(
 #       name, attn_implementation="flash_attention_2", torch_dtype=torch.bfloat16)
 # OOM 排查顺序：bf16 → grad_checkpointing → ZeRO-3 → LoRA → 减 batch+grad_accum 补回</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 为什么 attention 的显存是 O(N²)</span>
+        <p>标准 attention 要在显存里物化一张 <code>N×N</code> 的分数表 —— 序列一长它就爆。算一下不同序列长下这张表多大，就懂 FlashAttention「永不物化整张表」省的是什么。</p>
+        <div class="code-block">def attn_table_mb(N, dtype_bytes=2):       # N×N 分数表的显存（MB），fp16/bf16 每元素 2 字节
+    return N * N * dtype_bytes / 1e6
+for N in [1024, 4096, 16384]:
+    print(f"序列长 {N:>6}: N×N 分数表 ≈ {attn_table_mb(N):>7.1f} MB（每层每头都要）")
+print("序列长翻 4 倍(4096→16384)，分数表显存翻", int((16384/4096)**2), "倍 ← O(N²) 的代价")
+# FlashAttention：tiling 分块只在 SRAM 里算，从不物化整张 N×N → 显存随 N 线性，且结果完全一致（精确）</div>
+        <table class="repro-table">
+          <caption>N×N 分数表随序列长平方膨胀（每层每头一份）。FlashAttention 用分块 + online softmax 避开它，显存降到 O(N)，结果与标准 attention 逐位一致。</caption>
+          <thead><tr><th>序列长</th><th>N×N 分数表显存</th></tr></thead>
+          <tbody>
+            <tr><td>4096</td><td>≈ 33.6 MB</td></tr>
+            <tr><td>16384</td><td class="hit">≈ 537 MB（×16）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>FlashAttention 没有改 attention 的数学，只改了它「怎么搬数据」，就快了好几倍。</strong>它的洞察：标准 attention 慢，不是慢在算，而是慢在<strong>把那张 N×N 中间矩阵反复读写显存（HBM）</strong>。FlashAttention 用<strong>分块 tiling + online softmax</strong>，让整张矩阵<strong>从不离开片上高速缓存</strong>，把显存从 O(N²) 降到 O(N)、实测<strong>提速 2–4 倍</strong>，而且是<strong>精确</strong>结果（不是近似）。</p>
+        <p><strong>对你的意义：</strong>这是「IO 比算力更值得优化」的经典案例，也是长序列（高分辨率图、视频、长上下文）能训得动的底层功臣。理解它，你看现代训练框架的性能优化就不再是黑箱。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2205.14135" target="_blank">FlashAttention（arXiv:2205.14135）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>以为 FlashAttention 是近似</strong>：它是<strong>精确</strong> attention，只优化了 IO，结果逐位一致。</p>
+        <p>② <strong>以为梯度检查点免费</strong>：它省显存，但要重算前向、约 +30% 计算 —— 是「拿时间换空间」。</p>
+        <p>③ <strong>ZeRO-3 总是最优</strong>：通信开销大，卡少 / 带宽低时未必划算 → 先 ZeRO-2 + 其它手段。</p>
+        <p>④ <strong>BF16 当 FP16 用</strong>：两者动态范围不同，BF16 更稳、范围大；混用易出数值问题。</p>
+      </div>
 
       <h4>四、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -6725,6 +6911,13 @@ args = TrainingArguments(
       <h4>今日目标</h4>
       <p>这是 Week 07 的收束日:把前 6 周学的<strong>串成你自己的研究切口</strong>,并掌握高效读论文/选题的方法。学完今天你应能:<strong>(1)</strong> 从 5 个候选方向里锁定 1 个;<strong>(2)</strong> 用「三遍法」高效读论文;<strong>(3)</strong> 用新颖/可行/影响三把尺子判断一个 idea;<strong>(4)</strong> 跑通一轮系统调研。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · nano-mllm 的终点：一份研究提案</span>
+        <p>前 35 天你从零搭起了一个完整 <code>nano-mllm</code>（训练引擎 → nano-GPT → VLM → Agent → 效率优化），每一块都对应一个真实方法。今天把它收束成 <code>research/proposal.md</code> —— 从 5 个候选方向锁定 1 个，写清「问题 / 最小实验 / 基线 / 你的 delta」。W8 就按它动手。</p>
+        <div class="repo-tree">nano-mllm/research/
+└── <b>proposal.md</b>      <span style="color:var(--teal)">← 今天新增：选定方向 + 最小可验证实验 + 基线 + delta</span></div>
+      </div>
+
       <div class="box-important">
         <span class="label">🔥 适合你的 5 个潜在方向（都连着前面的天）</span>
         <p>① <strong>退化图像下的多模态理解</strong>:低光/模糊/噪声输入时 MLLM 掉多少分、怎么救(连 <em class="term">D25 幻觉</em>)。<br>② <strong>视觉 token 自适应压缩</strong>:按图像质量/复杂度动态给 token 数(连 <em class="term">D13/D32</em>)。<br>③ <strong>面向低光的 GUI / 视觉 Agent</strong>:夜间手机截图、暗光文档(连 <em class="term">D27/D30</em>)。<br>④ <strong>图像质量感知的 MLLM</strong>:让模型能评估并理解退化(连 <em class="term">D18 数据</em>)。<br>⑤ <strong>多模态 Agent 的鲁棒性</strong>:输入质量差时的容错与自纠正(连 <em class="term">D26/D30</em>)。<br>共同点:都站在你「图像质量/低光」的护城河上,且现有工作普遍默认输入清晰——<strong>这就是空白。</strong></p>
@@ -6747,6 +6940,41 @@ args = TrainingArguments(
         <li>用 Connected Papers(侧窗里就能开)对一篇核心论文画关系图谱,快速建立领域地图</li>
         <li>每读一篇,记三行:它解决什么、怎么做、我能改什么——攒够 10 篇,切口自然浮现</li>
       </ul>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 为什么「在测试集上挑最好」会自欺</span>
+        <p>读论文、做研究最该有的怀疑精神，一跑就建立：模拟一批<strong>其实一样好</strong>的方法（真实准确率都 70%），只因为在同一个测试集上反复挑最高分，「最好」那个就会<strong>凭运气虚高好几个点</strong> —— 这正是很多「SOTA 提升」的来源。</p>
+        <div class="code-block">import numpy as np
+np.random.seed(0)
+N, true_acc, n_test = 20, 0.70, 200        # 20 个其实一样好的方法，测试集仅 200 题
+scores = np.random.binomial(n_test, true_acc, N) / n_test   # 各方法在测试集上的得分（含噪声）
+best = scores.max()
+print(f"真实准确率（都一样）= {true_acc:.0%}")
+print(f"挑测试集最高分      = {best:.1%}  ← 凭运气虚高了 {(best-true_acc)*100:.1f} 个点")
+print("教训：反复在测试集上选最好 = 过拟合测试集，'提升'多半是噪声，不是真本事")</div>
+        <table class="repro-table">
+          <caption>同样真本事，谁运气好谁上榜。所以读论文要问「这是公平比较吗、有没有调到测试集上」；做研究要先定好验证集、别拿测试集反复试。</caption>
+          <thead><tr><th>真实准确率</th><th>挑最高分</th></tr></thead>
+          <tbody>
+            <tr><td>70%（都一样）</td><td class="hit">虚高到 ~75%（凭运气）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>「十年的进步，可能大半是错觉。」</strong>《A Metric Learning Reality Check》把一堆号称大幅提升的度量学习方法，放进<strong>同一个网络、同样的调参、公平的验证协议</strong>里重测，结果：<strong>这些年的「提升」几乎被抹平</strong>。根因是大家<strong>直接拿测试集反馈来选模型和调超参</strong>（= 过拟合测试集），于是排行榜一路涨、真实差距却很小。</p>
+        <p><strong>对你选题 / 读论文的意义：</strong>① 读论文时，警惕「只比了自己挑的弱基线」「在测试集上调出来的最优」；② 做研究时，<strong>先划好验证集、固定评测协议</strong>再谈提升 —— 这也呼应 D19 的 MMStar（评测要诚实）。一个站得住的小提升，胜过一个刷出来的大数字。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2003.08505" target="_blank">A Metric Learning Reality Check（arXiv:2003.08505）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · 研究避坑</span>
+        <p>① <strong>没有公平基线</strong>：拿别人调到飞起的结果比自己的初版 → 至少复现一个强基线，同协议比。</p>
+        <p>② <strong>拿测试集反复试</strong>：等于过拟合测试集（见上方实验）→ 划独立验证集调参，测试集只用一次。</p>
+        <p>③ <strong>没有最小可验证实验</strong>：一上来就大动干戈 → 先用两周能跑出正向信号的小实验验证 idea（接 D38/D39）。</p>
+        <p>④ <strong>追排行榜而非真问题</strong>：刷榜的提升常不可迁移 → 选「评测诚实、痛点真实」的问题（你的退化方向就符合）。</p>
+      </div>
 
       <div class="box-tip">
         <span class="label">💡 本周（Week 07）回顾</span>
