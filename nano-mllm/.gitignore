@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/cifar*/
+data/*.bin
+data/*.pt
+ckpt/
+adapters/
+outputs/
+*.egg-info/
+.DS_Store

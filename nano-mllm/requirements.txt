@@ -1,0 +1,10 @@
+# ===== 核心：跑通本仓库所有可运行 demo 只需这两个 =====
+numpy>=1.24
+torch>=2.1            # 注意力用了 F.scaled_dot_product_attention（PyTorch>=2.0）
+
+# ===== 可选：跑「真模型」时再装（对照路线图对应的天）=====
+# timm                 # P04/P05 真 ViT、D11 真 CLIP 视觉塔
+# open_clip_torch      # D11 CLIP 零样本复现
+# transformers>=4.45   # D11/D14/D17 LLaVA / Qwen2-VL 推理
+# tiktoken             # D02 真 BPE tokenizer
+# accelerate
