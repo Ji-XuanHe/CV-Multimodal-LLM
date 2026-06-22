@@ -29,9 +29,15 @@ python finetune/toy_rlhf.py        # ★ 从零 GRPO：无标注，奖励自己�
 python finetune/dpo.py             # D07 DPO：不用 RL 的对齐捷径
 python finetune/lora.py            # D08 LoRA：省 128× 参数
 
-# —— 推理 / 多模态 / Agent / 效率 —— 
+# —— 多模态核心：把 nano-GPT 变成会看图的 VLM —— 
+python vision/clip.py              # D11 CLIP 对比损失单 batch 过拟合自检
+python vision/encoder.py           # D12 视觉塔（TinyViT）：图 -> 视觉 token
+python connector/projector.py      # D13 projector：视觉 token -> LLM 维度
+python model/mllm.py               # D14 合体 VLM：<image> 占位符替换
+python train_vlm.py                # D14/D15 ★ 训 tiny VLM 看图说话（CPU ~30s，准确率 100%）
+
+# —— 推理 / Agent / 效率 —— 
 python inference/kv_cache.py       # D10 KV Cache 不改结果只提速
-python vision/clip.py              # D11 对比损失单 batch 过拟合自检
 python efficiency/token_prune.py        # D32 FastV 剪枝 + 「退化改变重要性」现象
 python efficiency/degradation_aware.py  # D32/D38 ★ 退化感知压缩（你的研究种子，带消融开关）
 python agent/react.py              # D26 ReAct Agent 跑出决策轨迹
@@ -53,7 +59,11 @@ python rag/retriever.py            # D29 余弦检索 Top-K
 | `train_lm.py` | D05 | **训练 nano-GPT + 生成** |
 | `finetune/` | D06–D08 | **后训练教程：SFT / GRPO / DPO / LoRA**（见 `finetune/README.md`）|
 | `inference/kv_cache.py` | D10 | KV Cache 加速生成 |
-| `vision/clip.py` | D11 | 对比损失 + 过拟合自检 |
+| `vision/clip.py` | D11 | CLIP 对比损失 + 过拟合自检 |
+| `vision/encoder.py` | D12 | 视觉塔 TinyViT（grid 视觉 token） |
+| `connector/projector.py` | D13 | 视觉 token → LLM 维度（MLP） |
+| `model/mllm.py` | D14 | **VLM 合体**：视觉塔+projector+nano-GPT |
+| `train_vlm.py` | D14/D15 | **★ 训 tiny VLM 看图说话（held-out 100%）** |
 | `efficiency/token_prune.py` | D32 | FastV 剪枝 + 「退化改变重要性」现象 |
 | `efficiency/degradation_aware.py` | D32/D38 | **退化感知压缩（研究种子，带消融开关）** |
 | `agent/react.py` | D26/D30 | ReAct Agent 循环 |
@@ -68,12 +78,22 @@ python rag/retriever.py            # D29 余弦检索 Top-K
 👉 **先读 [`finetune/README.md`](finetune/README.md)**，它把 SFT → 奖励来源 → PPO vs GRPO →
 DPO 用大白话 + 可运行代码串起来。
 
+## 重点：从 nano-GPT 到「会看图」的 tiny VLM 🎉
+
+`vision/` + `connector/` + `model/mllm.py` 把语言大脑接上眼睛：**图像 → 视觉塔 → projector →
+替换 `<image>` 占位符 → 和文本一起进 nano-GPT**（正是 LLaVA 三件套）。
+
+👉 跑一下 `python train_vlm.py`：自包含合成「彩色形状」数据，CPU 上 ~30 秒训出一个 tiny VLM，
+对**没见过**的图生成「a red square」之类的描述，**held-out 准确率 100%** —— 这是 nano-mllm 里
+「M」真正成立的时刻。不下载任何权重；要换真 SigLIP/CLIP 视觉塔，见 `vision/encoder.py` 末尾说明。
+
 ## 状态
 
-这是配套代码的 **v1**：覆盖了 capstone 主线的**可运行基础轨**（前置周 → W1 nano-GPT →
-后训练 → 多模态/Agent/效率的核心 demo）。其余天的「真模型」脚本（LLaVA/Qwen-VL 推理、
-完整训练 pipeline 等）请对照路线图各天的代码块 + 注释里指向的官方库（timm / transformers /
-open_clip / VLMEvalKit）。
+这是配套代码的 **v1**：capstone 主线的**可运行核心轨**已打通 —— 前置周 → W1 nano-GPT →
+后训练（SFT/RLHF/GRPO/DPO/LoRA）→ **多模态核心（D11–D14：视觉塔 + projector + VLM，端到端会看图说话）**
+→ Agent / 效率 / 研究种子 demo。其余天的「真模型大件」（用预训练 LLaVA/Qwen-VL 权重推理、
+完整评测 pipeline、grounding / video 等）请对照路线图各天代码块 + 注释指向的官方库
+（timm / transformers / open_clip / VLMEvalKit）。
 
 ## License
 
