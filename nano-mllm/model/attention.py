@@ -40,7 +40,7 @@ class CausalSelfAttention(nn.Module):
 
 
 def manual_attention(Q, K, V):
-    """手写 scaled dot-product，用于和官方实现对拍。"""
+    """手写 scaled dot-product（无 mask），用于和官方 SDPA 对拍；causal 路径由 CausalSelfAttention 的 is_causal=True 负责。"""
     S = Q @ K.transpose(-2, -1) / Q.size(-1) ** 0.5
     return F.softmax(S, dim=-1) @ V
 

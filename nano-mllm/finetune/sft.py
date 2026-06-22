@@ -1,6 +1,8 @@
 """nano-mllm · D06 SFT：监督微调的核心 = loss mask（只学回答）
 对应路线图 D06「预训练→SFT→RLHF」。
 关键：prompt(system+user) 不算 loss，只对 response(assistant) 算 loss。
+注意：本例只隔离演示「loss mask」机制，为清晰省略了自回归右移（用前文预测下一个 token）；
+      完整 shift（labels 右移一位）见 train_lm.py 的 get_batch。真实 SFT = mask + shift 同时做。
 运行: python nano-mllm/finetune/sft.py
 依赖: torch
 """

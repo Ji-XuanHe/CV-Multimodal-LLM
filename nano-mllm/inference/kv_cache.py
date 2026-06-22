@@ -29,4 +29,4 @@ if __name__ == "__main__":
     torch.manual_seed(0)
     Q, K, V = (torch.randn(6, 32) for _ in range(3))
     same = torch.allclose(full_causal_attention(Q, K, V), kv_cache_attention(Q, K, V), atol=1e-5)
-    print(f"KV Cache 与 full attention 逐元素一致? {same}  -> 只省算力(每步 O(t²)→O(t)) ✅")
+    print(f"KV Cache 与 full attention 逐元素一致? {same}  -> 只省算力(免去重算历史 K/V 投影，整体生成 O(T³)→O(T²)) ✅")

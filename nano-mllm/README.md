@@ -18,6 +18,7 @@ pip install -r requirements.txt          # 只要 numpy + torch
 python engine/autograd_demo.py     # P01 手写反向 + 梯度检查（<1e-6 = 你懂反向了）
 python data/tokenizer.py           # D02 字符 tokenizer + BPE 合并
 python model/attention.py          # P03 手写注意力 vs 官方 SDPA 对拍
+python model/causal_attention.py   # D01 因果 mask：验证「看不到未来」
 python model/rope.py               # D04 RoPE：验证只依赖相对位置
 python model/transformer.py        # D03 nano-GPT 参数量
 python train_lm.py                 # D05 ★ 训练 nano-GPT 并生成文本（CPU ~1-2 分钟）
@@ -26,12 +27,13 @@ python train_lm.py                 # D05 ★ 训练 nano-GPT 并生成文本（C
 python finetune/sft.py             # D06 SFT：loss 只学回答
 python finetune/toy_rlhf.py        # ★ 从零 GRPO：无标注，奖励自己往上爬
 python finetune/dpo.py             # D07 DPO：不用 RL 的对齐捷径
-python finetune/lora.py            # D08 LoRA：省 100× 参数
+python finetune/lora.py            # D08 LoRA：省 128× 参数
 
 # —— 推理 / 多模态 / Agent / 效率 —— 
 python inference/kv_cache.py       # D10 KV Cache 不改结果只提速
 python vision/clip.py              # D11 对比损失单 batch 过拟合自检
-python efficiency/token_prune.py   # D32 ★ FastV + 退化感知（你的研究方向）
+python efficiency/token_prune.py        # D32 FastV 剪枝 + 「退化改变重要性」现象
+python efficiency/degradation_aware.py  # D32/D38 ★ 退化感知压缩（你的研究种子，带消融开关）
 python agent/react.py              # D26 ReAct Agent 跑出决策轨迹
 python rag/retriever.py            # D29 余弦检索 Top-K
 ```
@@ -44,14 +46,16 @@ python rag/retriever.py            # D29 余弦检索 Top-K
 |---|---|---|
 | `engine/autograd_demo.py` | P01 | 手写前向+反向+梯度检查 |
 | `data/tokenizer.py` | D02 | 字符 tokenizer + BPE |
-| `model/attention.py` | P03/D01 | 注意力（SDPA+多头+causal+RoPE），**全项目复用** |
+| `model/attention.py` | P03 | 注意力（SDPA+多头+causal+RoPE），**全项目复用** |
+| `model/causal_attention.py` | D01 | 因果 mask 最小演示（验证看不到未来） |
 | `model/rope.py` | D04 | 旋转位置编码 |
 | `model/transformer.py` | D03 | nano-GPT 模型 |
 | `train_lm.py` | D05 | **训练 nano-GPT + 生成** |
 | `finetune/` | D06–D08 | **后训练教程：SFT / GRPO / DPO / LoRA**（见 `finetune/README.md`）|
 | `inference/kv_cache.py` | D10 | KV Cache 加速生成 |
 | `vision/clip.py` | D11 | 对比损失 + 过拟合自检 |
-| `efficiency/token_prune.py` | D32 | **视觉 token 压缩 + 退化感知（研究方向）** |
+| `efficiency/token_prune.py` | D32 | FastV 剪枝 + 「退化改变重要性」现象 |
+| `efficiency/degradation_aware.py` | D32/D38 | **退化感知压缩（研究种子，带消融开关）** |
 | `agent/react.py` | D26/D30 | ReAct Agent 循环 |
 | `rag/retriever.py` | D29 | 向量检索 |
 

@@ -35,8 +35,8 @@ if __name__ == "__main__":
         loss, logits = clip_contrastive_loss(img_enc(imgs), txt_enc(txts), logit_scale)
         opt.zero_grad()
         loss.backward()
-        logit_scale.data.clamp_(max=math.log(100))     # 防温度爆炸（CLIP 同款）
         opt.step()
+        logit_scale.data.clamp_(max=math.log(100))     # 防温度爆炸（CLIP 同款，更新后再 clamp）
         if step % 100 == 0:
             acc = (logits.argmax(-1) == torch.arange(8)).float().mean().item()
             print(f"step {step:3d}  loss {loss.item():.3f}  in-batch acc {acc:.2f}")

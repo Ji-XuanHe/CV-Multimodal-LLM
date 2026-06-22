@@ -2586,7 +2586,7 @@ print(f"更偏好坏回答 loss = {B.item():.3f}")    # 较大 → 梯度把它�
         <p>前两天的 SFT / DPO 若全量微调，nano-GPT 还好；但等 W3 接上视觉塔、W8 训真正的 MLLM，全量微调的显存你根本扛不住。今天产出 <code>finetune/lora.py</code> —— 冻结大模型、只训低秩旁路，<strong>这是你后面一切微调（D09 本地跑、D20 训 MLLM）的省钱前提</strong>。</p>
         <div class="repo-tree">nano-mllm/finetune/
 ├── sft.py / dpo.py    <span style="color:var(--ink-faint)">← D06/D07</span>
-└── <b>lora.py</b>            <span style="color:var(--teal)">← 今天新增：低秩适配，微调省 ~100× 参数</span></div>
+└── <b>lora.py</b>            <span style="color:var(--teal)">← 今天新增：低秩适配，微调省 128× 参数</span></div>
       </div>
 
       <div class="deriv" data-deriv><div class="deriv-head"><span class="badge">📐 推导</span> LoRA 核心数学（务必理解）</div>

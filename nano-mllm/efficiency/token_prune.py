@@ -25,7 +25,7 @@ def degradation_changes_importance(seed=0):
     imp_noisy = imp_clean + degrade
     top_clean = set(np.argsort(imp_clean)[-4:])
     top_noisy = set(np.argsort(imp_noisy)[-4:])
-    return sorted(top_clean), sorted(top_noisy), len(top_clean & top_noisy)
+    return sorted(int(i) for i in top_clean), sorted(int(i) for i in top_noisy), len(top_clean & top_noisy)
 
 
 if __name__ == "__main__":
