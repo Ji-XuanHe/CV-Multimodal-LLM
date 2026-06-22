@@ -1488,6 +1488,16 @@ for epoch in range(3):
       <h4>学习目标</h4>
       <p>理解 Encoder-only（BERT / ViT）、Decoder-only（GPT）、Encoder-Decoder（T5）三种架构的本质差异，搞清楚为什么现在主流 LLM 都选择 decoder-only。这是从你熟悉的 ViT 转向 GPT 的<strong>第一个思维转变</strong>。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · nano-mllm → nano-GPT</span>
+        <p>前置周你已有 <code>model/attention.py</code>。本周（W1）任务是把它长成一个能生成文本的 <strong>nano-GPT</strong>，它将是日后多模态模型的「大脑」。今天第一步：给注意力<strong>加上因果 mask</strong>，写出 <code>model/causal_attention.py</code> —— 这是 GPT 和 ViT 唯一、却最关键的区别。</p>
+        <p><strong>本周路线：</strong>今天因果注意力 → D02 tokenizer → D03 拼出完整 <code>transformer.py</code> → D04 换上 RoPE → D05 训出会续写的小 GPT。</p>
+        <div class="repo-tree">nano-mllm/model/
+├── attention.py            <span style="color:var(--ink-faint)">← P03</span>
+├── <b>causal_attention.py</b>     <span style="color:var(--teal)">← 今天新增：加上三角 mask，GPT 的灵魂</span>
+└── transformer.py          <span style="color:var(--ink-faint)">（D03 拼装）</span></div>
+      </div>
+
       <div class="box-important">
         <span class="label">🔥 核心概念</span>
         <p><strong>Causal Attention（因果注意力）</strong>是 decoder-only 和你熟悉的 ViT 最根本的区别。ViT 中每个 patch token 可以看到所有其他 token（双向注意力），GPT 中每个 token 只能看到它之前的 token（单向），通过 causal mask 实现。</p>
@@ -1505,6 +1515,8 @@ for epoch in range(3):
           <p class="math-note">效果：位置 $i$ 的 token 只能 attend 到 $[0,1,\dots,i]$，看不到未来的 $[i{+}1,i{+}2,\dots]$ 位置。</p>
         </div>
       </div>
+
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span><strong>causal mask</strong> 就是<strong>闭卷考试</strong>：写到第 5 个字时，你只能看自己已经写下的前 4 个字，不准偷瞄后面的答案 —— 因为真正生成时后面的字还不存在。<strong>decoder-only 为什么成主流？</strong>因为它永远只做一件事：<strong>猜下一个词</strong>。目标极简单 → 任何文本都能拿来训、能一直往下写不停、规模化最省心。BERT 那种「双向」适合「读懂」，却没法一个字一个字往外蹦，做不了生成。</p></div>
 
       <h4>阅读材料</h4>
       <ul>
@@ -1531,6 +1543,50 @@ def causal_attention(Q, K, V):
 #   F.scaled_dot_product_attention(Q, K, V, is_causal=True)
 q = k = v = torch.randn(1, 5, 64)
 print(causal_attention(q, k, v).shape)     # [1, 5, 64]，每个位置只看自己和左边</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 因果性自检 + 和官方对拍</span>
+        <p>怎么证明 mask 真挡住了未来？做个<strong>因果性实验</strong>：改动第 j 个位置的输入，如果 mask 正确，所有 i &lt; j 位置的输出应当<strong>一字不变</strong>（它们根本看不到 j）。再顺手和官方 <code>is_causal=True</code> 对拍。</p>
+        <div class="code-block">import torch, torch.nn.functional as F
+def causal_attn(Q, K, V):
+    n = Q.size(-2)
+    S = Q @ K.transpose(-2,-1) / Q.size(-1)**0.5
+    S = S + torch.triu(torch.full((n,n), float("-inf")), diagonal=1)
+    return F.softmax(S, -1) @ V
+
+torch.manual_seed(0)
+Q, K, V = (torch.randn(1,6,32) for _ in range(3))
+out = causal_attn(Q, K, V)
+# 篡改第 4 个位置（index 3）及之后的 K、V，看前 3 个位置输出变不变
+K2, V2 = K.clone(), V.clone(); K2[:,3:] += 9.9; V2[:,3:] += 9.9
+out2 = causal_attn(Q, K2, V2)
+print("前 3 个位置一字不变:", torch.allclose(out[:,:3], out2[:,:3]))      # True → 因果正确
+print("和官方对拍 max diff:",
+      (out - F.scaled_dot_product_attention(Q,K,V,is_causal=True)).abs().max().item())</div>
+        <table class="repro-table">
+          <caption>因果性 = 改动未来不影响过去。这个性质保证训练时模型不会「偷看答案」，预测下一词才有意义。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>改未来，过去的输出</td><td class="hit">一字不变（True）</td></tr>
+            <tr><td>vs 官方 is_causal</td><td class="hit">max diff ~1e-6</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>「为什么大家都用 decoder-only」是有实验定论的。</strong>Wang 等人（2022）系统对比三种架构 × 多种预训练目标，结论：<strong>因果 decoder-only + 自回归语言建模，在「预训练完直接零样本」上泛化最好</strong> —— 这正是 GPT 路线。GPT-3 更进一步证明：把这套架构单纯<strong>放大</strong>，会涌现出「给几个例子就照做」的 <strong>in-context learning</strong>，连微调都省了。</p>
+        <p><strong>一句话：</strong>decoder-only 赢在「目标简单到可以无脑放大」。你今天加的这一个 causal mask，就是这条万亿级路线的起点。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2204.05832" target="_blank">Wang et al. 架构对比（arXiv:2204.05832）</a> · <a href="https://arxiv.org/abs/2005.14165" target="_blank">GPT-3（arXiv:2005.14165）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>mask 加错地方</strong>：必须加在 attention 分数上、<strong>softmax 之前</strong>；加到 V 上或 softmax 之后都是错的。</p>
+        <p>② <strong>训练 loss 低到不真实</strong>：causal mask 没生效，模型偷看了未来 token（标签泄漏）→ 检查上三角是否真为 <code>-inf</code>。</p>
+        <p>③ <strong>三角形画反</strong>：要遮的是「未来」（上三角，<code>diagonal=1</code>）；连对角线一起遮，token 连自己都看不到。</p>
+        <p>④ <strong>某些位置输出 NaN</strong>：一整行全 <code>-inf</code>（如错误的 padding mask）→ softmax 分母为 0；用 <code>-1e9</code> 或保证每行至少一个可见位。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -1581,6 +1637,16 @@ print(causal_attention(q, k, v).shape)     # [1, 5, 64]，每个位置只看自�
       <h4>学习目标</h4>
       <p>理解文本如何变成 token ID 序列。这是 CV 人最容易忽略的部分——图像天然是连续的，但语言模型的输入是<strong>离散的整数序列</strong>。这也直接关系到中文效率和多模态里「视觉 token vs 文本 token」的统一（D13）。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · nano-GPT 的「嘴和耳朵」</span>
+        <p>模型只认数字、不认文字。今天给 nano-GPT 造它的「嘴和耳朵」—— <code>data/tokenizer.py</code>：文本 ↔ token id 互转。D05 训练时，TinyShakespeare 的每段文字就靠它变成 id 喂进 <code>transformer.py</code>，生成时再变回人话。</p>
+        <p><strong>今天产出：</strong><code>data/tokenizer.py</code> —— 既可直接用 tiktoken 的成熟 BPE，也可在自己的小语料上亲手训一个迷你 BPE，搞懂它从哪来。</p>
+        <div class="repo-tree">nano-mllm/
+├── model/causal_attention.py   <span style="color:var(--ink-faint)">← D01</span>
+└── data/
+    └── <b>tokenizer.py</b>            <span style="color:var(--teal)">← 今天新增：文本 ↔ token id</span></div>
+      </div>
+
       <div class="box-important">
         <span class="label">🔥 核心概念</span>
         <p><strong>BPE（Byte Pair Encoding）</strong>是目前主流的 tokenizer 算法。核心思路：从字符级开始，不断合并出现频率最高的 pair，直到词表达到预设大小。</p>
@@ -1601,6 +1667,8 @@ print(causal_attention(q, k, v).shape)     # [1, 5, 64]，每个位置只看自�
         </div>
       </div>
 
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>token 就是把句子拆成<strong>「乐高积木块」</strong> —— 不是按字、也不是按词，而是按「经常一起出现的片段」（BPE 自己从语料里统计合并出来的）。<strong>词表大小</strong> = 积木种类数：种类越多，拼同一句话用的块越少（序列更短、推理更快），但「积木箱」（embedding 表）越占地方。<strong>中文为什么吃亏？</strong>因为主流积木是按英文常见片段做的，中文只能一个字、甚至拆成更碎的 byte 来拼，自然费 token。</p></div>
+
       <h4>动手实践</h4>
       <div class="code-block">pip install tiktoken
 import tiktoken
@@ -1615,6 +1683,53 @@ for t in texts:
       <div class="box-tip">
         <span class="label">💡 中文注意</span>
         <p>中文在多数英文为主的 tokenizer 中效率很低（一个汉字可能要 2-3 个 token），这就是为什么 Qwen 等中文优化模型用了更大的词表。</p>
+      </div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 手写 BPE 合并 + 量一量 token 效率</span>
+        <p>两件小事让 tokenizer 不再是黑箱：① 亲手跑一遍 BPE「统计最高频 pair → 合并」，看它如何从字符长出子词；② 用 tiktoken 量同一句话在中 / 英 / 代码里各占多少 token，亲历「中文吃亏」。</p>
+        <div class="code-block"># ① 手写一轮 BPE 合并（教学版）
+from collections import Counter
+corpus = {"h u g": 10, "p u g": 5, "h u g s": 5, "b u n": 4}   # 空格分隔的「字符」
+def best_pair(corpus):
+    pairs = Counter()
+    for word, freq in corpus.items():
+        syms = word.split()
+        for a, b in zip(syms, syms[1:]):
+            pairs[(a, b)] += freq
+    return pairs.most_common(1)[0]
+(a, b), c = best_pair(corpus)
+print(f"最高频 pair = {a!r}+{b!r}，出现 {c} 次 → 合并成 {(a+b)!r}")   # 预期 'u'+'g' 共 20 → 'ug'
+
+# ② tiktoken：同一句话在不同语言 / 代码里的 token 效率
+import tiktoken
+enc = tiktoken.get_encoding("cl100k_base")
+for t in ["The cat sat", "一只猫坐着", "def f(x): return x*x"]:
+    print(f"{len(enc.encode(t)):2d} tokens  ←  {t!r}")</div>
+        <table class="repro-table">
+          <caption>同样信息量，中文 token 数常是英文的 2~3 倍 —— 这就是 Qwen 等用更大、更偏中文词表的原因。</caption>
+          <thead><tr><th>文本</th><th>token 数（约）</th></tr></thead>
+          <tbody>
+            <tr><td>"The cat sat"（英文）</td><td class="hit">3 个左右</td></tr>
+            <tr><td>"一只猫坐着"（中文）</td><td>5~8 个</td></tr>
+            <tr><td>BPE 首次合并</td><td class="hit">'u'+'g' → 'ug'（20 次）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>tokenizer 出 bug，整个模型会「见鬼」。</strong>研究者发现一类「<strong>glitch token（鬼词）</strong>」：比如把 <code>SolidGoldMagikarp</code> 喂给 GPT-3，模型会胡言乱语、不停重复、甚至声称自己「活着」；让它复述这个词，它却回你「distribute」。</p>
+        <p><strong>根因正是今天的内容：</strong>这些 token <strong>存在于词表里，却在训练数据里几乎从没出现过</strong>（tokenizer 和训练语料是分开搞的）—— 模型对它们的 embedding 完全没学过，自然行为失控。这提醒你：词表必须和训练数据对齐，否则就是一颗颗哑雷。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2405.05417" target="_blank">Fishing for Magikarp：检测欠训练 token（arXiv:2405.05417）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>训练 / 推理用了不同 tokenizer</strong>：id 对不上、输出全乱码 —— tokenizer 必须和权重严格配套。</p>
+        <p>② <strong>忘了特殊 token</strong>：<code>bos</code> / <code>eos</code> / <code>pad</code> 没加或加错，模型不知何时停、何时算起（多模态里 <code>&lt;image&gt;</code> 占位符同理，见 D15）。</p>
+        <p>③ <strong>前导空格被忽略</strong>：BPE 里 <code>"hello"</code> 和 <code>" hello"</code> 是不同 token，拼 prompt 时空格错位会掉点。</p>
+        <p>④ <strong>词表大小和 embedding 行数对不上</strong>：扩了词表却没同步扩 <code>nn.Embedding</code> → 索引越界报错。</p>
       </div>
 
       <h4>自测 / 误区 / 面试</h4>
@@ -1673,6 +1788,15 @@ for t in texts:
       <h4>学习目标</h4>
       <p>完整理解 GPT 系列的前向传播过程：token embedding + positional encoding → N 层 decoder block → lm_head → 概率分布。<strong>这是后面所有 LLM / MLLM 的语言骨架</strong>。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 合龙 transformer.py</span>
+        <p>今天是 W1 的高光时刻：把前几天的零件 —— 因果注意力（D01）、tokenizer（D02）—— 加上 embedding、FFN、残差（来自 P02）、lm_head，<strong>合龙成完整的 <code>model/transformer.py</code></strong>，一个可前向的 nano-GPT 就成型了。</p>
+        <p><strong>今天产出：</strong><code>model/transformer.py</code>（embedding + N×decoder block + lm_head），并亲手数参数量、验证 ≈ 12Nd²。D04 给它换 RoPE，D05 就能开训。</p>
+        <div class="repo-tree">nano-mllm/model/
+├── causal_attention.py     <span style="color:var(--ink-faint)">← D01</span>
+└── <b>transformer.py</b>          <span style="color:var(--teal)">← 今天合龙：embedding + N×block + lm_head = 完整 nano-GPT</span></div>
+      </div>
+
       <div class="box-important">
         <span class="label">🔥 GPT Decoder Block</span>
         <p>结构（每层重复 N 次）：x → LayerNorm → Causal Multi-Head Self-Attention → 残差连接 → LayerNorm → FFN（MLP）→ 残差连接 → output</p>
@@ -1700,6 +1824,8 @@ for t in texts:
         </div>
       </div>
 
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>GPT 前向就是一条<strong>流水线</strong>：token id → 查字典变成向量（embedding）→ 给每个词贴上「你是第几个」的标签（位置编码）→ 进 N 层 decoder block 反复「每个词回头参考前文、再更新自己」N 遍 → 最后 lm_head 把每个位置翻译成「下一个词最可能是谁」的打分。整座塔其实和 ViT 长得几乎一样，<strong>唯一关键区别就是那块 causal mask</strong>（只许回头看）。参数量记个口诀 <strong>≈ 12Nd²</strong>，面试被问就不慌。</p></div>
+
       <h4>动手：一个 GPT Decoder Block</h4>
       <div class="code-block">import torch, torch.nn as nn
 
@@ -1721,6 +1847,45 @@ blk = Block(d, h)
 mask = torch.triu(torch.full((n, n), float("-inf")), diagonal=1)   # causal
 print(blk(torch.randn(1, n, d), mask).shape)  # [1, 16, 768]
 # 把 N 个 Block 叠起来 + embedding + lm_head 就是一个完整 GPT（对照 nanoGPT model.py）</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 数参数量，验证 12Nd²</span>
+        <p>口诀好记，但要亲手验证才踏实：算一个小 GPT 的真实参数量，和公式 <code>12·N·d²</code> 对一对；再看 GPT-2（124M）这个经典数字是怎么拼出来的。</p>
+        <div class="code-block">def gpt_params(V, d, N, ffn_mult=4):
+    emb  = V * d                       # token embedding（常与 lm_head 共享）
+    attn = 4 * d * d * N               # 每层 Q/K/V/O 投影
+    ffn  = 2 * ffn_mult * d * d * N    # 每层 FFN 上下两个投影
+    return emb, attn + ffn
+
+# GPT-2 small：V=50257, d=768, N=12
+emb, blocks = gpt_params(50257, 768, 12)
+print(f"transformer 块 ≈ {blocks/1e6:.1f}M   公式 12Nd² ≈ {12*12*768**2/1e6:.1f}M")
+print(f"+ embedding ≈ {emb/1e6:.1f}M   合计 ≈ {(emb+blocks)/1e6:.1f}M（GPT-2 官方 124M）")</div>
+        <table class="repro-table">
+          <caption>12Nd² 估的是 transformer 块；加上词表 embedding 才是总量。看懂这笔账，面试问「7B 怎么来的」你能现场推。</caption>
+          <thead><tr><th>部分</th><th>GPT-2 small</th></tr></thead>
+          <tbody>
+            <tr><td>12·N·d² 估算（块）</td><td class="hit">≈ 85M</td></tr>
+            <tr><td>+ embedding</td><td>≈ 39M</td></tr>
+            <tr><td>合计</td><td class="hit">≈ 124M（与官方一致）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>同样的 GPT 结构，LayerNorm 放前放后，训练稳定性天差地别。</strong>原始 Transformer 用 <strong>Post-LN</strong>（LN 放在残差之后），Xiong 等人（2020）用理论 + 实验证明：Post-LN 初始化时输出层附近梯度过大，<strong>必须配 learning-rate warmup 才不发散</strong>；而 <strong>Pre-LN</strong>（LN 放进残差里、先归一再进子层）梯度从一开始就乖，<strong>可去掉 warmup、更好训、更省调参</strong>。</p>
+        <p><strong>所以你今天写的就是 Pre-Norm：</strong>GPT-2 之后几乎所有 LLM（GPT、Llama、Qwen）都把 LN 前置。一个「位置换一下、稳定性翻倍」的经典工程抉择。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2002.04745" target="_blank">On Layer Normalization in the Transformer Architecture（arXiv:2002.04745）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>忘了 lm_head 前最后一个 LayerNorm</strong>：最终表示没归一化，logits 尺度乱、loss 抖。</p>
+        <p>② <strong>Pre-Norm 写成 Post-Norm</strong>：把 LN 放到残差相加之后 → 深层时不稳，得靠 warmup 续命。</p>
+        <p>③ <strong>FFN 维度搞错</strong>：标准是 <code>4·d</code>（先升维再降回）；写小了模型容量骤降。</p>
+        <p>④ <strong>权重共享没设</strong>：embedding 与 lm_head 本可共享（省一大块参数），分开既费参数又可能更难收敛。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -1792,6 +1957,15 @@ print(blk(torch.randn(1, n, d), mask).shape)  # [1, 16, 768]
       <h4>学习目标</h4>
       <p>Transformer 本身对位置不敏感（permutation invariant），必须注入位置信息。理解三代位置编码的演进——尤其 <strong>RoPE</strong>，它是后面所有现代模型（含 D17 的 M-RoPE）的基础。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 给 nano-GPT 换上 RoPE</span>
+        <p>D03 的 <code>transformer.py</code> 里位置编码还是占位的。今天换成<strong>现代标准 RoPE</strong>：写 <code>model/rope.py</code>，在每层注意力里对 q、k 各转一下。好处是 nano-GPT 从此能更优雅地处理位置，也为以后长上下文与 D17 多模态 M-RoPE 打底。</p>
+        <p><strong>今天产出：</strong><code>model/rope.py</code>（旋转 q、k）+ 接进 <code>causal_attention.py</code>。</p>
+        <div class="repo-tree">nano-mllm/model/
+├── transformer.py    <span style="color:var(--ink-faint)">← D03 合龙</span>
+└── <b>rope.py</b>           <span style="color:var(--teal)">← 今天新增：旋转位置编码，接进注意力</span></div>
+      </div>
+
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 三代位置编码对比（RoPE 重点理解）</div>
         <div class="deriv-body">
@@ -1819,6 +1993,8 @@ print(blk(torch.randn(1, n, d), mask).shape)  # [1, 16, 768]
         <p>它优雅地实现了：(1) 注意力分数只依赖相对位置；(2) 通过 NTK-aware scaling 可以外推到更长序列；(3) 计算开销极小。你后面看的所有模型（Llama、Qwen、InternVL）都用 RoPE。</p>
       </div>
 
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span>Transformer 本身<strong>分不清词的先后</strong>（把句子打乱它都没感觉），所以必须额外告诉它「谁先谁后」。<strong>RoPE</strong> 的妙处是：它不直接说「你是第 5 个」，而是<strong>把每个词的向量按位置「转一个角度」</strong> —— 第 5 个词转 5 份角、第 8 个转 8 份。这样两个词做注意力时只剩<strong>角度差</strong>起作用，也就是「它俩隔多远」（相对位置）。好比钟表：你不关心绝对几点，只关心两根针的夹角。正因为只看相对距离，换更长的句子时它也更容易「将就着外推」。</p></div>
+
       <h4>动手：RoPE 旋转实现</h4>
       <div class="code-block">import torch
 
@@ -1838,6 +2014,47 @@ def rope(x, theta=10000.0):
 q = torch.randn(1, 8, 64)
 print(rope(q).shape)        # [1, 8, 64]
 # 对 q、k 各做一次 rope 再算注意力 → 分数自动只依赖相对位置（见推导）</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 验证「内积只依赖相对距离」</span>
+        <p>RoPE 最神奇的性质，可以一行验证：把同一对 q、k 整体平移相同位置（比如都从 (2,5) 挪到 (4,7)，相对距离仍是 3），它们的注意力内积应当<strong>几乎不变</strong>。这就是「只依赖相对位置」的硬证据。</p>
+        <div class="code-block">import torch
+def rope(x, pos, theta=10000.0):                 # x:(d,) 单个向量，pos:标量位置
+    d = x.size(0); i = torch.arange(0, d, 2).float()
+    ang = pos * theta ** (-i / d)
+    c, s = ang.cos(), ang.sin()
+    x1, x2 = x[0::2], x[1::2]
+    out = torch.empty_like(x)
+    out[0::2] = x1 * c - x2 * s; out[1::2] = x1 * s + x2 * c
+    return out
+
+torch.manual_seed(0); q, k = torch.randn(64), torch.randn(64)
+dot_a = rope(q, 2) @ rope(k, 5)        # q 在位置 2、k 在位置 5，相对距离 3
+dot_b = rope(q, 4) @ rope(k, 7)        # 整体平移 +2，相对距离仍是 3
+print(f"相对距离相同时内积差 = {(dot_a - dot_b).abs().item():.2e}")   # 预期 ~1e-5 → 只依赖相对位置</div>
+        <table class="repro-table">
+          <caption>绝对位置变了（2→4、5→7），但相对距离没变，注意力内积就几乎不变 —— 这正是 RoPE 长度外推友好的根源。</caption>
+          <thead><tr><th>检查</th><th>预期</th></tr></thead>
+          <tbody>
+            <tr><td>整体平移后内积差</td><td class="hit">~1e-5（几乎不变）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>RoPE 还顺手解决了「上下文窗口太短」这个大痛点。</strong>2023 年 LLaMA 发布时只有 2048 上下文，处理长文档捉襟见肘。Meta 的 <strong>Position Interpolation</strong> 发现：与其让模型外推到没见过的位置，不如<strong>把位置「压缩」回训练见过的范围</strong>（位置 p 当成 p/2 看）—— 只需约 <strong>1000 步微调</strong>，就把 2k 上下文扩到 32k，几乎不掉点。后续 YaRN 等把这条路线做得更好。</p>
+        <p><strong>对你的意义：</strong>正因为今天 RoPE 是「按位置转角度」，缩放角度就能平滑改变可处理长度 —— 这是绝对位置编码（Sinusoidal）很难做到的。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2306.15595" target="_blank">Position Interpolation（arXiv:2306.15595）</a> · <a href="https://arxiv.org/abs/2309.00071" target="_blank">YaRN（arXiv:2309.00071）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>把 RoPE 加到 embedding 上</strong>：RoPE 作用在<strong>每一层的 q、k</strong> 上，不是像 Sinusoidal 那样加到输入 embedding。</p>
+        <p>② <strong>只旋转了 q 没旋转 k</strong>（或反之）：相对位置性质失效；q、k 必须同款旋转。</p>
+        <p>③ <strong>奇偶维度配对错位</strong>：旋转是对 <code>(x[0::2], x[1::2])</code> 成对做的，下标取错结果全乱却不报错。</p>
+        <p>④ <strong>裸奔到训练长度之外就崩</strong>：要做位置插值 / NTK / YaRN 缩放，别直接外推超长序列。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -1914,6 +2131,16 @@ print(rope(q).shape)        # [1, 8, 64]
       <h4>学习目标</h4>
       <p>理解预训练目标（next token prediction）的损失函数，以及推理时如何从概率分布采样生成文本。这是 Week 01 的收束——<strong>从架构走到「怎么训、怎么生成」</strong>。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · W1 毕业作品：会写字的 nano-GPT</span>
+        <p>本周的合龙之日：把 transformer（D03）+ RoPE（D04）+ tokenizer（D02）接上今天的<strong>训练循环 + 采样</strong>，在 TinyShakespeare 上训出一个<strong>能续写文本的 nano-GPT</strong>。这就是 nano-mllm 的「大脑雏形」，W2 给它做指令微调、W3 给它接上「眼睛」。</p>
+        <p><strong>今天产出 + 里程碑：</strong><code>train_lm.py</code> 跑通 → val loss 持续下降、能生成像模像样（哪怕还胡言乱语）的莎士比亚风句子。</p>
+        <div class="repo-tree">nano-mllm/
+├── model/transformer.py + rope.py   <span style="color:var(--ink-faint)">← D03/D04</span>
+├── data/tokenizer.py                 <span style="color:var(--ink-faint)">← D02</span>
+└── <b>train_lm.py</b>                      <span style="color:var(--teal)">← 今天新增：训练 + 采样，W1 毕业作品</span></div>
+      </div>
+
       <div class="deriv" data-deriv>
         <div class="deriv-head"><span class="badge">📐 推导</span> 预训练损失与 Perplexity</div>
         <div class="deriv-body">
@@ -1936,6 +2163,8 @@ print(rope(q).shape)        # [1, 8, 64]
         <strong>Repetition Penalty</strong>：降低已出现 token 的概率，减少重复。</p>
       </div>
 
+      <div class="box-plain"><p><span class="label">🗣️ 大白话 · </span><strong>训练</strong>就是把海量文本盖住后半句、让模型一遍遍「猜下一个字」，猜错就罚（交叉熵）—— 这叫「自监督」，因为答案就是原文自己，不用人工标注。<strong>生成</strong>则反过来：模型吐出一串「下一个字」的概率，由你决定怎么挑。<strong>采样参数</strong>就是「确定 vs 有创意」的旋钮：<strong>temperature</strong> 像酒量，调高就放飞、胡话变多；<strong>top-k / top-p</strong> 像「只在前几名里抽」，把离谱选项挡在门外；<strong>greedy</strong>（永远选第一名）最稳，但容易车轱辘话来回说。</p></div>
+
       <h4>动手实践</h4>
       <div class="code-block"># 在你 MacBook 上用 Ollama 实验不同采样参数
 # 先安装: brew install ollama && ollama pull qwen3:8b
@@ -1946,6 +2175,52 @@ curl http://localhost:11434/api/generate -d '{
   "options": {"temperature": 0.3, "top_p": 0.9}
 }'
 # 尝试 temperature: 0.1, 0.5, 1.0, 1.5 感受差异</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 四种采样策略的差别，一眼看清</span>
+        <p>不靠大模型也能把采样讲透：造一个假的「下一词打分」，分别用 greedy / temperature / top-p 处理，亲眼看它们挑词的差别 —— 尤其是 top-p 如何把长尾离谱词挡在门外。</p>
+        <div class="code-block">import torch, torch.nn.functional as F
+torch.manual_seed(0)
+logits = torch.randn(50)                 # 假装某步「下一词」打分（词表 50）
+
+def to_probs(logits, temp=1.0, top_p=None):
+    probs = F.softmax(logits / temp, -1)
+    if top_p:                            # nucleus：只留累积概率到 top_p 的核心集合
+        s, idx = probs.sort(descending=True)
+        keep = (s.cumsum(0) - s) &lt; top_p
+        probs = torch.zeros_like(probs).scatter_(0, idx, s * keep)
+        probs = probs / probs.sum()
+    return probs
+
+print("greedy 选中:", logits.argmax().item())                              # 永远同一个
+print("top_p=0.9 候选数:", int((to_probs(logits, top_p=0.9) &gt; 0).sum()))   # 只在核心集合里抽
+print("temp=0.5 峰值:", f"{to_probs(logits,0.5).max():.3f}",
+      " temp=1.5 峰值:", f"{to_probs(logits,1.5).max():.3f}")              # 低温更尖、高温更平</div>
+        <table class="repro-table">
+          <caption>greedy 永远同一个词（易重复）；top-p 自适应地只在核心集合里随机；温度调高分布变平、更随机。</caption>
+          <thead><tr><th>策略</th><th>行为</th></tr></thead>
+          <tbody>
+            <tr><td>greedy</td><td>永远选第一名 → 易车轱辘重复</td></tr>
+            <tr><td>top-p=0.9</td><td class="hit">只在核心集合里随机，挡掉长尾胡话</td></tr>
+            <tr><td>temperature ↑</td><td>分布变平、越发随机有创意</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>「选概率最高的词」听起来最稳，结果却最糟。</strong>Holtzman 等人（2019）的经典发现「<strong>神经文本退化</strong>」：用 greedy / beam search 一直选高概率词，生成会陷入<strong>机械重复</strong>（同一句话车轱辘转），且这种文本的概率曲线和人类自然文本完全不同。</p>
+        <p><strong>解法正是今天的 top-p（nucleus sampling）：</strong>每步只在「累积概率达到 p 的核心词集」里随机抽，既避开长尾胡话、又保留多样性。这篇论文奠定了今天几乎所有大模型默认用 <code>top_p</code> 采样的实践。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/1904.09751" target="_blank">The Curious Case of Neural Text Degeneration（arXiv:1904.09751）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>标签没右移一位</strong>：next-token 预测要拿 <code>x[1:]</code> 当 <code>x[:-1]</code> 的标签；错位会让 loss 怎么都不降。</p>
+        <p>② <strong>生成时还在算 loss / 开 dropout</strong>：推理要 <code>model.eval()</code> + <code>no_grad</code>，否则结果不稳又费显存。</p>
+        <p>③ <strong>greedy 输出不停重复</strong>：不是 bug，是退化 → 上 top-p / 温度 / repetition penalty。</p>
+        <p>④ <strong>PPL 跨模型乱比</strong>：不同 tokenizer / 序列长度下 Perplexity 不可直接比较，只在同设置内看趋势。</p>
+      </div>
 
       <h4>自测 / 误区 / 面试</h4>
       <div class="box-tip">
