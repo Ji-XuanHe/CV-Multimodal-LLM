@@ -48,32 +48,47 @@ python efficiency/token_select.py  # D32/D34 三种 token 压缩器（full / bli
 python research/ablation.py        # D35-D40 ★ 多 seed 消融 -> experiments/baselines.csv（CPU ~3-4 分钟）
 ```
 
-> 想一键全跑：`for f in engine/autograd_demo.py model/attention.py ... ; do python $f; done`
+> 上面就是推荐的**学习顺序**；想直接看两个「重头戏」，跑 `train_vlm.py`（看图说话）和 `research/ablation.py`（研究消融）。
 
-## 目录 = 学习路线的 capstone 主线
+## 目录结构（按学习顺序标注 · 对应路线图天数）
 
-| 目录 / 文件 | 对应天 | 干什么 |
-|---|---|---|
-| `engine/autograd_demo.py` | P01 | 手写前向+反向+梯度检查 |
-| `data/tokenizer.py` | D02 | 字符 tokenizer + BPE |
-| `model/attention.py` | P03 | 注意力（SDPA+多头+causal+RoPE），**全项目复用** |
-| `model/causal_attention.py` | D01 | 因果 mask 最小演示（验证看不到未来） |
-| `model/rope.py` | D04 | 旋转位置编码 |
-| `model/transformer.py` | D03 | nano-GPT 模型 |
-| `train_lm.py` | D05 | **训练 nano-GPT + 生成** |
-| `finetune/` | D06–D08 | **后训练教程：SFT / GRPO / DPO / LoRA**（见 `finetune/README.md`）|
-| `inference/kv_cache.py` | D10 | KV Cache 加速生成 |
-| `vision/clip.py` | D11 | CLIP 对比损失 + 过拟合自检 |
-| `vision/encoder.py` | D12 | 视觉塔 TinyViT（grid 视觉 token） |
-| `connector/projector.py` | D13 | 视觉 token → LLM 维度（MLP） |
-| `model/mllm.py` | D14 | **VLM 合体**：视觉塔+projector+nano-GPT |
-| `train_vlm.py` | D14/D15 | **★ 训 tiny VLM 看图说话（held-out 100%）** |
-| `efficiency/token_prune.py` | D32 | FastV 剪枝 + 「退化改变重要性」现象 |
-| `efficiency/degradation_aware.py` | D32/D38 | **退化感知压缩（研究种子，带消融开关）** |
-| `efficiency/token_select.py` | D32/D34 | 视觉 token 压缩器（接进 VLM 的 `compress` 钩子） |
-| `research/ablation.py` | D35–D40 | **★ 多 seed 退化消融 → `experiments/baselines.csv`** |
-| `agent/react.py` | D26/D30 | ReAct Agent 循环 |
-| `rag/retriever.py` | D29 | 向量检索 |
+```text
+nano-mllm/
+├── engine/autograd_demo.py — P01 手写前向 + 反向 + 梯度检查
+├── data/
+│   ├── tokenizer.py — D02 字符 tokenizer + BPE
+│   └── sample.txt — train_lm 的微型语料
+├── model/
+│   ├── attention.py — P03 注意力（SDPA+多头+causal+RoPE），全项目复用
+│   ├── causal_attention.py — D01 因果 mask 最小演示（看不到未来）
+│   ├── rope.py — D04 旋转位置编码
+│   ├── transformer.py — D03 nano-GPT
+│   └── mllm.py — D14 VLM 合体（视觉塔+projector+nano-GPT，留 compress 钩子）
+├── train_lm.py — D05 训练 nano-GPT 生成文本
+├── finetune/ — 后训练教程（先读 finetune/README.md）
+│   ├── README.md — ★ 后训练 / RLHF / GRPO 初学者教程
+│   ├── sft.py — D06 SFT：loss mask
+│   ├── dpo.py — D07 DPO（不用 RL 的对齐）
+│   ├── toy_rlhf.py — D07 ★ 从零 GRPO（reward 自己往上爬）
+│   └── lora.py — D08 LoRA：省 128×
+├── vision/
+│   ├── clip.py — D11 CLIP 对比损失 + 过拟合自检
+│   └── encoder.py — D12 TinyViT 视觉塔（grid 视觉 token）
+├── connector/projector.py — D13 视觉 token → LLM 维度（MLP）
+├── train_vlm.py — D14/D15 ★ 训 tiny VLM 看图说话（held-out 100%）
+├── inference/kv_cache.py — D10 KV Cache 加速生成
+├── efficiency/
+│   ├── token_prune.py — D32 FastV 剪枝 + 「退化改变重要性」现象
+│   ├── degradation_aware.py — D32/D38 退化感知压缩（研究种子，带消融开关）
+│   └── token_select.py — D32/D34 VLM 用的 token 压缩器（full/blind/degaware）
+├── research/ablation.py — D35–D40 ★ 多 seed 退化消融
+├── experiments/baselines.csv — ablation 的输出（每 seed 原始数据）
+├── agent/react.py — D26/D30 ReAct Agent 循环
+├── rag/retriever.py — D29 向量检索
+└── requirements.txt — 只需 numpy + torch
+```
+
+> 设计：每个文件对应路线图某一天，运行即出一个「看到它在工作」的结果。★ = 重头戏。
 
 ## 重点：后训练 / RLHF / GRPO 初学者教程
 
