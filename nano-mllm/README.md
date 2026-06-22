@@ -81,7 +81,9 @@ nano-mllm/
 │   ├── token_prune.py — D32 FastV 剪枝 + 「退化改变重要性」现象
 │   ├── degradation_aware.py — D32/D38 退化感知压缩（研究种子，带消融开关）
 │   └── token_select.py — D32/D34 VLM 用的 token 压缩器（full/blind/degaware）
-├── research/ablation.py — D35–D40 ★ 多 seed 退化消融
+├── research/
+│   ├── ablation.py — D35–D40 ★ 多 seed 退化消融
+│   └── proposal.md — D35 立项文档（动机/方法/实验设计/诚实负结果/核实引用）
 ├── experiments/baselines.csv — ablation 的输出（每 seed 原始数据）
 ├── agent/react.py — D26/D30 ReAct Agent 循环
 ├── rag/retriever.py — D29 向量检索
