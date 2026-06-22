@@ -22,7 +22,8 @@
 
 ### 自动部署
 
-本仓库通过 `.github/workflows/pages.yml`（GitHub Actions）自动部署：**每次往 `main` push，页面会自动重新发布**，无需任何手动操作。
+本仓库由 GitHub Pages 自动部署：**每次往 `main` push，页面会自动重新发布**，无需任何手动操作。
+（Pages 源：Settings → Pages → 「Deploy from a branch」→ `main` / `/ (root)`；根目录的 `.nojekyll` 让 HTML 直接发布、不经 Jekyll。）
 
 > Pages 是 https 环境，本地 `file://` 下 YouTube 无法内嵌播放（error 153）的问题在线上不存在。
 
@@ -40,6 +41,18 @@ start cv-to-mllm-roadmap_2.html   # Windows
 python3 -m http.server
 # 然后浏览器访问 http://localhost:8000/cv-to-mllm-roadmap_2.html
 ```
+
+## 🧪 配套代码：[`nano-mllm/`](nano-mllm/)（可一步步运行）
+
+路线图里每天说的「今天产出 `xxx.py`」，在 [`nano-mllm/`](nano-mllm/) 里都能**直接运行**：从一行 numpy 反向传播，搭到 nano-GPT → 微调 → CLIP → Agent → 视觉 token 压缩。
+
+```bash
+cd nano-mllm && pip install -r requirements.txt   # 只要 numpy + torch
+python train_lm.py            # 训练一个 nano-GPT 并生成莎士比亚文本（CPU ~1 分钟）
+python finetune/toy_rlhf.py   # 从零 GRPO：无标注、规则奖励，奖励自己往上爬
+```
+
+**专门给「后训练 / RLHF / GRPO 难懂」的初学者**：先读 [`nano-mllm/finetune/README.md`](nano-mllm/finetune/README.md) —— 把 SFT → 奖励来源 → PPO vs GRPO → DPO 串成**能运行**的教程。
 
 ## ✨ 特性
 

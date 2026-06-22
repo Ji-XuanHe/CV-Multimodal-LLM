@@ -2528,6 +2528,15 @@ print(f"更偏好坏回答 loss = {B.item():.3f}")    # 较大 → 梯度把它�
         <p>① 推导 DPO 如何从 Bradley-Terry + 最优策略关系消掉 reward model。② DPO loss 的每一项含义。③ β 和 π_ref 的作用。④ DPO vs PPO 的优劣权衡（稳定性/上限/成本）。</p>
       </div>
 
+      <div class="box-important">
+        <span class="label">🔥 延伸 · RL 这条路（PPO → GRPO）+ 可验证奖励（初学者必看）</span>
+        <p>DPO 把 RL「绕过去」了，但理解 RL 本身仍很重要 —— 尤其训<strong>推理模型</strong>（o1 / DeepSeek-R1）靠的就是它。RL 后训练就三步循环：<strong>① 模型生成 → ② 给个奖励打分 → ③ 把高奖励行为强化</strong>。</p>
+        <p><strong>奖励从哪来（关键分叉）：</strong>① <strong>学出来的 Reward Model</strong>（用人类偏好训一个打分器，经典 RLHF，通用但贵、会被钻空子）；② <strong>规则 / 可验证奖励（RLVR）</strong> —— 直接写规则：答案对不对、代码跑不跑、格式合不合。便宜、稳、不易 hack，是 DeepSeek-R1 训推理能力的核心。</p>
+        <p><strong>PPO vs GRPO（一句话）：</strong>PPO 要额外训一个<strong>价值网络（critic）</strong>来估基线，重且占显存；<strong>GRPO</strong> 干脆<strong>对同一题采一组答案、用组内平均当基线</strong>，省掉 critic，简单稳定 —— DeepSeek 用它训出 R1。</p>
+        <p><strong>👉 想真懂就跑一下：</strong>配套仓库 <code>nano-mllm/finetune/toy_rlhf.py</code> 用 ~50 行 numpy 实现 GRPO，运行就能看到「<strong>无任何标注、只给规则奖励，平均奖励从 1.5 自己爬到 5.9</strong>」；配 <code>finetune/README.md</code> 把 SFT → 奖励来源 → PPO/GRPO → DPO 串成可运行教程，这是补「初学者难 get RL」最直接的一招。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2402.03300" target="_blank">DeepSeekMath / GRPO（arXiv:2402.03300）</a> · <a href="https://arxiv.org/abs/1707.06347" target="_blank">PPO（arXiv:1707.06347）</a> · <a href="https://arxiv.org/abs/2501.12948" target="_blank">DeepSeek-R1（arXiv:2501.12948）</a></div>
+      </div>
+
       <h4>阅读材料</h4>
       <ul>
         <li><a href="https://arxiv.org/abs/2305.18290" target="_blank">DPO 原论文</a>（数学推导优美，重点 Sec.3-4）</li>
