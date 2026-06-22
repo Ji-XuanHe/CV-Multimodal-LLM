@@ -792,7 +792,7 @@ print(f"max relative error = {rel:.2e}")   # 预期 &lt; 1e-6 → 你的反向�
 ├── engine/autograd_demo.py     <span style="color:var(--ink-faint)">← P01</span>
 ├── vision/
 │   └── <b>cnn_baseline.py</b>        <span style="color:var(--teal)">← 今天新增：CIFAR-10 上的小 ResNet 基线</span>
-└── model/                       <span style="color:var(--ink-faint)">（残差思想 P03 起复用）</span></div>
+└── model/                       <span style="color:var(--ink-faint)">（残差思想 D03 transformer 起复用）</span></div>
       </div>
 
       <div class="box-important">
@@ -1576,7 +1576,7 @@ print("和官方对拍 max diff:",
       <div class="box-report">
         <span class="label">📑 工业实证 · 大厂战报</span>
         <p><strong>「为什么大家都用 decoder-only」是有实验定论的。</strong>Wang 等人（2022）系统对比三种架构 × 多种预训练目标，结论：<strong>因果 decoder-only + 自回归语言建模，在「预训练完直接零样本」上泛化最好</strong> —— 这正是 GPT 路线。GPT-3 更进一步证明：把这套架构单纯<strong>放大</strong>，会涌现出「给几个例子就照做」的 <strong>in-context learning</strong>，连微调都省了。</p>
-        <p><strong>一句话：</strong>decoder-only 赢在「目标简单到可以无脑放大」。你今天加的这一个 causal mask，就是这条万亿级路线的起点。</p>
+        <p><strong>一句话：</strong>decoder-only 赢在「目标简单到可以无脑放大」。你今天加的这一个 causal mask，就是这条万亿级路线的起点。<br><span style="color:var(--ink-faint);font-size:.92em">⚠ 严谨补充：Wang 等人的结论限定在「<strong>纯预训练后直接零样本</strong>」；若之后再做大规模多任务提示微调，encoder-decoder + 掩码目标反而可能总体更优 —— 别外推成「decoder-only 永远最强」。</span></p>
         <div class="report-src">来源：<a href="https://arxiv.org/abs/2204.05832" target="_blank">Wang et al. 架构对比（arXiv:2204.05832）</a> · <a href="https://arxiv.org/abs/2005.14165" target="_blank">GPT-3（arXiv:2005.14165）</a></div>
       </div>
 
@@ -3463,7 +3463,7 @@ print("都不匹配 → sigmoid:", [f"{p:.2f}" for p in none.sigmoid()])     # �
         <span class="label">🏗️ 项目进度 · 接「眼睛」到「大脑」的那根线</span>
         <p>视觉塔（D11/D12）吐出的视觉 token，维度和数量都不对 LLM 的胃口。今天写 <code>connector/projector.py</code> —— 把视觉 token <strong>对齐到 LLM 的隐藏维度</strong>（并可选压缩数量）。这是 D14 把「眼睛」接到「大脑」的那根关键的线。</p>
         <div class="repo-tree">nano-mllm/
-├── vision/encoder.py     <span style="color:var(--ink-faint)">← D11/D12</span>
+├── vision/encoder.py     <span style="color:var(--ink-faint)">← D12</span>
 └── connector/
     └── <b>projector.py</b>      <span style="color:var(--teal)">← 今天新增：视觉 token → LLM 维度（MLP / Pixel Shuffle）</span></div>
       </div>
@@ -4036,6 +4036,14 @@ prompts = [
       <h4>学习目标</h4>
       <p>InternVL 代表「<em class="term">增强视觉编码器</em>」这条路线——不用现成的小 CLIP,自己训一个更大更强的 ViT。学完今天你应能:<strong>(1)</strong> 说清「大 ViT 路线」vs「现成 CLIP 路线」的取舍;<strong>(2)</strong> 讲清动态分辨率怎么处理高清/任意长宽比的图;<strong>(3)</strong> 算出动态分辨率 + Pixel Shuffle 后的 token 数;<strong>(4)</strong> 知道 InternVL 为什么在 OCR、文档、中文上强。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 给 nano-mllm 加「看高清」的能力</span>
+        <p>你的 VLM（D14）现在只能吃固定 336px 的图，看不清密集小字。今天学 InternVL 的<strong>动态高分辨率</strong>后，写 <code>vision/dynamic_res.py</code>：按长宽比把高清图切成若干 448 tile + 一张缩略全图，再用 D13 的 Pixel Shuffle 压 token。这是 nano-mllm 迈向「能读文档 / OCR」的关键升级。</p>
+        <div class="repo-tree">nano-mllm/vision/
+├── encoder.py          <span style="color:var(--ink-faint)">← D12</span>
+└── <b>dynamic_res.py</b>      <span style="color:var(--teal)">← 今天新增：动态切 tile + 缩略全图（看清高清细节）</span></div>
+      </div>
+
       <h4>一、两条路线之争：视觉塔要不要自己训</h4>
       <p>D14 的 LLaVA 用<strong>现成 CLIP ViT-L(0.3B)</strong>当视觉塔,简单够用,但视觉能力被 CLIP 封顶。InternVL 走另一条路:<strong>自己从头训一个 6B 参数的 InternViT</strong>,视觉能力天花板大幅抬高。代价是训练成本巨大——这是典型的「<em class="term">买现成 vs 自研</em>」工程权衡。</p>
 
@@ -4076,6 +4084,44 @@ tok = AutoTokenizer.from_pretrained(path, trust_remote_code=True)
 # pixel_values = load_image("doc.jpg", max_num=12).to(torch.bfloat16).cuda()
 # resp = model.chat(tok, pixel_values, "请逐字读出图中的文字", dict(max_new_tokens=512))
 # print(resp)   # 重点体会它在 OCR / 文档上的高分辨率优势</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 动态分辨率的 token 预算，自己算一遍</span>
+        <p>「分辨率高 → 看得清，但 token 爆炸」是高清 MLLM 的核心矛盾。把 InternVL 的 token 账亲手算出来，看 Pixel Shuffle 怎么把它从「爆炸」拉回「可控」。</p>
+        <div class="code-block">def internvl_tokens(W, H, tile=448, patch=14, shuffle=2, max_tiles=12):
+    n = min(max_tiles, max(1, round((W*H) / (tile*tile))))   # 按面积估 tile 数
+    n_total  = n + 1                          # + 1 张缩略全图
+    per_tile = (tile // patch) ** 2           # 每 tile 的 patch token = 1024
+    raw      = n_total * per_tile
+    return n_total, raw, raw // (shuffle**2)  # 块数 / 不压 / Pixel Shuffle 压缩后
+
+for (W, H) in [(448,448), (1344,896), (2048,1536)]:
+    n, raw, comp = internvl_tokens(W, H)
+    print(f"{W}x{H}: {n} 块 → 不压 {raw} tok → Pixel Shuffle ÷4 后 {comp} tok")</div>
+        <table class="repro-table">
+          <caption>每 tile 1024 token、÷4 后 256；高清图不压缩动辄上千甚至上万 token，Pixel Shuffle 是把它压回可控的关键（呼应 D13）。</caption>
+          <thead><tr><th>图像</th><th>不压缩</th><th>Pixel Shuffle ÷4</th></tr></thead>
+          <tbody>
+            <tr><td>1344×896（≈6 tile + 1）</td><td>≈ 7168</td><td class="hit">≈ 1792</td></tr>
+            <tr><td>单 tile 448×448（1 + 1）</td><td>2048</td><td class="hit">512</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>当大家都用现成 0.3B 的 CLIP 当视觉塔时，InternVL 反其道而行：自己从头训一个 6B 的 InternViT</strong>（约 20 倍大），把视觉能力天花板整个抬高。难点是「6B 视觉塔」与「LLM」模态差距太大、对不齐，他们用了<strong>渐进式三阶段对齐</strong>：先在海量噪声图文上做对比学习，再到高质量数据上做生成式学习，最后监督微调 —— 由粗到精地把两个大家伙焊在一起。</p>
+        <p><strong>路线启示：</strong>「买现成 CLIP」省事但有上限，「自研大视觉塔」上限高但极贵。这也是 InternVL 在 OCR / 文档 / 中文上格外强的根。对你做实验：它开源、中文友好、可复现性好，是顺手的强基线。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2312.14238" target="_blank">InternVL（arXiv:2312.14238）</a> · <a href="https://arxiv.org/abs/2404.16821" target="_blank">InternVL 1.5（arXiv:2404.16821）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>切 tile 没按长宽比</strong>：硬塞成正方形会拉伸变形 → 用「找最接近的长宽比」再切。</p>
+        <p>② <strong>漏了缩略全图</strong>：只切 tile 会丢全局关系（物体跨 tile、整体布局）→ 必须额外加一张缩略图。</p>
+        <p>③ <strong>tile 分辨率不能被 patch / shuffle 整除</strong>：reshape 报错 → 选 448（/14=32、/2=16 都整除）这类友好尺寸。</p>
+        <p>④ <strong>6B 视觉塔显存爆</strong>：大 ViT 很吃显存 → 实战常用蒸馏出的小版本或量化加载。</p>
+      </div>
 
       <h4>四、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -4146,6 +4192,14 @@ tok = AutoTokenizer.from_pretrained(path, trust_remote_code=True)
       <h4>学习目标</h4>
       <p>Qwen-VL 是中文多模态的标杆,Qwen2-VL 的 <em class="term">M-RoPE</em> 是其代表性创新。学完今天你应能:<strong>(1)</strong> 说清标准 1D RoPE 处理图像/视频「位置感」的不足;<strong>(2)</strong> 默写 M-RoPE 怎么把 head 切成 t/h/w 三段、文本如何退化;<strong>(3)</strong> 讲清 Qwen-VL→Qwen2-VL 的架构演进(resampler → 动态分辨率 + M-RoPE);<strong>(4)</strong> 用 HF 跑通 Qwen2-VL 推理。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 把 nano-mllm 的 RoPE 升级成 M-RoPE</span>
+        <p>D04 你给 nano-GPT 写了 1D 的 <code>rope.py</code>，它分不清视觉 token 的「左上 / 右下」。今天升级成 <strong>M-RoPE</strong>：写 <code>model/m_rope.py</code>，给每个 token 一个 (t,h,w) 三维位置 —— 文本退化成 1D（向后兼容你的 nano-GPT），图像用 patch 行列。这让你的 VLM 真正有了空间位置感，为 D21 的 grounding 打底。</p>
+        <div class="repo-tree">nano-mllm/model/
+├── rope.py        <span style="color:var(--ink-faint)">← D04（1D RoPE）</span>
+└── <b>m_rope.py</b>       <span style="color:var(--teal)">← 今天新增：(t,h,w) 三维位置，文本兼容 1D</span></div>
+      </div>
+
       <h4>一、动机：1D 位置编码「看不懂」二维图像</h4>
       <p>LLM 的 RoPE 给每个 token 一个 <em class="term">1D 位置 m</em>(第几个 token)。但图像 patch 是<strong>二维排布</strong>的——把它们拉平成一维序列后,模型就丢了「这个 patch 在左上还是右下」的信息;视频还多了「第几帧」。M-RoPE 的思路:<strong>给每个 token 一个 (t,h,w) 三维位置</strong>,让模型天然感知时间和空间。</p>
 
@@ -4191,6 +4245,53 @@ out = model.generate(**inputs, max_new_tokens=256)
 # 去掉 prompt 部分再 decode
 trimmed = [o[len(i):] for i, o in zip(inputs.input_ids, out)]
 print(proc.batch_decode(trimmed, skip_special_tokens=True)[0])</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 验证「文本退化成 1D、图像拿到 2D」</span>
+        <p>M-RoPE 的关键是<strong>向后兼容</strong>：纯文本时三套坐标 t=h=w=序列位置，等价于 D04 的普通 1D RoPE；图像 token 才用上 (h,w)。亲手给一段「文本 + 一张 2×2 图 + 文本」分配位置 id，看它对不对。</p>
+        <div class="code-block">def mrope_position_ids(layout):
+    # layout: 列表，("text",) 或 ("image", H, W)
+    t, h, w, cur = [], [], [], 0
+    for item in layout:
+        if item[0] == "text":
+            t.append(cur); h.append(cur); w.append(cur)   # 文本：t=h=w → 退化 1D
+            cur += 1
+        else:                                              # 图像：t 固定，(h,w)=行列
+            _, H, W = item; base = cur
+            for r in range(H):
+                for c in range(W):
+                    t.append(base); h.append(base+r); w.append(base+c)
+            cur = base + max(H, W)                          # 跳过图像占的位置跨度
+    return t, h, w
+
+layout = [("text",), ("image", 2, 2), ("text",)]           # 文,图(2×2),文
+t, h, w = mrope_position_ids(layout)
+print("t:", t); print("h:", h); print("w:", w)
+# 开头/结尾文本位 t=h=w 相等 → 与 1D RoPE 一致；图像 4 个 patch 拿到各自 (h,w)</div>
+        <table class="repro-table">
+          <caption>文本 token 三坐标相等 = 普通 1D RoPE（兼容 nano-GPT）；图像 patch 拿到二维 (h,w)，模型才知道谁在左上谁在右下。</caption>
+          <thead><tr><th>token</th><th>(t,h,w)</th></tr></thead>
+          <tbody>
+            <tr><td>开头文本</td><td class="hit">(0,0,0) → 退化 1D</td></tr>
+            <tr><td>图像 patch 第(1,1)块</td><td class="hit">(1,2,2) → 含 2D 行列</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>Qwen2-VL 两个硬核改动，把「位置」和「分辨率」一起解决了。</strong>① <strong>Naive Dynamic Resolution</strong>：把 ViT 的绝对位置编码换成 2D-RoPE，于是能吃<strong>任意分辨率</strong>、动态产生数量不定的视觉 token（不再死守 256）。② <strong>M-RoPE</strong>：把旋转位置分解成<strong>时间 t / 高 h / 宽 w 三段</strong>，一套机制统一编码 1D 文本、2D 图像、3D 视频。</p>
+        <p><strong>战绩：</strong>靠这两招，Qwen2-VL 在一众多模态场景上<strong>追平 GPT-4o、Claude 3.5-Sonnet</strong>，是开源里最强的之一，也是国内做实验最常用的强基线。你今天写的 <code>m_rope.py</code>，就是它的核心。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2409.12191" target="_blank">Qwen2-VL（arXiv:2409.12191）</a> · <a href="https://arxiv.org/abs/2308.12966" target="_blank">Qwen-VL（arXiv:2308.12966）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>head 维度不能被 3 整除</strong>：t/h/w 三段切不均 → 选能整除的维度，或按 Qwen 的具体分配处理余数。</p>
+        <p>② <strong>纯文本没设 t=h=w</strong>：破坏向后兼容，纯文本能力直接退化 → 文本必须三坐标相等。</p>
+        <p>③ <strong>图像 (h,w) 行列算反 / 起点没接上文本</strong>：patch 空间关系全乱；图像位置基点要接在前文末尾。</p>
+        <p>④ <strong>把 M-RoPE 当成动态分辨率</strong>：一个管「位置」、一个管「token 数」，是两件独立的事，别混。</p>
+      </div>
 
       <h4>四、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -4244,6 +4345,14 @@ print(proc.batch_decode(trimmed, skip_special_tokens=True)[0])</div>
       <h4>学习目标</h4>
       <p>一句残酷的真相:<strong>当代 MLLM 架构大同小异,真正拉开差距的是数据。</strong>学完今天你应能:<strong>(1)</strong> 画出多模态数据金字塔、说清每层「量 vs 质」;<strong>(2)</strong> 把每类数据对应到 D14 的两阶段训练;<strong>(3)</strong> 讲清高质量 caption 和合成数据为什么越来越重要;<strong>(4)</strong> 自己造一条 LLaVA 格式的指令数据。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 造你自己的指令数据（顺便埋研究种子）</span>
+        <p>D20 你要训自己的 VLM，靠的就是数据。今天写 <code>data/build_instruct.py</code> —— 把图像 + 标注批量转成 LLaVA 格式的指令数据。更妙的是：<strong>结合你低光 / 图像复原的背景，造一批「退化感知」的多模态指令数据</strong>（现有数据几乎不覆盖），这可能就是你第一篇论文的数据贡献点。</p>
+        <div class="repo-tree">nano-mllm/data/
+├── tokenizer.py            <span style="color:var(--ink-faint)">← D02</span>
+└── <b>build_instruct.py</b>      <span style="color:var(--teal)">← 今天新增：图像+标注 → LLaVA 指令数据（含退化场景）</span></div>
+      </div>
+
       <h4>一、为什么说「数据 &gt; 架构」</h4>
       <p>从 LLaVA、InternVL 到 Qwen-VL,核心结构都是 <em class="term">ViT–Connector–LLM</em>,差别不大。真正决定一个 MLLM 强不强的,是<strong>喂了什么数据、配比如何、清洗得多干净</strong>。理解数据工程,比记住又一个架构变体更重要。</p>
 
@@ -4289,6 +4398,51 @@ print(json.dumps(sample, ensure_ascii=False, indent=2))
 
 # 训练时：&lt;image&gt; 会被替换成视觉 token（见 D15），
 # 只有 gpt 的回答参与 loss（见 D14 的 loss 落点）。</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 校验你的指令数据「能不能喂进去」</span>
+        <p>造数据最容易在格式上翻车。写个小校验器，确认每条样本：① 有 <code>image</code> 字段；② <code>conversations</code> 首轮是 human；③ 全文恰好一个 <code>&lt;image&gt;</code> 标记；④ 至少一个 gpt 回答（才有 loss）。这正是 LLaVA dataloader 在做的事。</p>
+        <div class="code-block">def validate(sample):
+    errs = []
+    conv = sample.get("conversations", [])
+    roles = [t["from"] for t in conv]
+    if "image" not in sample: errs.append("缺 image 字段")
+    if "gpt" not in roles: errs.append("缺 gpt 回答 → 没有 loss")
+    if conv and conv[0]["from"] != "human": errs.append("首轮必须是 human")
+    img_marks = sum(t["value"].count("&lt;image&gt;") for t in conv)
+    if img_marks != 1: errs.append(f"&lt;image&gt; 标记数={img_marks}（应为 1）")
+    return errs or ["OK ✓"]
+
+good = {"image": "a.jpg", "conversations": [
+    {"from": "human", "value": "&lt;image&gt;\n这是什么？"},
+    {"from": "gpt",   "value": "一只猫。"}]}
+bad  = {"conversations": [{"from": "human", "value": "这是什么？"}]}   # 缺 image/&lt;image&gt;/gpt
+print("good →", validate(good))     # ['OK ✓']
+print("bad  →", validate(bad))      # 多条报错</div>
+        <table class="repro-table">
+          <caption>格式校验通过 ≠ 数据好，但格式不对一定喂不进去。先过这关，再谈配比与清洗。</caption>
+          <thead><tr><th>样本</th><th>校验结果</th></tr></thead>
+          <tbody>
+            <tr><td>规范样本</td><td class="hit">OK ✓</td></tr>
+            <tr><td>缺 image / &lt;image&gt; / gpt</td><td>逐条报错</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>「caption 写得多细」直接决定模型多强。</strong>ShareGPT4V 用 GPT-4V 生成了 <strong>120 万条高度详细的 caption</strong>（覆盖世界知识、物体属性、空间关系、审美），实测：<strong>详细 caption 带来的对齐增益，明显超过简短 caption 或 VQA 数据</strong>，而且性能随<strong>详细 caption 的数量持续提升</strong>。把它喂进 LLaVA-7B、Qwen-VL-Chat 等，MME 直接涨两百多分。</p>
+        <p><strong>给你的启示：</strong>「用强模型批量造高质量 caption」是当下最高杠杆的数据手段之一，也呼应 D06 的 LIMA —— <strong>质量 ≫ 数量</strong>。你造退化感知数据时，描述写得越具体（噪声类型、暗部细节、退化程度），价值越高。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2311.12793" target="_blank">ShareGPT4V（arXiv:2311.12793）</a> · <a href="https://arxiv.org/abs/2305.11206" target="_blank">LIMA（arXiv:2305.11206）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong><code>&lt;image&gt;</code> 标记数 / 位置不对</strong>：多一个、少一个、或放错轮次 → dataloader 报错或视觉 token 错位（呼应 D14/D15）。</p>
+        <p>② <strong>角色名写错</strong>：必须是 <code>human</code> / <code>gpt</code>（或模型约定的 user/assistant），拼错就学不到对话结构。</p>
+        <p>③ <strong>图片路径 / 编码问题</strong>：相对路径找不到、中文路径乱码 → 统一相对根目录 + UTF-8。</p>
+        <p>④ <strong>合成数据继承幻觉</strong>：GPT-4V 也会编造细节 → 抽检 + 回环校验，否则把错误教给你的模型。</p>
+      </div>
 
       <h4>四、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -4360,6 +4514,14 @@ print(json.dumps(sample, ensure_ascii=False, indent=2))
       <h4>学习目标</h4>
       <p>了解 MLLM 怎么被科学评估、各 benchmark 测什么——<strong>这是写论文必须跑的指标</strong>。学完今天你应能:<strong>(1)</strong> 把主流 benchmark 按能力维度归类;<strong>(2)</strong> 说清 circular evaluation、GPT 辅助评分等评测方法;<strong>(3)</strong> 识别常见评测陷阱(选项泄露、单指标刷分);<strong>(4)</strong> 用 VLMEvalKit 给本地模型跑一套评测。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · 给 VLM 配一套体检 + 防自欺</span>
+        <p>D20 训完模型得有指标说话。今天写 <code>eval/run_benchmarks.py</code>（接 VLMEvalKit），并额外加一个<strong>「盲测基线」</strong>：把图像抹掉、只留问题让模型答，看它靠语言先验能蒙多少分。这一步能帮你识破「高分其实没看图」的假象 —— 是诚实评测的底线。</p>
+        <div class="repo-tree">nano-mllm/eval/
+├── zeroshot_cifar10.py     <span style="color:var(--ink-faint)">← D11</span>
+└── <b>run_benchmarks.py</b>       <span style="color:var(--teal)">← 今天新增：多维评测 + 盲测基线（防刷分）</span></div>
+      </div>
+
       <h4>一、为什么评测体系这么重要</h4>
       <p>MLLM 能力是<strong>多维</strong>的:会看图不代表会推理,会推理不代表不幻觉。所以评测不是一个数字,而是一张<em class="term">能力雷达</em>。发论文时,审稿人看的就是你在<strong>感知 / 认知 / OCR / 数学 / 幻觉 / 中文</strong>这几个维度上是否都站得住——只刷一个榜很容易被质疑。</p>
 
@@ -4386,6 +4548,43 @@ python run.py \
 # 结果会落到 outputs/，含每个维度的分数；
 # 想对比多模型，把 --model 换成多个名字即可一起跑。
 # 重点：同一套数据、同一评测协议下比较，结论才可信。</div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 把图抹掉，看模型能蒙多少分</span>
+        <p>最能戳破「虚高分」的实验：同一批多选题，分别在<strong>有图</strong>和<strong>无图（喂空白图或纯文字）</strong>两种条件下评测。如果无图也远超随机基线，说明这些题<strong>靠语言先验就能答</strong>，分数没真正衡量「看图能力」。这正是 MMStar 揭示的问题。</p>
+        <div class="code-block"># 评测协议（伪代码，VLMEvalKit 可改造）：对同一批题跑两遍
+def eval_blind_vs_sighted(model, questions, n_choices=4):
+    acc_sighted = run(model, questions, use_image=True)    # 正常给图
+    acc_blind   = run(model, questions, use_image=False)   # 不给图，只看问题+选项
+    random_base = 1 / n_choices                            # 4 选 1 → 25%
+    gain = acc_sighted - acc_blind                         # 「看图」真正带来的增益
+    print(f"有图 {acc_sighted:.1%} | 无图 {acc_blind:.1%} | 随机 {random_base:.0%}")
+    print(f"看图净增益 = {gain:.1%}  （无图远超随机 → 该 benchmark 视觉无关性高）")
+# 经验：很多老 benchmark 无图也能到 40%+（远超 25% 随机），视觉净增益其实不大</div>
+        <table class="repro-table">
+          <caption>看「有图 − 无图」的净增益，而非绝对分。无图就接近有图 → 这个 benchmark 没在考「看图」。</caption>
+          <thead><tr><th>条件</th><th>典型现象</th></tr></thead>
+          <tbody>
+            <tr><td>无图准确率</td><td>常 40%+（远超 25% 随机）</td></tr>
+            <tr><td>有图 − 无图净增益</td><td class="hit">才是真·视觉能力</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>一个让整个领域脸红的发现：很多多模态 benchmark，不看图也能答对。</strong>MMStar 团队实测：<strong>GeminiPro 在 MMMU 上不给任何图像也能拿 42.9%</strong>；多个主流 benchmark 上「纯文字、无图」就<strong>平均超过随机基线 24% 以上</strong> —— 因为答案能从问题 / 选项 / LLM 的世界知识里猜出来。更糟的是<strong>数据泄漏</strong>：有些测试题已混进训练语料，能被「背出来」。</p>
+        <p><strong>对你的意义：</strong>报指标时别只看绝对分，要关注「<strong>有图 vs 无图的增益</strong>」（MMStar 提出的 MG / ML 两个指标）。否则你以为模型视觉强，其实是语言在答题 —— 这是审稿人会盯的点。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2403.20330" target="_blank">MMStar: Are We on the Right Way for Evaluating LVLMs?（arXiv:2403.20330）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>跨实现比分数</strong>：同名 benchmark 不同仓库的 prompt / 后处理不同，分数不可直接比 —— 固定一套工具（VLMEvalKit）再横向比。</p>
+        <p>② <strong>没做 circular eval</strong>：单次问、固定选项顺序，模型可能靠选项位置偏置蒙对 → 打乱多次问、全对才算对。</p>
+        <p>③ <strong>把 GPT-4 裁判当真值</strong>：裁判有偏差和波动 → 固定版本、多次取平均、关键结论辅以人工。</p>
+        <p>④ <strong>不查数据污染</strong>：测试题混进训练集 → 分数虚高；新模型要自查泄漏（MMStar 的 ML 指标）。</p>
+      </div>
 
       <h4>三、自测 / 误区 / 面试</h4>
       <div class="box-tip">
@@ -4452,6 +4651,12 @@ python run.py \
       <h4>今日目标</h4>
       <p>纯实操日:在 4×4090 上完整走一遍 LLaVA 训练,把前面学的「两阶段(D14)+ LoRA(D8)+ 数据(D18)+ 评测(D19)」全部串起来跑一次。学完你应能:<strong>(1)</strong> 独立跑通 Stage1/Stage2;<strong>(2)</strong> 看懂每个训练参数;<strong>(3)</strong> 用 ZeRO + LoRA 在有限显存上训 7B;<strong>(4)</strong> 训完用 VLMEvalKit 评测。</p>
 
+      <div class="box-build">
+        <span class="label">🏗️ 项目进度 · W4 毕业作品：训出你自己的 VLM 🎓</span>
+        <p>capstone 走到这里：用工业级的 LLaVA 代码<strong>真的训出一个你自己的多模态模型</strong>，把 D14（两阶段）、D08（LoRA）、D18（数据）、D19（评测）全部串起来跑通。这是对你前 20 天 <code>nano-mllm</code> 心智模型的一次「工业级验收」—— 你写的每个零件，在这里都能找到对应。</p>
+        <p><strong>里程碑：</strong>一个能看图对话、有 benchmark 分数、可对比的 VLM。W5 起给它加 grounding / 分割 / 文档等细粒度能力。</p>
+      </div>
+
       <h4>一、完整训练流程</h4>
       <div class="code-block"># —— 0. 环境 + 数据 ——
 git clone https://github.com/haotian-liu/LLaVA.git
@@ -4487,6 +4692,46 @@ deepspeed --num_gpus 4 llava/train/train_mem.py \
       <div class="box-important">
         <span class="label">🔥 显存与并行：4×4090 怎么塞下 7B</span>
         <p>① <strong>DeepSpeed ZeRO</strong>:ZeRO-2 切分优化器状态+梯度,ZeRO-3 连参数也切到多卡,大幅省单卡显存。② <strong>LoRA</strong>(呼应 D8):只训低秩增量矩阵,可训参数从几十亿降到几千万,显存和存储都省。③ <strong>bf16 + gradient checkpointing</strong>:半精度 + 用计算换显存。④ <strong>global batch = per_device × grad_accum × num_gpus</strong>:显存不够就调小 per_device、调大 grad_accum 维持等效 batch。</p>
+      </div>
+
+      <div class="box-repro">
+        <span class="label">🔬 复现实验 · 训练前先把「账」算清楚</span>
+        <p>开训前两件事不算清楚就容易 OOM 或白训：① 有效 batch（per_device × grad_accum × 卡数）；② LoRA 到底省了多少可训参数。再记住 Stage 1 / Stage 2 训完模型「应该会什么」，才知道有没有训对。</p>
+        <div class="code-block">def global_batch(per_device, grad_accum, num_gpus):
+    return per_device * grad_accum * num_gpus
+
+def lora_trainable(d=4096, n_layers=32, r=128, targets=4):   # 给 q/k/v/o 挂 LoRA
+    full = n_layers * targets * d * d                        # 全量微调这些层
+    lora = n_layers * targets * (r*d + d*r)                  # 只训 A+B
+    return full, lora, full / lora
+
+print("有效 batch:", global_batch(16, 1, 4))                 # 64
+full, lora, ratio = lora_trainable()
+print(f"全量 {full/1e9:.2f}B vs LoRA {lora/1e6:.0f}M → 省 {ratio:.0f}×")</div>
+        <table class="repro-table">
+          <caption>Stage 1 只训 projector（学对齐、还不会对话）；Stage 2 联训才学会按指令答题 —— 跳过 Stage 1 直接 SFT 会又差又不稳（见 D14）。</caption>
+          <thead><tr><th>阶段 / 项</th><th>结果</th></tr></thead>
+          <tbody>
+            <tr><td>有效 batch（16×1×4）</td><td class="hit">64</td></tr>
+            <tr><td>LoRA(r=128) 省比</td><td class="hit">≈ 16×（r 越小省越多）</td></tr>
+            <tr><td>Stage 1 训完</td><td>会看图说标题，还不会对话</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box-report">
+        <span class="label">📑 工业实证 · 大厂战报</span>
+        <p><strong>训完发现 VQA 分数很低？先别怀疑模型 —— 多半是「格式」不是「能力」。</strong>LLaVA-1.5 报告了一个极实用的现象：模型其实答对了，但因为<strong>输出太啰嗦</strong>（给一大段解释），而 VQA 类 benchmark 要的是<strong>一个单词 / 短语</strong>的精确匹配，于是被判错、分数虚低。解法简单到离谱：在 prompt 里加一句<strong>「用一个单词或短语回答」</strong>，分数立刻回来。</p>
+        <p><strong>给你的启示：</strong>训自己的模型时，<strong>评测掉分先查 prompt 格式与答案抽取</strong>，再怀疑模型。这类「格式 / 协议」坑，往往比架构更影响你看到的数字。</p>
+        <div class="report-src">来源：<a href="https://arxiv.org/abs/2310.03744" target="_blank">LLaVA-1.5: Improved Baselines（arXiv:2310.03744）</a></div>
+      </div>
+
+      <div class="box-important">
+        <span class="label">🐛 调试实录 · failure modes</span>
+        <p>① <strong>Stage 2 忘了载入 Stage 1 的 projector</strong>：<code>pretrain_mm_mlp_adapter</code> 没指对 → 等于又从随机 projector 开始，白训。</p>
+        <p>② <strong>OOM 就只会减 batch</strong>：先上 ZeRO-3 / LoRA / gradient checkpointing，再用 grad_accum 把等效 batch 补回来。</p>
+        <p>③ <strong>没冻结 ViT</strong>：指令数据量小，放开视觉塔容易被带偏、还更吃显存。</p>
+        <p>④ <strong>评测掉分先怪模型</strong>：多半是 prompt 格式 / 答案抽取问题（见上方战报），先查协议再调模型。</p>
       </div>
 
       <h4>二、自测 / 误区 / 面试</h4>
