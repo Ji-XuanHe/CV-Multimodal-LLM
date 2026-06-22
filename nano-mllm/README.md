@@ -26,6 +26,7 @@ python train_lm.py                 # D05 ★ 训练 nano-GPT 并生成文本（C
 # —— 后训练 / 强化学习（初学者重点，先读 finetune/README.md）—— 
 python finetune/sft.py             # D06 SFT：loss 只学回答
 python finetune/toy_rlhf.py        # ★ 从零 GRPO：无标注，奖励自己往上爬
+python finetune/opd.py             # ★ 从零 OPD：在策略+稠密蒸馏（2025 最新，≈10× 省于 GRPO）
 python finetune/dpo.py             # D07 DPO：不用 RL 的对齐捷径
 python finetune/lora.py            # D08 LoRA：省 128× 参数
 
@@ -70,6 +71,7 @@ nano-mllm/
 │   ├── sft.py — D06 SFT：loss mask
 │   ├── dpo.py — D07 DPO（不用 RL 的对齐）
 │   ├── toy_rlhf.py — D07 ★ 从零 GRPO（reward 自己往上爬）
+│   ├── opd.py — ★ 从零 OPD（On-Policy Distillation，2025 最新后训练）
 │   └── lora.py — D08 LoRA：省 128×
 ├── vision/
 │   ├── clip.py — D11 CLIP 对比损失 + 过拟合自检

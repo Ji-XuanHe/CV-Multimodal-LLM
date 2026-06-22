@@ -97,13 +97,39 @@ step 120  平均奖励 5.95/6
 
 ---
 
+## 5. OPD：最新——在策略 + 稠密信号（2025 最火的蒸馏配方）→ `python finetune/opd.py` ★
+
+**大白话**：SFT 是「抄老师的标准答案」（在老师走过的路上学），但你自己考试一旦走偏，就到了
+老师没教过的地方，错上加错（exposure bias）。RL 是「自己做题、只告诉你最后对不对」（信号太稀）。
+**OPD = 自己做题（on-policy），但老师在你写的每一个字上都告诉你「这一步正确的分布长啥样」**
+（稠密）—— 既在你真会遇到的状态上学，又每步都有满满的监督。
+
+**机制**：学生【自己生成】序列，教师对【每个 token】给出完整分布，学生用 **reverse-KL** 匹配它。
+- vs SFT / 离策略蒸馏：OPD 在【学生自己的轨迹】上学 → 治 exposure bias；
+- vs RL / GRPO：OPD 每个 token 都有【完整分布】监督，不是一整条才一个标量奖励。
+
+**为什么火**：数学推理上 OPD 能用 **≈RL 的 1/10 算力**达到同等水平（Thinking Machines 报告：
+AIME'24 74.4%，1800 vs 17920 GPU 时；7–10× 更少梯度步），已被多家产线当作 SFT 之后的主蒸馏阶段。
+
+**跑一下** `python finetune/opd.py`：学生在「计数」任务上、靠在自己 rollout 的状态上匹配教师逐 token
+分布，**reverse-KL 从 0.74 掉到 ~0.001**、学会教师规则 —— 这就是 OPD 的核心。
+
+> 何时用哪个：有强教师、想便宜地逼近它 → OPD；有可验证奖励、想突破教师上限 → GRPO；
+> 只有成对偏好 → DPO；最开始让模型听话 → SFT。
+
+参考：GKD（arXiv:2306.13649）· MiniLLM（arXiv:2306.08543）· MLLM 上的 OPD（arXiv:2606.09091）·
+Thinking Machines Lab, *On-Policy Distillation*（2025, 博客）。
+
+---
+
 ## 一句话总结
 
 | 阶段 | 目的 | 跑这个 |
 |---|---|---|
 | SFT | 学会听指令（只学回答） | `python finetune/sft.py` |
 | RL/GRPO | 用奖励把行为推向「更好」（无需标注，规则即奖励） | `python finetune/toy_rlhf.py` ★ |
+| OPD | 在策略 + 稠密：自采样、教师逐 token 蒸馏（≈10× 省于 GRPO） | `python finetune/opd.py` ★ |
 | DPO | 不搞 RL 的对齐捷径（成对偏好直接优化） | `python finetune/dpo.py` |
 | LoRA | 让上面这些在你的显卡上跑得起（只训低秩旁路） | `python finetune/lora.py` |
 
-跑完这 4 个，你就**真的理解**了「后训练 / RLHF / GRPO / DPO」—— 不是听过，是跑过。
+跑完这 5 个，你就**真的理解**了「后训练 / SFT / RLHF / GRPO / OPD / DPO」—— 不是听过，是跑过。
