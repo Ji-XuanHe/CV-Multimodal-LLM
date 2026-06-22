@@ -16,6 +16,9 @@ OPD 是 2025 最火的后训练范式之一，正好补在 SFT 和 RL 中间：
   2. on-policy rollout：序列从【学生自己】采样 —— 学生会访问到它推理时真会遇到的状态
   3. reverse-KL：在学生访问的每个状态上，min KL(student || teacher) —— mode-seeking
   4. 稠密信号：每个 token 都有教师的完整分布做监督，不是 RL 的一个标量
+
+诚实声明：此 toy 只演示 OPD【机制本身】（on-policy 采样 + 稠密 reverse-KL → 收敛到教师）；
+OPD 相对【离策略蒸馏】的「治 exposure bias」优势，要在真实规模/序列任务上才显著，这里不做该对比。
 运行: python nano-mllm/finetune/opd.py
 依赖: numpy
 ============================================================================
@@ -46,6 +49,12 @@ def train(steps=150, lr=0.5, seed=0):
     W = np.zeros((V, V))                              # 学生 logits：p(·|prev)=softmax(W[prev])，初始均匀
 
     for step in range(steps + 1):
+        if step % 30 == 0:                           # 先记录当前(未更新)策略，step 0 即反映初始均匀策略
+            P = softmax(W)
+            kl_avg = float((P * (np.log(P + 1e-9) - np.log(q + 1e-9))).sum(-1).mean())
+            follow = float((P.argmax(-1) == (np.arange(V) + 1) % V).mean())
+            print(f"step {step:3d}  reverse-KL(均) {kl_avg:.3f}   规则跟随率 {follow * 100:4.0f}%")
+
         grad = np.zeros((V, V))
         visits = np.zeros(V)
         for _ in range(B):
@@ -58,12 +67,6 @@ def train(steps=150, lr=0.5, seed=0):
                 visits[s] += 1
                 s = rng.choice(V, p=p)               # 走到学生自己采的下一个状态
         W -= lr * grad / max(visits.sum(), 1)
-
-        if step % 30 == 0:
-            P = softmax(W)
-            kl_avg = float((P * (np.log(P + 1e-9) - np.log(q + 1e-9))).sum(-1).mean())
-            follow = float((P.argmax(-1) == (np.arange(V) + 1) % V).mean())
-            print(f"step {step:3d}  reverse-KL(均) {kl_avg:.3f}   规则跟随率 {follow * 100:4.0f}%")
 
     P = softmax(W)
     print("\n学生学到的「下一个」:", [int(P[s].argmax()) for s in range(V)],
